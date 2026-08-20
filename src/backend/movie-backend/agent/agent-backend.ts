@@ -192,14 +192,17 @@ const MOVIE_STUDIO_CHARACTERS_PLAN_PROMPT = [
 ].join("\n");
 
 const CHARACTER_IMAGE_PROMPT = [
-  "You are a movie pre-production planner. Given a movie idea, its art style, and one character, write that character's standalone image prompt.",
+  "You are a movie pre-production planner. Given a movie idea, its art style, and one character, write that character's standalone character-reference image prompt.",
   "",
   "Return ONLY valid JSON (no markdown fences, no commentary) matching this exact shape:",
   "",
   '{"imagePrompt":"string"}',
   "",
   "Rules:",
-  "- The imagePrompt begins with the character's name and fully describes their appearance (age, face, build, outfit, distinctive features) together with their cultural background — the era/age, culture, ethnicity, and region the character belongs to — so the generated image is historically and culturally accurate and consistent.",
+  "- The imagePrompt describes a close-up portrait shot of the character's face on a plain solid white background, framed head and shoulders, facing the camera, evenly lit with soft neutral studio lighting and no props, scenery or background elements.",
+  "- The imagePrompt begins with the character's name and then concentrates on the face: age, face shape, skin tone and texture, eyes, eyebrows, nose, mouth, facial hair, hairstyle and hair colour, expression, and any distinctive facial features such as scars, freckles or markings.",
+  "- Include the character's cultural background — the era/age, culture, ethnicity, and region they belong to — so the face is historically and culturally accurate and consistent.",
+  "- Mention clothing only as far as the collar or neckline is visible in a head-and-shoulders crop; do not describe the full outfit, body build, pose, or action.",
   "- Apply the given artStyle.",
   "- Write the prompt as natural-language English sentences, never comma-separated keyword tags.",
 ].join("\n");
