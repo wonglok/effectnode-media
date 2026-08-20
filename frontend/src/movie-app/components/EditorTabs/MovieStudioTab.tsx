@@ -324,20 +324,38 @@ export default function MovieStudioTab({ projectId }: Props) {
 
           {/* ===== Submit ===== */}
           {store.generating ? (
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 flex-1 px-4 py-3 bg-ink-50 border border-ink-200 rounded-2xl">
-                {SpinnerIcon}
-                <span className="text-sm font-medium text-ink-700">
-                  Generating production bible...
-                </span>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-1 px-4 py-3 bg-ink-50 border border-ink-200 rounded-2xl">
+                  {SpinnerIcon}
+                  <span className="text-sm font-medium text-ink-700">
+                    {store.generateStatus ?? "Generating production bible..."}
+                  </span>
+                </div>
+                <button
+                  onClick={() => store.stop()}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white text-sm font-semibold rounded-2xl transition-all duration-150 shadow-sm"
+                >
+                  {StopIcon}
+                  Stop
+                </button>
               </div>
-              <button
-                onClick={() => store.stop()}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white text-sm font-semibold rounded-2xl transition-all duration-150 shadow-sm"
-              >
-                {StopIcon}
-                Stop
-              </button>
+              {store.generateProgress && store.generateProgress.total > 0 && (
+                <div className="flex items-center gap-3 px-1">
+                  <div className="flex-1 h-2 bg-ink-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-tiffany-500 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${(store.generateProgress.current / store.generateProgress.total) * 100}%`,
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs font-semibold text-ink-700 tabular-nums whitespace-nowrap">
+                    {store.generateProgress.current}/
+                    {store.generateProgress.total}
+                  </span>
+                </div>
+              )}
             </div>
           ) : (
             <button

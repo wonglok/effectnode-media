@@ -281,6 +281,7 @@ export async function generateMovieStudioBible(
   projectId: string,
   idea: string,
   model?: string,
+  onProgress?: (statusText: string, current: number, total: number) => void,
 ): Promise<{ characters: any[]; places: any[]; scenes: any[] }> {
   const resolvedModel =
     typeof model === "string" && model.trim() ? model.trim() : DEFAULT_MODEL;
@@ -342,7 +343,20 @@ export async function generateMovieStudioBible(
     }
   };
 
+  // Progress reporting (SSE-synced to the UI by the queue worker).
+  let current = 0;
+  let total = 0;
+  const addTotal = (n: number) => {
+    total += n;
+  };
+  const note = (statusText: string) => onProgress?.(statusText, current, total);
+  const advance = (statusText: string) => {
+    current += 1;
+    onProgress?.(statusText, current, total);
+  };
+
   // 1. Character plan — a compact list of slugs/names + the film's art style.
+  note("Identifying characters…");
   const charPlan = await ask(MOVIE_STUDIO_CHARACTERS_PLAN_PROMPT, idea.trim());
   const artStyle = toStr(charPlan?.artStyle) || "photo realistic render";
   const charList: { slug: string; name: string }[] = (
@@ -350,10 +364,12 @@ export async function generateMovieStudioBible(
   )
     .map((c: any) => ({ slug: toStr(c?.slug), name: toStr(c?.name) }))
     .filter((c: any) => c.slug);
+  addTotal(charList.length);
 
   // 2. Character details — one image prompt per character (agentic loop).
   const characters: any[] = [];
   for (const c of charList) {
+    advance(`Generating character image: ${c.name || c.slug}`);
     const detail = await generateItem(
       CHARACTER_IMAGE_PROMPT,
       `Art style: ${artStyle}\n\nIdea: ${idea.trim()}\n\nCharacter slug: ${c.slug}\nCharacter name: ${c.name}`,
@@ -367,6 +383,7 @@ export async function generateMovieStudioBible(
   }
 
   // 3. Place plan + details.
+  note("Identifying places…");
   const placePlan = await ask(
     MOVIE_STUDIO_PLACES_PLAN_PROMPT,
     `Art style: ${artStyle}\n\nIdea: ${idea.trim()}\n\nCharacters:\n${JSON.stringify(characters.map((c) => ({ slug: c.slug, name: c.name })))}`,
@@ -376,9 +393,11 @@ export async function generateMovieStudioBible(
   )
     .map((p: any) => ({ slug: toStr(p?.slug), name: toStr(p?.name) }))
     .filter((p: any) => p.slug);
+  addTotal(placeList.length);
 
   const places: any[] = [];
   for (const p of placeList) {
+    advance(`Generating place image: ${p.name || p.slug}`);
     const detail = await generateItem(
       PLACE_IMAGE_PROMPT,
       `Art style: ${artStyle}\n\nIdea: ${idea.trim()}\n\nPlace slug: ${p.slug}\nPlace name: ${p.name}`,
@@ -392,6 +411,7 @@ export async function generateMovieStudioBible(
   }
 
   // 4. Scene plan + details — one scene's full details per request.
+  note("Planning scenes…");
   const scenePlan = await ask(
     MOVIE_STUDIO_SCENES_PLAN_PROMPT,
     `Art style: ${artStyle}\n\nIdea: ${idea.trim()}\n\nCharacters:\n${JSON.stringify(characters.map((c) => ({ slug: c.slug, name: c.name })))}\n\nPlaces:\n${JSON.stringify(places.map((p) => ({ slug: p.slug, name: p.name })))}`,
@@ -411,9 +431,11 @@ export async function generateMovieStudioBible(
       placeSlug: toStr(s?.placeSlug),
     }))
     .filter((s: any) => s.slug);
+  addTotal(sceneList.length);
 
   const scenes: any[] = [];
   for (const s of sceneList) {
+    advance(`Writing scene: ${s.slug}`);
     const detail = await generateItem(
       SCENE_DETAIL_PROMPT,
       `Art style: ${artStyle}\n\nIdea: ${idea.trim()}\n\nCharacters:\n${JSON.stringify(characters.map((c) => ({ slug: c.slug, name: c.name })))}\n\nPlaces:\n${JSON.stringify(places.map((p) => ({ slug: p.slug, name: p.name })))}\n\nScene slug: ${s.slug}\nDuration: ${s.duration}s\nCharacter slugs: ${s.characterSlugs.join(", ")}\nPlace slug: ${s.placeSlug}`,

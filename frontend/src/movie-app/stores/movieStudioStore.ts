@@ -143,6 +143,8 @@ interface MovieStudioStore {
   projectId: string | null;
   hydrated: boolean;
   generating: boolean;
+  generateStatus: string | null;
+  generateProgress: { current: number; total: number } | null;
   result: MovieStudioResult | null;
   error: string | null;
   rendering: boolean;
@@ -197,6 +199,8 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
   projectId: null,
   hydrated: false,
   generating: false,
+  generateStatus: null,
+  generateProgress: null,
   result: null,
   error: null,
   rendering: false,
@@ -468,14 +472,28 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
         if (task.status === "completed" && task.result) {
           if (!appliedCompleted.has(task.id)) {
             appliedCompleted.add(task.id);
-            set({ result: task.result, generating: false });
+            set({
+              result: task.result,
+              generating: false,
+              generateStatus: null,
+              generateProgress: null,
+            });
             persistMovieStudioState();
             playDing3x();
           }
         } else if (err) {
-          set({ generating: false, error: err });
+          set({
+            generating: false,
+            error: err,
+            generateStatus: null,
+            generateProgress: null,
+          });
         } else {
-          set({ generating: isActive });
+          set({
+            generating: isActive,
+            generateStatus: task.status === "running" ? task.statusText : null,
+            generateProgress: task.progress,
+          });
         }
         break;
       }
@@ -711,6 +729,8 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
     set({
       idea: "",
       generating: false,
+      generateStatus: null,
+      generateProgress: null,
       result: null,
       error: null,
       rendering: false,

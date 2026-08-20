@@ -523,6 +523,9 @@ const handlers: Record<QueueTaskType, Handler> = {
       ctx.projectId,
       idea.trim(),
       typeof model === "string" && model.trim() ? model.trim() : undefined,
+      (statusText, current, total) => {
+        ctx.update({ statusText, progress: { current, total } });
+      },
     );
     ctx.log("Production bible ready.\n");
     return result;
