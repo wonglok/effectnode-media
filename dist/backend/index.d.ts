@@ -1,4 +1,3 @@
-import { type Server } from "node:http";
 export interface BackendOptions {
     port?: number;
 }
@@ -6,4 +5,4 @@ export interface BackendOptions {
  * Create and start the Express backend: CORS + REST API (mounted at /api) and
  * a WebSocket server (at /ws) on the same HTTP server.
  */
-export declare function createBackendServer(options?: BackendOptions): Promise<Server>;
+export declare function createBackendServer(options?: BackendOptions): Promise<any>;

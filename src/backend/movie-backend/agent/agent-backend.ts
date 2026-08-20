@@ -698,7 +698,7 @@ export async function agentBackend({
             reasoning_effort: "max",
             stream: true,
           },
-          { signal: req.signal },
+          { signal: req.signal as AbortSignal },
         );
 
         let content = "";
@@ -781,7 +781,7 @@ export async function agentBackend({
                 projectId,
                 emit: send,
                 backendPort,
-                signal: req.signal,
+                signal: req.signal as AbortSignal,
               },
             );
             send("tool", {

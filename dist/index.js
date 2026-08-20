@@ -6,6 +6,7 @@ import chalk from "chalk";
 import open from "open";
 import { createServer as createViteServer } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { createBackendServer } from "./backend/index.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // The Vite app source lives at the package root, next to dist/ (shipped in
@@ -18,7 +19,7 @@ program
     "and an Express backend (REST + WebSocket) — then open the browser.")
     .version("0.1.0")
     .option("--host <host>", "Host to bind", "localhost")
-    .option("--frontend-port <port>", "Frontend (Vite) port", "5173")
+    .option("--frontend-port <port>", "Frontend (Vite) port", "5177")
     .option("--backend-port <port>", "Backend (Express) port", "4000")
     .option("--no-open", "Do not open the browser")
     .action(async (options) => {
@@ -31,7 +32,10 @@ program
     //    /api and /ws to the backend so browser calls are same-origin.
     const vite = await createViteServer({
         root: FRONTEND_ROOT,
-        plugins: [react()],
+        plugins: [react(), tailwindcss()],
+        env: {
+            PORT: backendPort,
+        },
         server: {
             host,
             port: frontendPort,
@@ -58,7 +62,8 @@ program
     console.log(chalk.dim("  Press Ctrl+C to stop."));
     console.log("");
     // 3. Open the frontend in the browser (skip when disabled or headless).
-    if (options.open !== false && process.env.EFFECTNODE_MEDIA_NO_OPEN !== "1") {
+    if (options.open !== false &&
+        process.env.EFFECTNODE_MEDIA_NO_OPEN !== "1") {
         await open(url);
     }
     const shutdown = () => {

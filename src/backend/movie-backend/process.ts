@@ -35,9 +35,7 @@ export interface SpawnOptions {
 }
 
 /** Convert a Node readable stream into a WHATWG ReadableStream (null-safe). */
-function toWeb(
-  stream: NodeJS.ReadableStream | null,
-): ReadableStream<Uint8Array> | null {
+function toWeb(stream: Readable | null): ReadableStream<Uint8Array> | null {
   if (!stream) return null;
   return Readable.toWeb(stream) as ReadableStream<Uint8Array>;
 }
