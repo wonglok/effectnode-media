@@ -3,7 +3,7 @@ import { create } from "zustand";
 const API_BASE = `http://localhost:${(window as any).PORT}`;
 
 /** Models that have a dedicated download endpoint in the backend. */
-export type AiModelId = "z-image" | "flux" | "qwen" | "h3";
+export type AiModelId = "z-image" | "flux" | "qwen";
 
 /** Tools whose "install" step must run before their models can be downloaded. */
 export type AiToolId = "mlxgen" | "mlx-vlm";
@@ -16,7 +16,6 @@ interface AiModelStore {
   zImageDownloaded: boolean | null;
   fluxDownloaded: boolean | null;
   qwenDownloaded: boolean | null;
-  h3Downloaded: boolean | null;
   // In-flight install/download (a model id or tool id)
   downloading: string | null;
   logs: string[];
@@ -67,7 +66,6 @@ const DOWNLOAD_ENDPOINTS: Record<AiModelId, string> = {
   "z-image": "/api/mlxgen/download-z-model",
   flux: "/api/mlxgen/download-flux-model",
   qwen: "/api/mlxgen/download-model",
-  h3: "/api/h3/download-model",
 };
 
 const TOOL_ENDPOINTS: Record<AiToolId, string> = {
@@ -81,18 +79,16 @@ export const useAiModelStore = create<AiModelStore>((set, get) => ({
   zImageDownloaded: null,
   fluxDownloaded: null,
   qwenDownloaded: null,
-  h3Downloaded: null,
   downloading: null,
   logs: [],
   error: null,
 
   checkStatus: async () => {
     try {
-      const [mlxgen, h3, agent] = await Promise.all([
+      const [mlxgen, agent] = await Promise.all([
         fetch(`${API_BASE}/api/mlxgen/status`).then((r) =>
           r.ok ? r.json() : null,
         ),
-        fetch(`${API_BASE}/api/h3/status`).then((r) => (r.ok ? r.json() : null)),
         fetch(`${API_BASE}/api/agent/status`).then((r) =>
           r.ok ? r.json() : null,
         ),
@@ -102,7 +98,6 @@ export const useAiModelStore = create<AiModelStore>((set, get) => ({
         qwenDownloaded: mlxgen ? Boolean(mlxgen.modelDownloaded) : null,
         zImageDownloaded: mlxgen ? Boolean(mlxgen.zModelDownloaded) : null,
         fluxDownloaded: mlxgen ? Boolean(mlxgen.fluxModelDownloaded) : null,
-        h3Downloaded: h3 ? Boolean(h3.downloaded) : null,
         mlxVlmInstalled: agent ? Boolean(agent.installed) : null,
       });
     } catch {

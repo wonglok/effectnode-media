@@ -12,7 +12,6 @@ import CharactersTab from "./EditorTabs/CharactersTab";
 import ExtractImageTab from "./EditorTabs/ExtractImageTab";
 import SceneVisualTab from "./EditorTabs/SceneVisualTab";
 import TextToImageTab from "./EditorTabs/TextToImageTab";
-import ReferencesToVideoTab from "./EditorTabs/ReferencesToVideoTab";
 import BatchVideoTab from "./EditorTabs/BatchVideoTab";
 import BatchImageToVideoTab from "./EditorTabs/BatchImageToVideoTab";
 import BatchVoiceVideoTab from "./EditorTabs/BatchVoiceVideoTab";
@@ -238,22 +237,6 @@ export default function ProjectEditorPage() {
     </svg>
   );
 
-  const ReferencesToVideoIcon = (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-    </svg>
-  );
-
   const BatchVideoIcon = (
     <svg
       width="18"
@@ -442,7 +425,7 @@ export default function ProjectEditorPage() {
               }`}
             >
               {VideoIcon}
-              Generate Avatar ideo
+              Generate Avatar Video
             </button>
             <button
               onClick={() => store.setActiveTab("extend")}
@@ -531,17 +514,6 @@ export default function ProjectEditorPage() {
             >
               {TextToImageIcon}
               Text-to-Image
-            </button>
-            <button
-              onClick={() => store.setActiveTab("referencesToVideo")}
-              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "referencesToVideo"
-                  ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
-                  : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
-              }`}
-            >
-              {ReferencesToVideoIcon}
-              References to Video
             </button>
             <button
               onClick={() => store.setActiveTab("batchVideo")}
@@ -641,11 +613,6 @@ export default function ProjectEditorPage() {
           {/* ========== TEXT-TO-IMAGE PANEL ========== */}
           {store.activeTab === "textToImage" && (
             <TextToImageTab projectId={id!} />
-          )}
-
-          {/* ========== REFERENCES TO VIDEO PANEL ========== */}
-          {store.activeTab === "referencesToVideo" && (
-            <ReferencesToVideoTab projectId={id!} />
           )}
 
           {/* ========== BATCH VIDEO PANEL ========== */}

@@ -22,7 +22,6 @@ export type GenerationTab =
   | "extract"
   | "sceneVisual"
   | "textToImage"
-  | "referencesToVideo"
   | "batchVideo"
   | "batchImageToVideo"
   | "batchVoice"

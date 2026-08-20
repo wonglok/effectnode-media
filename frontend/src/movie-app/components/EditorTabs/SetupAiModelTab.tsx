@@ -195,11 +195,6 @@ const DOWNLOAD_MODELS: {
     name: "AbstractFramework/qwen-image-edit-2511-8bit",
     desc: "Image editing",
   },
-  {
-    id: "h3",
-    name: "appautomaton/minimax-h3-base-8bit-mlx",
-    desc: "References-to-video",
-  },
 ];
 
 export default function SetupAiModelTab() {
@@ -291,9 +286,7 @@ export default function SetupAiModelTab() {
                 ? store.zImageDownloaded
                 : m.id === "flux"
                   ? store.fluxDownloaded
-                  : m.id === "qwen"
-                    ? store.qwenDownloaded
-                    : store.h3Downloaded;
+                  : store.qwenDownloaded;
             return (
               <ModelRow key={m.id} name={m.name} desc={m.desc}>
                 <StatusBadge value={downloaded} />
