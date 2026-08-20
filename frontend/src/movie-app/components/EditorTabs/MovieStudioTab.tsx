@@ -665,7 +665,7 @@ export default function MovieStudioTab({ projectId }: Props) {
                             onClick={() =>
                               openPreview(fullUrl, img.slug, "image")
                             }
-                            className="aspect-[9/16] object-cover object-center w-full cursor-zoom-in"
+                            className="aspect-square object-cover object-center w-full cursor-zoom-in"
                           />
                         </div>
                         <div className="flex items-center justify-between gap-1">
