@@ -217,7 +217,6 @@ const MOVIE_STUDIO_SCENES_PROMPT = [
   "",
   "Rules:",
   "- Break the story into many small scenes: each scene is a single camera moment with one action beat.",
-  "- Generate as many scenes as possible: maximize the scene count. Every distinct beat, camera change, or exchange of dialogue should become its own scene — when in doubt, split into more scenes rather than fewer.",
   "- Never reduce or summarize the dialogue: distribute every single spoken line across the resulting small scenes so no line is lost.",
   "- Preserve as much detail as possible in every description and imagePrompt.",
   "- Each scene references the characters and the place involved via their slugs (characterSlugs is a list; placeSlug is a single slug).",
