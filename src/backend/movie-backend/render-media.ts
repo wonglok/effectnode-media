@@ -2792,6 +2792,7 @@ export async function renderMediaRoutes({
       installed: whichSync("hf") !== null,
       ltxDownloaded: isModelDownloaded("dgrauet/ltx-2.3-mlx-q8"),
       ttsDownloaded: isModelDownloaded("Qwen/Qwen3-TTS-12Hz-1.7B-Base"),
+      mlxVlmDownloaded: isModelDownloaded(MLX_VLM_MODEL),
     });
   });
 

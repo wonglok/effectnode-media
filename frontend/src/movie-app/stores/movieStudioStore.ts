@@ -30,6 +30,98 @@ function playDing3x() {
 /** Track task ids whose completed result has already been applied. */
 const appliedCompleted = new Set<string>();
 
+/** Track task ids already counted toward their batch's completion. */
+const countedBatch = new Set<string>();
+
+interface BatchTracker {
+  kind: "assets" | "sceneImages" | "videos" | "render";
+  total: number;
+  finished: number;
+}
+
+/** In-flight bulk render batches, keyed by the batchId stamped on each task. */
+const batches = new Map<string, BatchTracker>();
+
+function makeBatchId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `b-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+}
+
+/** Reset the aggregate spinner once a batch finishes and play a completion ding. */
+function finalizeBatch(batchId: string, set: (patch: any) => void): void {
+  const b = batches.get(batchId);
+  if (!b) return;
+  batches.delete(batchId);
+  switch (b.kind) {
+    case "assets":
+      set({
+        assetsRendering: false,
+        assetStatus: b.finished > 0 ? "Assets rendered" : null,
+      });
+      break;
+    case "sceneImages":
+      set({
+        sceneImagesRendering: false,
+        sceneImageStatus: b.finished > 0 ? "Scene images rendered" : null,
+        sceneImageProgress: null,
+      });
+      break;
+    case "videos":
+      set({
+        videosRendering: false,
+        videoStatus: b.finished > 0 ? "Videos rendered" : null,
+        videoProgress: null,
+      });
+      break;
+    case "render":
+      set({
+        rendering: false,
+        renderStatus: b.finished > 0 ? "Render complete" : null,
+        renderProgress: null,
+      });
+      break;
+  }
+  if (b.finished > 0) playDing3x();
+}
+
+/** Count one finished batch task; update progress and finalize when complete. */
+function finishBatch(batchId: string, set: (patch: any) => void): void {
+  const b = batches.get(batchId);
+  if (!b) return;
+  b.finished += 1;
+  if (b.finished < b.total) {
+    const status = `${b.finished}/${b.total} rendered`;
+    if (b.kind === "assets") set({ assetStatus: status });
+    else if (b.kind === "sceneImages") set({ sceneImageStatus: status });
+    else if (b.kind === "videos") set({ videoStatus: status });
+    else if (b.kind === "render") set({ renderStatus: status });
+    return;
+  }
+  finalizeBatch(batchId, set);
+}
+
+/** Surface a per-item failure and count it toward its batch on terminal status. */
+function handleBatchTerminal(task: QueueTask, set: (patch: any) => void): void {
+  const batchId = task.payload?.batchId;
+  if (!batchId) return;
+  if (countedBatch.has(task.id)) return;
+  countedBatch.add(task.id);
+
+  if (task.status === "failed") {
+    const b = batches.get(batchId);
+    if (b) {
+      if (b.kind === "assets") set({ assetsError: task.error });
+      else if (b.kind === "sceneImages") set({ sceneImagesError: task.error });
+      else if (b.kind === "videos") set({ videosError: task.error });
+      else if (b.kind === "render") set({ renderError: task.error });
+    }
+  }
+  finishBatch(batchId, set);
+}
+
 export interface MovieCharacter {
   slug: string;
   name: string;
@@ -114,6 +206,18 @@ function upsertSceneImage(
     return images.map((v) => (v.slug === slug ? { ...v, ...patch } : v));
   }
   return [...images, { slug, filename: "", url: "", updatedAt: 0, ...patch }];
+}
+
+function upsertRenderedScene(
+  scenes: RenderedScene[],
+  slug: string,
+  patch: Partial<RenderedScene>,
+): RenderedScene[] {
+  const existing = scenes.find((s) => s.slug === slug);
+  if (existing) {
+    return scenes.map((s) => (s.slug === slug ? { ...s, ...patch } : s));
+  }
+  return [...scenes, { slug, imageUrl: null, videoUrl: null, ...patch }];
 }
 
 /** Enqueue a generation task in the backend worker. */
@@ -281,6 +385,30 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
     const result = get().result;
     if (!result || get().rendering) return;
 
+    const assets: { kind: "character" | "place"; slug: string; prompt: string }[] = [
+      ...result.characters
+        .filter((c) => c.slug && String(c.imagePrompt || "").trim())
+        .map((c) => ({
+          kind: "character" as const,
+          slug: c.slug,
+          prompt: c.imagePrompt,
+        })),
+      ...result.places
+        .filter((p) => p.slug && String(p.imagePrompt || "").trim())
+        .map((p) => ({
+          kind: "place" as const,
+          slug: p.slug,
+          prompt: p.imagePrompt,
+        })),
+    ];
+    const scenes = result.scenes.filter((s) => s.slug);
+    // One queue task per output: each asset image, scene image, and scene video.
+    const total = assets.length + scenes.length * 2;
+    if (total === 0) return;
+
+    const batchId = makeBatchId();
+    batches.set(batchId, { kind: "render", total, finished: 0 });
+
     set({
       rendering: true,
       renderStatus: "Queued…",
@@ -288,26 +416,93 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
       renderError: null,
       renderProgress: null,
     });
-    const r = await enqueueTask(projectId, "render", "Render full movie", {
-      characters: result.characters,
-      places: result.places,
-      scenes: result.scenes,
-    });
-    if (!r.ok) set({ rendering: false, renderError: r.error });
+
+    // FIFO order matters: assets → scene images → scene videos.
+    for (const item of assets) {
+      const r = await enqueueTask(
+        projectId,
+        "render-asset",
+        `Render ${item.kind}: ${item.slug}`,
+        { ...item, batchId },
+      );
+      if (!r.ok) {
+        const b = batches.get(batchId);
+        if (b) b.total -= 1;
+      }
+    }
+    for (const scene of scenes) {
+      const r = await enqueueTask(
+        projectId,
+        "render-scene-image",
+        `Render scene image: ${scene.slug}`,
+        { scene, batchId },
+      );
+      if (!r.ok) {
+        const b = batches.get(batchId);
+        if (b) b.total -= 1;
+      }
+    }
+    for (const scene of scenes) {
+      const r = await enqueueTask(
+        projectId,
+        "render-video",
+        `Render video: ${scene.slug}`,
+        { scene, characters: result.characters, batchId },
+      );
+      if (!r.ok) {
+        const b = batches.get(batchId);
+        if (b) b.total -= 1;
+      }
+    }
+
+    // If nothing could be enqueued, reset the spinner immediately.
+    const b = batches.get(batchId);
+    if (b && b.total <= b.finished) finalizeBatch(batchId, set);
   },
 
   renderAssets: async (projectId) => {
     const result = get().result;
     if (!result || get().assetsRendering) return;
 
+    const items: { kind: "character" | "place"; slug: string; prompt: string }[] = [
+      ...result.characters
+        .filter((c) => c.slug && String(c.imagePrompt || "").trim())
+        .map((c) => ({
+          kind: "character" as const,
+          slug: c.slug,
+          prompt: c.imagePrompt,
+        })),
+      ...result.places
+        .filter((p) => p.slug && String(p.imagePrompt || "").trim())
+        .map((p) => ({
+          kind: "place" as const,
+          slug: p.slug,
+          prompt: p.imagePrompt,
+        })),
+    ];
+
+    if (items.length === 0) return;
+
+    const batchId = makeBatchId();
+    batches.set(batchId, { kind: "assets", total: items.length, finished: 0 });
+
     set({ assetsRendering: true, assetStatus: "Queued…", assetsError: null });
-    const r = await enqueueTask(
-      projectId,
-      "render-assets",
-      "Render character & place images",
-      { characters: result.characters, places: result.places },
-    );
-    if (!r.ok) set({ assetsRendering: false, assetsError: r.error });
+
+    for (const item of items) {
+      const r = await enqueueTask(
+        projectId,
+        "render-asset",
+        `Render ${item.kind}: ${item.slug}`,
+        { ...item, batchId },
+      );
+      if (!r.ok) {
+        const b = batches.get(batchId);
+        if (b) b.total -= 1;
+      }
+    }
+
+    const b = batches.get(batchId);
+    if (b && b.total <= b.finished) finalizeBatch(batchId, set);
   },
 
   regenerateAsset: async (projectId, kind, slug, prompt) => {
@@ -336,19 +531,34 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
     const result = get().result;
     if (!result || get().videosRendering) return;
 
+    const scenes = result.scenes.filter((s) => s.slug);
+    if (scenes.length === 0) return;
+
+    const batchId = makeBatchId();
+    batches.set(batchId, { kind: "videos", total: scenes.length, finished: 0 });
+
     set({
       videosRendering: true,
       videoStatus: "Queued…",
       videosError: null,
       videoProgress: null,
     });
-    const r = await enqueueTask(
-      projectId,
-      "render-videos",
-      "Render scene videos",
-      { characters: result.characters, scenes: result.scenes },
-    );
-    if (!r.ok) set({ videosRendering: false, videosError: r.error });
+
+    for (const scene of scenes) {
+      const r = await enqueueTask(
+        projectId,
+        "render-video",
+        `Render video: ${scene.slug}`,
+        { scene, characters: result.characters, batchId },
+      );
+      if (!r.ok) {
+        const b = batches.get(batchId);
+        if (b) b.total -= 1;
+      }
+    }
+
+    const b = batches.get(batchId);
+    if (b && b.total <= b.finished) finalizeBatch(batchId, set);
   },
 
   regenerateVideo: async (projectId, slug) => {
@@ -379,19 +589,38 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
     const result = get().result;
     if (!result || get().sceneImagesRendering) return;
 
+    const scenes = result.scenes.filter((s) => s.slug);
+    if (scenes.length === 0) return;
+
+    const batchId = makeBatchId();
+    batches.set(batchId, {
+      kind: "sceneImages",
+      total: scenes.length,
+      finished: 0,
+    });
+
     set({
       sceneImagesRendering: true,
       sceneImageStatus: "Queued…",
       sceneImagesError: null,
       sceneImageProgress: null,
     });
-    const r = await enqueueTask(
-      projectId,
-      "render-scene-images",
-      "Render scene images",
-      { scenes: result.scenes },
-    );
-    if (!r.ok) set({ sceneImagesRendering: false, sceneImagesError: r.error });
+
+    for (const scene of scenes) {
+      const r = await enqueueTask(
+        projectId,
+        "render-scene-image",
+        `Render scene image: ${scene.slug}`,
+        { scene, batchId },
+      );
+      if (!r.ok) {
+        const b = batches.get(batchId);
+        if (b) b.total -= 1;
+      }
+    }
+
+    const b = batches.get(batchId);
+    if (b && b.total <= b.finished) finalizeBatch(batchId, set);
   },
 
   regenerateSceneImage: async (projectId, slug) => {
@@ -466,6 +695,12 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
   applyQueueTask: (task) => {
     const isActive = task.status === "pending" || task.status === "running";
     const err = task.status === "failed" ? task.error : null;
+    const terminal =
+      task.status === "completed" ||
+      task.status === "failed" ||
+      task.status === "cancelled" ||
+      task.status === "paused";
+    const batchKind = batches.get(task.payload?.batchId)?.kind;
 
     switch (task.type) {
       case "generate": {
@@ -609,6 +844,69 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
         break;
       }
 
+      case "render-asset": {
+        const key = `${task.payload?.kind}:${task.payload?.slug}`;
+        if (task.status === "completed" && task.result) {
+          if (!appliedCompleted.has(task.id)) {
+            appliedCompleted.add(task.id);
+            const r = task.result;
+            set((s) => ({
+              assets: [
+                ...s.assets.filter((a) => `${a.kind}:${a.slug}` !== key),
+                r,
+              ],
+            }));
+            persistMovieStudioState();
+          }
+        }
+        if (terminal) handleBatchTerminal(task, set);
+        break;
+      }
+
+      case "render-scene-image": {
+        const slug = task.payload?.slug;
+        if (task.status === "completed" && task.result) {
+          if (!appliedCompleted.has(task.id)) {
+            appliedCompleted.add(task.id);
+            const r = task.result;
+            set((s) => ({
+              sceneImages: upsertSceneImage(s.sceneImages, slug, r),
+              renderedScenes:
+                batchKind === "render"
+                  ? upsertRenderedScene(s.renderedScenes, slug, {
+                      imageUrl: r.url,
+                    })
+                  : s.renderedScenes,
+            }));
+            persistMovieStudioState();
+          }
+        }
+        if (terminal) handleBatchTerminal(task, set);
+        break;
+      }
+
+      case "render-video": {
+        const slug = task.payload?.slug;
+        if (task.status === "completed" && task.result) {
+          if (!appliedCompleted.has(task.id)) {
+            appliedCompleted.add(task.id);
+            const r = task.result;
+            set((s) => ({
+              videos: upsertVideo(s.videos, slug, r),
+              renderedScenes:
+                batchKind === "render"
+                  ? upsertRenderedScene(s.renderedScenes, slug, {
+                      videoUrl: r.url,
+                    })
+                  : s.renderedScenes,
+            }));
+            persistMovieStudioState();
+          }
+        }
+        if (terminal) handleBatchTerminal(task, set);
+        break;
+      }
+
       case "regenerate-asset": {
         const key = `${task.payload?.kind}:${task.payload?.slug}`;
         if (task.status === "completed" && task.result) {
@@ -704,6 +1002,8 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
   },
 
   stop: () => {
+    batches.clear();
+    countedBatch.clear();
     fetch(`${API_BASE}/api/render/cancel`, { method: "POST" }).catch(() => {});
     const projectId = get().projectId;
     if (projectId) {
@@ -725,7 +1025,9 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
     });
   },
 
-  reset: () =>
+  reset: () => {
+    batches.clear();
+    countedBatch.clear();
     set({
       idea: "",
       generating: false,
@@ -756,7 +1058,8 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
       sceneImagesError: null,
       sceneImageProgress: null,
       regeneratingSceneImages: [],
-    }),
+    });
+  },
 }));
 
 function persistMovieStudioState() {

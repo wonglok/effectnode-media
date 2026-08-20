@@ -33,6 +33,10 @@ export type QueueTaskType =
   | "render-assets"
   | "render-videos"
   | "render-scene-images"
+  // Single-output tasks: one media file per queue entry.
+  | "render-asset"
+  | "render-scene-image"
+  | "render-video"
   | "regenerate-asset"
   | "regenerate-video"
   | "regenerate-scene-image";
@@ -556,6 +560,85 @@ const handlers: Record<QueueTaskType, Handler> = {
     );
   },
 
+  // Generate a single character/place image, skipping if it already exists.
+  "render-asset": async (ctx) => {
+    const { kind, slug, prompt } = ctx.task.payload || {};
+    if (kind !== "character" && kind !== "place") {
+      throw new Error("kind must be 'character' or 'place'");
+    }
+    const s = slugify(slug);
+    const p = String(prompt || "").trim();
+    if (!s || !p) throw new Error("slug and prompt are required");
+
+    const existing = existingOutput(ctx.projectId, `${kind}-${s}.png`);
+    if (existing) {
+      ctx.log(`Already generated: ${kind}-${s}.png — skipping\n`);
+      return { kind, slug: s, ...existing };
+    }
+
+    const r = await generateAssetImage(ctx.projectId, kind, s, p, ctx.log);
+    if ("error" in r) throw new Error(r.error);
+    return {
+      kind,
+      slug: s,
+      filename: r.filename,
+      url: r.url,
+      updatedAt: Date.now(),
+    };
+  },
+
+  // Generate a single scene image, skipping if it already exists.
+  "render-scene-image": async (ctx) => {
+    const { scene } = ctx.task.payload || {};
+    if (!scene || typeof scene !== "object") throw new Error("scene is required");
+    const s = slugify(scene?.slug);
+    if (!s) throw new Error("Invalid scene slug");
+
+    const existing = existingOutput(ctx.projectId, `scene-${s}.png`);
+    if (existing) {
+      ctx.log(`Already generated: scene-${s}.png — skipping\n`);
+      return { slug: s, ...existing };
+    }
+
+    const r = await generateSceneImage(ctx.projectId, scene, ctx.log);
+    if ("error" in r) throw new Error(r.error);
+    return {
+      slug: s,
+      filename: r.filename,
+      url: r.url,
+      updatedAt: Date.now(),
+    };
+  },
+
+  // Generate a single scene video, skipping if it already exists.
+  "render-video": async (ctx, getUvPath) => {
+    const { scene, characters } = ctx.task.payload || {};
+    if (!scene || typeof scene !== "object") throw new Error("scene is required");
+    const s = slugify(scene?.slug);
+    if (!s) throw new Error("Invalid scene slug");
+
+    const existing = existingOutput(ctx.projectId, `scene-${s}.mp4`);
+    if (existing) {
+      ctx.log(`Already generated: scene-${s}.mp4 — skipping\n`);
+      return { slug: s, ...existing };
+    }
+
+    const r = await generateSceneVideo(
+      await getUvPath(),
+      ctx.projectId,
+      scene,
+      Array.isArray(characters) ? characters : [],
+      ctx.log,
+    );
+    if ("error" in r) throw new Error(r.error);
+    return {
+      slug: s,
+      filename: r.filename,
+      url: r.url,
+      updatedAt: Date.now(),
+    };
+  },
+
   "regenerate-asset": async (ctx) => {
     const { kind, slug, prompt } = ctx.task.payload || {};
     if (kind !== "character" && kind !== "place") {
@@ -743,7 +826,7 @@ function syncToMovieStudioState(
       ? result.renderedScenes
       : state.renderedScenes ?? [];
   }
-  if (type === "regenerate-asset" && result) {
+  if ((type === "render-asset" || type === "regenerate-asset") && result) {
     const key = `${result.kind}:${result.slug}`;
     const arr = Array.isArray(state.assets) ? state.assets : [];
     state.assets = [
@@ -751,14 +834,17 @@ function syncToMovieStudioState(
       result,
     ];
   }
-  if (type === "regenerate-video" && result) {
+  if ((type === "render-video" || type === "regenerate-video") && result) {
     const arr = Array.isArray(state.videos) ? state.videos : [];
     state.videos = [
       ...arr.filter((v: any) => v.slug !== result.slug),
       result,
     ];
   }
-  if (type === "regenerate-scene-image" && result) {
+  if (
+    (type === "render-scene-image" || type === "regenerate-scene-image") &&
+    result
+  ) {
     const arr = Array.isArray(state.sceneImages) ? state.sceneImages : [];
     state.sceneImages = [
       ...arr.filter((i: any) => i.slug !== result.slug),

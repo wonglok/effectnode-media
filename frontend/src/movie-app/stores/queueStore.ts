@@ -8,6 +8,9 @@ export type QueueTaskType =
   | "render-assets"
   | "render-videos"
   | "render-scene-images"
+  | "render-asset"
+  | "render-scene-image"
+  | "render-video"
   | "regenerate-asset"
   | "regenerate-video"
   | "regenerate-scene-image";
