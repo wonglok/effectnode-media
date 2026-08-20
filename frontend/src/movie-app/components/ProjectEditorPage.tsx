@@ -8,7 +8,6 @@ import MovieStudioTab from "./EditorTabs/MovieStudioTab";
 import GenerateVideoTab from "./EditorTabs/GenerateVideoTab";
 import AgentTab from "./EditorTabs/AgentTab";
 import StoryWriterTab from "./EditorTabs/StoryWriterTab";
-import CharactersTab from "./EditorTabs/CharactersTab";
 import ExtractImageTab from "./EditorTabs/ExtractImageTab";
 import SceneVisualTab from "./EditorTabs/SceneVisualTab";
 import TextToImageTab from "./EditorTabs/TextToImageTab";
@@ -170,22 +169,6 @@ export default function ProjectEditorPage() {
     >
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-    </svg>
-  );
-
-  const CharacterIcon = (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
     </svg>
   );
 
@@ -472,17 +455,6 @@ export default function ProjectEditorPage() {
               Story Writer
             </button>
             <button
-              onClick={() => store.setActiveTab("characters")}
-              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "characters"
-                  ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
-                  : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
-              }`}
-            >
-              {CharacterIcon}
-              Characters
-            </button>
-            <button
               onClick={() => store.setActiveTab("extract")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
                 store.activeTab === "extract"
@@ -595,11 +567,6 @@ export default function ProjectEditorPage() {
           {/* ========== STORY WRITER PANEL ========== */}
           {store.activeTab === "storyWriter" && (
             <StoryWriterTab projectId={id!} />
-          )}
-
-          {/* ========== CHARACTERS PANEL ========== */}
-          {store.activeTab === "characters" && (
-            <CharactersTab projectId={id!} />
           )}
 
           {/* ========== EXTRACT IMAGE PANEL ========== */}

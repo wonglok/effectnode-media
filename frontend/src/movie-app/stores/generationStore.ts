@@ -18,7 +18,6 @@ export type GenerationTab =
   | "extend"
   | "agent"
   | "storyWriter"
-  | "characters"
   | "extract"
   | "sceneVisual"
   | "textToImage"

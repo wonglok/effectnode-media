@@ -269,16 +269,31 @@ export async function generateMovieStudioBible(
     systemPrompt: string,
     userContent: string,
   ): Promise<any> => {
-    const completion = await client.chat.completions.create({
-      model: resolvedModel,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userContent },
-      ],
-      temperature: 0.7,
-    });
-    const text = completion.choices?.[0]?.message?.content ?? "";
-    return extractJsonObject(text);
+    let prompt = systemPrompt;
+    let lastError: unknown = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const completion = await client.chat.completions.create({
+          model: resolvedModel,
+          messages: [
+            { role: "system", content: prompt },
+            { role: "user", content: userContent },
+          ],
+          temperature: 0.7,
+          max_tokens: 8192,
+        });
+        const text = completion.choices?.[0]?.message?.content ?? "";
+        return extractJsonObject(text);
+      } catch (e) {
+        lastError = e;
+        // The model likely truncated its JSON — retry with an explicit
+        // instruction to emit one complete, valid JSON object.
+        prompt = `${systemPrompt}\n\nIMPORTANT: Return the complete JSON object in a single response. Do not truncate; close every string, object, and array.`;
+      }
+    }
+    throw lastError instanceof Error
+      ? lastError
+      : new Error("Failed to parse model JSON response");
   };
 
   // 1. Characters + art style.
