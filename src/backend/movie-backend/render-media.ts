@@ -2791,6 +2791,7 @@ export async function renderMediaRoutes({
     res.json({
       installed: whichSync("hf") !== null,
       ltxDownloaded: isModelDownloaded("dgrauet/ltx-2.3-mlx-q8"),
+      ttsDownloaded: isModelDownloaded("Qwen/Qwen3-TTS-12Hz-1.7B-Base"),
     });
   });
 
@@ -2868,6 +2869,60 @@ export async function renderMediaRoutes({
 
       const proc = spawn(
         ["hf", "download", "dgrauet/ltx-2.3-mlx-q8"],
+        { stdout: "pipe", stderr: "pipe" },
+      );
+
+      activeProc = proc;
+
+      const stdoutPromise = streamToSSE(
+        proc.stdout as ReadableStream<Uint8Array>,
+        "HF Download",
+        send,
+      );
+      const stderrText = await streamToSSE(
+        proc.stderr as ReadableStream<Uint8Array>,
+        "HF Download",
+        send,
+      );
+      await stdoutPromise;
+
+      const exitCode = await proc.exited;
+      if (exitCode === 0) {
+        send("complete", { success: true });
+      } else {
+        send("error", {
+          error: stderrText || `Process exited with code ${exitCode}`,
+          exitCode,
+        });
+      }
+    } catch (e) {
+      send("error", { error: String(e) });
+    } finally {
+      activeProc = null;
+      res.end();
+    }
+  });
+
+  app.post("/api/hf/download-tts", async (_req, res) => {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+
+    const send = (event: string, data: object) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      send("progress", {
+        status: "starting",
+        label: "Downloading Qwen/Qwen3-TTS-12Hz-1.7B-Base...",
+      });
+
+      const proc = spawn(
+        ["hf", "download", "Qwen/Qwen3-TTS-12Hz-1.7B-Base"],
         { stdout: "pipe", stderr: "pipe" },
       );
 

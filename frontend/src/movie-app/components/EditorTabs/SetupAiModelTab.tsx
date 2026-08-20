@@ -195,6 +195,11 @@ const DOWNLOAD_MODELS: {
     name: "dgrauet/ltx-2.3-mlx-q8",
     desc: "Video generation",
   },
+  {
+    id: "tts",
+    name: "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+    desc: "Voice-over & speech",
+  },
 ];
 
 export default function SetupAiModelTab() {
@@ -302,7 +307,9 @@ export default function SetupAiModelTab() {
                 ? store.zImageDownloaded
                 : m.id === "flux"
                   ? store.fluxDownloaded
-                  : store.ltxDownloaded;
+                  : m.id === "ltx"
+                    ? store.ltxDownloaded
+                    : store.ttsDownloaded;
             return (
               <ModelRow key={m.id} name={m.name} desc={m.desc}>
                 <StatusBadge value={downloaded} />
@@ -317,15 +324,6 @@ export default function SetupAiModelTab() {
               </ModelRow>
             );
           })}
-
-          <ModelRow
-            name="Qwen/Qwen3-TTS-12Hz-1.7B-Base"
-            desc="Voice-over & speech"
-          >
-            <span className="text-xs italic text-ink-400">
-              Downloads on first use
-            </span>
-          </ModelRow>
         </div>
       </section>
 
