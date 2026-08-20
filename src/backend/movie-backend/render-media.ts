@@ -759,6 +759,7 @@ export async function generateFastImageEditImage(
   images: string[],
   onLog?: (text: string) => void,
 ): Promise<{ filename: string; url: string } | { error: string }> {
+  if (!isValidProjectId(projectId)) return { error: "Invalid project ID" };
   if (!prompt || !prompt.trim()) return { error: "Prompt is required" };
   if (!Array.isArray(images) || images.length === 0) {
     return { error: "At least one reference image is required" };
