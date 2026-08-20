@@ -3,7 +3,7 @@ import { useMovieStudioStore } from "../../stores/movieStudioStore";
 import { useGenerationStore } from "../../stores/generationStore";
 import { useProjectStore } from "../../stores/projectStore";
 import { useQueueStore } from "../../stores/queueStore";
-import { OnlyStartButton } from "./MlxVlmServerPanel";
+import MlxVlmServerPanel, { OnlyStartButton } from "./MlxVlmServerPanel";
 import TaskQueuePanel from "./TaskQueuePanel";
 import TerminalLogPanel from "./TerminalLogPanel";
 
@@ -885,8 +885,8 @@ export default function MovieStudioTab({ projectId }: Props) {
         </>
       ) : (
         <>
-          <OnlyStartButton></OnlyStartButton>
-          {/* <MlxVlmServerPanel /> */}
+          {/* <OnlyStartButton></OnlyStartButton> */}
+          <MlxVlmServerPanel />
           <div className="flex flex-col items-center justify-center gap-2 p-8 border border-dashed border-ink-200 rounded-2xl">
             <span className="text-ink-500">{ClapperIcon}</span>
             <p className="text-xs text-ink-500 italic">
