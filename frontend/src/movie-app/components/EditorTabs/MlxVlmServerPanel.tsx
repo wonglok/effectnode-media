@@ -113,6 +113,10 @@ export function OnlyStartButton() {
   const store = useGenerationStore();
   // const serverUrl = `http://localhost:${store.agent.port}`;
 
+  useEffect(() => {
+    store.startAgentServer();
+  }, []);
+
   return (
     <>
       <div className="flex flex-wrap items-end gap-3">

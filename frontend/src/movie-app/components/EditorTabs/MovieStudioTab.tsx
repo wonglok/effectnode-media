@@ -3,7 +3,7 @@ import { useMovieStudioStore } from "../../stores/movieStudioStore";
 import { useGenerationStore } from "../../stores/generationStore";
 import { useProjectStore } from "../../stores/projectStore";
 import { useQueueStore } from "../../stores/queueStore";
-import MlxVlmServerPanel, { OnlyStartButton } from "./MlxVlmServerPanel";
+import { OnlyStartButton } from "./MlxVlmServerPanel";
 import TaskQueuePanel from "./TaskQueuePanel";
 import TerminalLogPanel from "./TerminalLogPanel";
 
