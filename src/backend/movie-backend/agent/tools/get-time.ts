@@ -1,4 +1,4 @@
-import type { AgentTool } from "./types";
+import type { AgentTool } from "./types.js";
 
 const tool: AgentTool = {
   name: "get_time",

@@ -1,7 +1,7 @@
 import { existsSync, renameSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { resolveWorkspacePath } from "../workspace";
-import type { AgentTool } from "./types";
+import { resolveWorkspacePath } from "../workspace.js";
+import type { AgentTool } from "./types.js";
 
 const tool: AgentTool = {
   name: "rename_file",

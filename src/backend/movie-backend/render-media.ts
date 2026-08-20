@@ -14,7 +14,7 @@ import { type Application } from "express";
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
-import { spawn, type Subprocess, whichSync, mimeType } from "./process";
+import { spawn, type Subprocess, whichSync, mimeType } from "./process.js";
 
 // Track the currently active spawn process so it can be cancelled
 let activeProc: Subprocess | null = null;

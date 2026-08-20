@@ -7,8 +7,8 @@ import {
   resolveWorkspacePath,
   classifyFile,
   workspaceDir,
-} from "../workspace";
-import type { AgentTool } from "./types";
+} from "../workspace.js";
+import type { AgentTool } from "./types.js";
 
 const CORE_BASE = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/esm";
 

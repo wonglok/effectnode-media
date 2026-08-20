@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
-import { resolveWorkspacePath, classifyFile } from "../workspace";
-import type { AgentTool } from "./types";
+import { resolveWorkspacePath, classifyFile } from "../workspace.js";
+import type { AgentTool } from "./types.js";
 
 const tool: AgentTool = {
   name: "read_file",

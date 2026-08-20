@@ -12,8 +12,8 @@ import {
   classifyFile,
   AGENT_UPLOAD_DIR,
   workspaceDir,
-} from "../workspace";
-import type { AgentTool } from "./types";
+} from "../workspace.js";
+import type { AgentTool } from "./types.js";
 
 async function readSSE(
   response: Response,

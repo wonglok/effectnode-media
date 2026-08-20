@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { resolveWorkspacePath, workspaceDir, walkFiles } from "../workspace";
-import type { AgentTool } from "./types";
+import { resolveWorkspacePath, workspaceDir, walkFiles } from "../workspace.js";
+import type { AgentTool } from "./types.js";
 
 const tool: AgentTool = {
   name: "grep_files",

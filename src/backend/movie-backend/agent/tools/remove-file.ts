@@ -1,6 +1,6 @@
 import { existsSync, rmSync } from "node:fs";
-import { resolveWorkspacePath } from "../workspace";
-import type { AgentTool } from "./types";
+import { resolveWorkspacePath } from "../workspace.js";
+import type { AgentTool } from "./types.js";
 
 const tool: AgentTool = {
   name: "remove_file",

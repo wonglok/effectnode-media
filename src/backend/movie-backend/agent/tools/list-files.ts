@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
-import { workspaceDir, walkFiles } from "../workspace";
-import type { AgentTool } from "./types";
+import { workspaceDir, walkFiles } from "../workspace.js";
+import type { AgentTool } from "./types.js";
 
 const tool: AgentTool = {
   name: "list_files",

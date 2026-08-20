@@ -1,7 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { resolveWorkspacePath, ensureDir } from "../workspace";
-import type { AgentTool } from "./types";
+import { resolveWorkspacePath, ensureDir } from "../workspace.js";
+import type { AgentTool } from "./types.js";
 
 const tool: AgentTool = {
   name: "write_file",

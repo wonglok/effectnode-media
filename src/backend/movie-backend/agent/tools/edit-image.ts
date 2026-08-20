@@ -12,9 +12,9 @@ import {
   classifyFile,
   AGENT_UPLOAD_DIR,
   workspaceDir,
-} from "../workspace";
+} from "../workspace.js";
 import sharp from "sharp";
-import type { AgentTool } from "./types";
+import type { AgentTool } from "./types.js";
 
 /** Default output resolution (px) when the tool is called without one. */
 const DEFAULT_RESOLUTION = 512;

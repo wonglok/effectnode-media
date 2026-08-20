@@ -9,16 +9,16 @@ import {
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer as createNetServer } from "node:net";
-import { spawn, type Subprocess } from "./process";
+import { spawn, type Subprocess } from "./process.js";
 
 const __filename = fileURLToPath(import.meta.url);
 
 import { homedir } from "node:os";
 import express from "express";
 import cors from "cors";
-import { renderMediaRoutes } from "./render-media";
-import { agentBackend } from "./agent/agent-backend";
-import { generationQueueSetup } from "./generation-queue";
+import { renderMediaRoutes } from "./render-media.js";
+import { agentBackend } from "./agent/agent-backend.js";
+import { generationQueueSetup } from "./generation-queue.js";
 import { createServer } from "node:http";
 // import { readdir } from "node:fs/promises";
 // import { rename } from "node:fs/promises";

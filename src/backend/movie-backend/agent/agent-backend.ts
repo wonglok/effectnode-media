@@ -7,9 +7,9 @@ import {
   rmSync,
 } from "node:fs";
 import { join, dirname } from "node:path";
-import { spawn } from "../process";
+import { spawn } from "../process.js";
 import OpenAI from "openai";
-import { getAgentServerPort } from "../render-media";
+import { getAgentServerPort } from "../render-media.js";
 import {
   workspaceDir,
   resolveWorkspacePath,
@@ -18,8 +18,8 @@ import {
   ensureDir,
   movieStudioDataDir,
   movieStudioStateFile,
-} from "./workspace";
-import { TOOLS, toolDefinitions, runTool } from "./tools";
+} from "./workspace.js";
+import { TOOLS, toolDefinitions, runTool } from "./tools/index.js";
 
 // Node.js cannot `import` a bare `.txt` file (Bun allowed `with { type: "txt" }`).
 // Read the bundled prompt as UTF-8 text at module load instead.

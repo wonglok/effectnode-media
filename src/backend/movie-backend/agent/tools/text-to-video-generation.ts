@@ -1,5 +1,5 @@
-import { isValidProjectId, workspaceDir } from "../workspace";
-import type { AgentTool } from "./types";
+import { isValidProjectId, workspaceDir } from "../workspace.js";
+import type { AgentTool } from "./types.js";
 
 async function readSSE(
   response: Response,

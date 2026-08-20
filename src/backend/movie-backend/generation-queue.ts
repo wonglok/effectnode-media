@@ -14,9 +14,9 @@ import {
   generateSceneImage,
   generateSceneVideo,
   cancelActiveRender,
-} from "./render-media";
-import { generateMovieStudioBible } from "./agent/agent-backend";
-import { movieStudioStateFile } from "./agent/workspace";
+} from "./render-media.js";
+import { generateMovieStudioBible } from "./agent/agent-backend.js";
+import { movieStudioStateFile } from "./agent/workspace.js";
 
 const APP_DATA_DIR = join(homedir(), "media-studio");
 const TASKS_DIR = join(APP_DATA_DIR, "tasks");
