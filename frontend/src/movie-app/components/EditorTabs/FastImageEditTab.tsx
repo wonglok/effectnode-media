@@ -22,7 +22,6 @@ export default function FastImageEditTab({ projectId }: Props) {
   useEffect(() => {
     store.checkFastImageEditStatus();
     store.fetchProjectImages(projectId);
-    store.fetchCharacterSheets(projectId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
@@ -400,56 +399,6 @@ export default function FastImageEditTab({ projectId }: Props) {
           </p>
         )}
       </div>
-
-      {/* ===== Character sheet picker ===== */}
-      {store.characterSheets.length > 0 && (
-        <div>
-          <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-2">
-            Character Sheet
-          </label>
-          <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-2 p-1">
-            {store.characterSheets.map((sheet) => {
-              const isSelected = store.fastImageEdit.referenceImages.some(
-                (r) => r.filename === sheet.filename,
-              );
-              const fullUrl = sheet.url.startsWith("http")
-                ? sheet.url
-                : `http://localhost:${(window as any).PORT}${sheet.url}`;
-              return (
-                <div key={sheet.filename} className="relative group">
-                  <button
-                    onClick={() => store.toggleFastImageEditImage(sheet)}
-                    disabled={store.fastImageEdit.generating}
-                    className={`w-full relative rounded-xl border-2 overflow-hidden transition-all ${
-                      isSelected
-                        ? "border-tiffany-500 ring-2 ring-tiffany-500/40"
-                        : "border-ink-200 hover:border-ink-300"
-                    } disabled:opacity-50`}
-                  >
-                    <img
-                      src={fullUrl}
-                      alt={sheet.filename}
-                      className="aspect-square object-cover object-center w-full"
-                    />
-                    <span className="absolute bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm px-1.5 py-0.5 text-[10px] text-ink-700 truncate text-center">
-                      {sheet.filename}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() =>
-                      setPreview({ url: fullUrl, filename: sheet.filename })
-                    }
-                    className="absolute top-1.5 right-1.5 flex items-center justify-center w-6 h-6 rounded-full bg-black/50 text-white hover:bg-tiffany-600 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-                    title="Preview"
-                  >
-                    {MaximizeIcon}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* ===== Prompt ===== */}
       <div>

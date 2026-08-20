@@ -11,7 +11,6 @@ import {
   copyFileSync,
 } from "node:fs";
 import { type Application } from "express";
-import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 import { spawn, type Subprocess, whichSync, mimeType } from "./process.js";
@@ -34,7 +33,6 @@ const OUTPUT_DIR = join(APP_DATA_DIR, "output");
 const UPLOAD_DIR = join(APP_DATA_DIR, "upload");
 const AGENT_UPLOAD_DIR = join(APP_DATA_DIR, "agent-upload");
 const EXTRACTED_FRAMES_DIR = join(APP_DATA_DIR, "extracted-frames");
-const CHARACTER_SHEET_DIR = join(APP_DATA_DIR, "character-sheet");
 const AGENTS_DIR = join(APP_DATA_DIR, "agents");
 const JSON_DIR = join(APP_DATA_DIR, "json");
 const PYTHON_DIR = join(APP_DATA_DIR, "python-src");
@@ -197,14 +195,11 @@ function openInFinder(dirPath: string) {
 let _allowedRealDirs: string[] | null = null;
 function getAllowedRealDirs(): string[] {
   if (_allowedRealDirs) return _allowedRealDirs;
-  [OUTPUT_DIR, UPLOAD_DIR, AGENT_UPLOAD_DIR, CHARACTER_SHEET_DIR].forEach((d) =>
-    ensureDir(d),
-  );
+  [OUTPUT_DIR, UPLOAD_DIR, AGENT_UPLOAD_DIR].forEach((d) => ensureDir(d));
   _allowedRealDirs = [
     realpathSync(OUTPUT_DIR) + sep,
     realpathSync(UPLOAD_DIR) + sep,
     realpathSync(AGENT_UPLOAD_DIR) + sep,
-    realpathSync(CHARACTER_SHEET_DIR) + sep,
   ];
   return _allowedRealDirs;
 }
@@ -3773,79 +3768,6 @@ export async function renderMediaRoutes({
         .status(500)
         .json({ error: "Failed to save frame", details: String(e) });
     }
-  });
-
-  // Save the character sheet: current.png plus a backup copy under backup/.
-  app.post("/api/character-sheet", (req, res) => {
-    const { image, projectId } = req.body || {};
-    if (!image) {
-      res.status(400).json({ error: "Image data is required (base64)" });
-      return;
-    }
-    if (!projectId || !isValidProjectId(String(projectId))) {
-      res.status(400).json({ error: "Invalid project ID" });
-      return;
-    }
-    try {
-      const base64 = String(image).replace(/^data:[^;]+;base64,/, "");
-      const buffer = Buffer.from(base64, "base64");
-
-      const projectDir = join(CHARACTER_SHEET_DIR, String(projectId));
-      const backupDir = join(projectDir, "backup");
-      ensureDir(backupDir);
-
-      const backupId = randomUUID();
-      const backupPath = join(backupDir, `${backupId}.png`);
-      const currentPath = join(projectDir, "current.png");
-
-      writeFileSync(backupPath, buffer);
-      writeFileSync(currentPath, buffer);
-
-      res.json({
-        success: true,
-        path: currentPath,
-        backupPath,
-        backupFilename: `${backupId}.png`,
-        size: buffer.length,
-      });
-    } catch (e) {
-      res
-        .status(500)
-        .json({ error: "Failed to save character sheet", details: String(e) });
-    }
-  });
-
-  // List saved character sheet images (current.png) for a project.
-  app.get("/api/projects/:id/character-sheets", (req, res) => {
-    const { id } = req.params;
-    if (!isValidProjectId(id)) {
-      res.status(400).json({ error: "Invalid project ID" });
-      return;
-    }
-    const projectDir = join(CHARACTER_SHEET_DIR, id);
-    const results: { filename: string; url: string }[] = [];
-    if (existsSync(projectDir)) {
-      let entries: string[] = [];
-      try {
-        entries = readdirSync(projectDir);
-      } catch {
-        entries = [];
-      }
-      for (const entry of entries) {
-        if (!entry.toLowerCase().endsWith(".png")) continue;
-        const fullPath = join(projectDir, entry);
-        try {
-          if (!statSync(fullPath).isFile()) continue;
-        } catch {
-          continue;
-        }
-        results.push({
-          filename: entry,
-          url: `/api/files?path=${encodeURIComponent(fullPath)}`,
-        });
-      }
-    }
-    res.json(results);
   });
 
   // Open project folder in Finder

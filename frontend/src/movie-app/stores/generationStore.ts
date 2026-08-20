@@ -243,11 +243,6 @@ interface GenerationStore {
   selectedImage: ProjectImage | null;
   selectImage: (img: ProjectImage | null) => void;
 
-  // Character sheet picker
-  characterSheets: ProjectImage[];
-  characterSheetsLoading: boolean;
-  fetchCharacterSheets: (projectId: string) => Promise<void>;
-
   // CSV batch generation
   csvRows: Record<string, string>[];
   csvColumns: string[];
@@ -272,7 +267,7 @@ interface GenerationStore {
 export interface ProjectImage {
   filename: string;
   url: string;
-  source: "upload" | "generated" | "characterSheet";
+  source: "upload" | "generated";
 }
 
 export interface ProjectVideo {
@@ -888,31 +883,6 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       set({ projectImages: resolved, projectImagesLoading: false });
     } catch {
       set({ projectImagesLoading: false });
-    }
-  },
-
-  // ---- Character Sheets ----
-  characterSheets: [],
-  characterSheetsLoading: false,
-
-  fetchCharacterSheets: async (projectId) => {
-    set({ characterSheetsLoading: true });
-    try {
-      const res = await fetch(
-        `${API_BASE}/api/projects/${projectId}/character-sheets`,
-      );
-      if (!res.ok) throw new Error(await res.text());
-      const sheets: { filename: string; url: string }[] = await res.json();
-      const resolved: ProjectImage[] = sheets.map((sheet) => ({
-        filename: sheet.filename,
-        url: sheet.url.startsWith("http")
-          ? sheet.url
-          : `http://localhost:${(window as any).PORT}${sheet.url}`,
-        source: "characterSheet",
-      }));
-      set({ characterSheets: resolved, characterSheetsLoading: false });
-    } catch {
-      set({ characterSheetsLoading: false });
     }
   },
 
@@ -2155,8 +2125,6 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       uploadedImageFilename: null,
       uploadedImagePath: null,
       projectImages: [],
-      characterSheets: [],
-      characterSheetsLoading: false,
       selectedImage: null,
       projectVideos: [],
       projectVideosLoading: false,
