@@ -1,5 +1,7 @@
 ```bash
 
+mlxgen download --model AbstractFramework/wan2.2-i2v-a14b-diffusers-bf16
+
 mlxgen generate \
   --model AbstractFramework/wan2.2-i2v-a14b-diffusers-bf16 \
   --task image-to-video \
@@ -16,6 +18,16 @@ mlxgen generate \
   --low-ram \
   --metadata \
   --output video.mp4
+
+
+mlxgen download --model bernini-r-1.3b-bf16
+
+mlxgen generate \
+  --model bernini-r-1.3b-bf16 \
+  --reference-image subject.png \
+  --prompt "Bring the subject from image0 to life in a fixed medium shot" \
+  --width 848 --height 480 --frames 81 --fps 16 --steps 40 \
+  --seed 42 --output referenced.mp4
 
 
 ```
