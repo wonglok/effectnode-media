@@ -1,6 +1,6 @@
 {
   "name": "@effectnode/media",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Start a full-stack media app: Vite + React + TypeScript frontend, Express backend with REST + WebSocket API",
   "license": "MIT",
   "author": "",
@@ -17,7 +17,7 @@
     "frontend"
   ],
   "scripts": {
-    "deploy": "npm run build; npm version patch; npm publish --access public",
+    "deploy": "npm run build; npm version minor; npm publish --access public",
     "build": "tsc",
     "dev": "concurrently -k -n backend,frontend -c blue,green \"bun run dev:backend\" \"bun run dev:frontend\"",
     "dev:backend": "nodemon",
