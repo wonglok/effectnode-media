@@ -250,6 +250,9 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
         assets: Array.isArray(stored.assets) ? stored.assets : [],
         videos: Array.isArray(stored.videos) ? stored.videos : [],
         sceneImages: Array.isArray(stored.sceneImages) ? stored.sceneImages : [],
+        renderedScenes: Array.isArray(stored.renderedScenes)
+          ? stored.renderedScenes
+          : [],
       });
     } catch {
       // Ignore — keep in-memory defaults.
@@ -749,6 +752,7 @@ function persistMovieStudioState() {
       assets: s.assets,
       videos: s.videos,
       sceneImages: s.sceneImages,
+      renderedScenes: s.renderedScenes,
     }),
   }).catch(() => {});
 }

@@ -387,7 +387,10 @@ export default function MovieStudioTab({ projectId }: Props) {
                             `character:${c.slug}`,
                           );
                           return (
-                            <tr key={c.slug} className="border-b border-ink-200">
+                            <tr
+                              key={c.slug}
+                              className="border-b border-ink-200"
+                            >
                               <td className="border border-ink-200 px-2 py-1.5 align-top font-mono text-[11px] text-tiffany-700">
                                 {c.slug}
                               </td>
@@ -418,7 +421,9 @@ export default function MovieStudioTab({ projectId }: Props) {
                                     />
                                   </div>
                                 ) : (
-                                  <span className="text-ink-300 text-xs">—</span>
+                                  <span className="text-ink-300 text-xs">
+                                    —
+                                  </span>
                                 )}
                               </td>
                               <td className="border border-ink-200 px-2 py-1.5 align-top">
@@ -468,7 +473,10 @@ export default function MovieStudioTab({ projectId }: Props) {
                             `place:${p.slug}`,
                           );
                           return (
-                            <tr key={p.slug} className="border-b border-ink-200">
+                            <tr
+                              key={p.slug}
+                              className="border-b border-ink-200"
+                            >
                               <td className="border border-ink-200 px-2 py-1.5 align-top font-mono text-[11px] text-tiffany-700">
                                 {p.slug}
                               </td>
@@ -499,14 +507,18 @@ export default function MovieStudioTab({ projectId }: Props) {
                                     />
                                   </div>
                                 ) : (
-                                  <span className="text-ink-300 text-xs">—</span>
+                                  <span className="text-ink-300 text-xs">
+                                    —
+                                  </span>
                                 )}
                               </td>
                               <td className="border border-ink-200 px-2 py-1.5 align-top">
                                 <EditableTextarea
                                   value={p.imagePrompt}
                                   onChange={(v) =>
-                                    store.updatePlace(p.slug, { imagePrompt: v })
+                                    store.updatePlace(p.slug, {
+                                      imagePrompt: v,
+                                    })
                                   }
                                   rows={3}
                                 />
@@ -567,14 +579,19 @@ export default function MovieStudioTab({ projectId }: Props) {
                           const spinning =
                             store.regeneratingSceneImages.includes(s.slug);
                           return (
-                            <tr key={s.slug} className="border-b border-ink-200">
+                            <tr
+                              key={s.slug}
+                              className="border-b border-ink-200"
+                            >
                               <td className="border border-ink-200 px-2 py-1.5 align-top font-mono text-[11px] text-tiffany-700">
                                 {s.slug}
                               </td>
                               <td className="border border-ink-200 px-2 py-1.5 align-top">
                                 <EditableInput
                                   type="number"
-                                  value={s.duration > 0 ? String(s.duration) : ""}
+                                  value={
+                                    s.duration > 0 ? String(s.duration) : ""
+                                  }
                                   onChange={(v) =>
                                     store.updateScene(s.slug, {
                                       duration: Number(v) || 0,
@@ -635,7 +652,9 @@ export default function MovieStudioTab({ projectId }: Props) {
                                     />
                                   </div>
                                 ) : (
-                                  <span className="text-ink-300 text-xs">—</span>
+                                  <span className="text-ink-300 text-xs">
+                                    —
+                                  </span>
                                 )}
                               </td>
                               <td className="border border-ink-200 px-2 py-1.5 align-top min-w-[300px]">

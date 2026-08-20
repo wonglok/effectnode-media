@@ -168,7 +168,7 @@ export default function ProjectManager() {
       <header className="flex flex-col gap-7 md:flex-row md:items-end md:justify-between">
         <div className="max-w-xl">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-tiffany-600">
-            Lambobo Studio
+            EffectNode Media
           </p>
           <h1 className="mt-3 font-display text-4xl font-light leading-[1.06] text-ink-900 md:text-5xl">
             Make the movies{" "}

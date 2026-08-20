@@ -1,18 +1,20 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   Lambobo Studio — design tokens
+   EffectNode Media — design tokens
    A dreamy, tiffany-blue film studio. Gradients read like light through
    shallow water: tiffany teal → aqua → periwinkle → blush.
    ========================================================================== */
 
 @theme {
   /* ---- Type ---- */
-  --font-sans: "Avenir Next", Avenir, "Helvetica Neue", -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Cormorant", "Iowan Old Style", "Baskerville", "Georgia",
-    serif;
-  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas,
+  --font-sans:
+    "Avenir Next", Avenir, "Helvetica Neue", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  --font-display:
+    "Cormorant", "Iowan Old Style", "Baskerville", "Georgia", serif;
+  --font-mono:
+    ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
 
   /* ---- Tiffany (the brand) ---- */
@@ -48,13 +50,14 @@
   --color-dream-mint: #c8f1e6;
 
   /* ---- Shadows ---- */
-  --shadow-glow: 0 8px 30px -6px rgba(10, 186, 181, 0.55),
+  --shadow-glow:
+    0 8px 30px -6px rgba(10, 186, 181, 0.55),
     0 2px 10px -2px rgba(10, 186, 181, 0.4);
   --shadow-glow-sm: 0 0 14px -2px rgba(10, 186, 181, 0.45);
-  --shadow-card: 0 1px 2px rgba(13, 25, 28, 0.04),
-    0 10px 30px -12px rgba(13, 25, 28, 0.16);
-  --shadow-card-hover: 0 2px 4px rgba(13, 25, 28, 0.05),
-    0 18px 44px -14px rgba(10, 186, 181, 0.35);
+  --shadow-card:
+    0 1px 2px rgba(13, 25, 28, 0.04), 0 10px 30px -12px rgba(13, 25, 28, 0.16);
+  --shadow-card-hover:
+    0 2px 4px rgba(13, 25, 28, 0.05), 0 18px 44px -14px rgba(10, 186, 181, 0.35);
   --shadow-modal: 0 24px 80px -16px rgba(13, 25, 28, 0.35);
 }
 
@@ -65,16 +68,28 @@
 body {
   margin: 0;
   background-color: #f3f7f7;
-  background-image: radial-gradient(
+  background-image:
+    radial-gradient(
       120% 90% at 85% -10%,
       rgba(183, 225, 251, 0.5),
       transparent 60%
     ),
-    radial-gradient(100% 80% at 0% 0%, rgba(255, 214, 234, 0.4), transparent 55%);
+    radial-gradient(
+      100% 80% at 0% 0%,
+      rgba(255, 214, 234, 0.4),
+      transparent 55%
+    );
   background-attachment: fixed;
   color: #283a40;
-  font-family: "Avenir Next", Avenir, "Helvetica Neue", -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    "Avenir Next",
+    Avenir,
+    "Helvetica Neue",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -82,7 +97,8 @@ body {
 code,
 pre,
 .font-mono {
-  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas,
+  font-family:
+    ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas,
     "Liberation Mono", monospace;
 }
 
@@ -126,7 +142,8 @@ pre,
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  background: radial-gradient(
+  background:
+    radial-gradient(
       120% 90% at 85% -10%,
       rgba(183, 225, 251, 0.55),
       transparent 60%
@@ -251,7 +268,12 @@ pre,
 }
 
 .thumb {
-  background-image: linear-gradient(135deg, #b0e8e3 0%, #81d8d0 50%, #c3b4f4 100%);
+  background-image: linear-gradient(
+    135deg,
+    #b0e8e3 0%,
+    #81d8d0 50%,
+    #c3b4f4 100%
+  );
 }
 
 .btn-primary {
@@ -263,12 +285,16 @@ pre,
   );
   color: #ffffff;
   box-shadow: var(--shadow-glow);
-  transition: filter 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  transition:
+    filter 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
 }
 
 .btn-primary:hover {
   filter: brightness(1.05);
-  box-shadow: 0 10px 34px -6px rgba(10, 186, 181, 0.6),
+  box-shadow:
+    0 10px 34px -6px rgba(10, 186, 181, 0.6),
     0 4px 12px -4px rgba(10, 186, 181, 0.45);
 }
 

@@ -1081,7 +1081,7 @@ async function streamProcessOutput(
 //       "--model",
 //       "dgrauet/ltx-2.3-mlx-q4",
 //       "--prompt",
-//       `${JSON.stringify("No text on screen. a 5 years old cute lamb wanting to have a hug, he says: Hi! Thank you for using Lambobo Studio!")}`,
+//       `${JSON.stringify("No text on screen. a 5 years old cute lamb wanting to have a hug, he says: Hi! Thank you for using EffectNode Media!")}`,
 //       "--distilled",
 //       "--low-ram",
 //       "--frames",

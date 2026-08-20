@@ -735,6 +735,11 @@ function syncToMovieStudioState(
   if (type === "render-videos" || type === "render") {
     state.videos = Array.isArray(result?.videos) ? result.videos : state.videos ?? [];
   }
+  if (type === "render") {
+    state.renderedScenes = Array.isArray(result?.renderedScenes)
+      ? result.renderedScenes
+      : state.renderedScenes ?? [];
+  }
   if (type === "regenerate-asset" && result) {
     const key = `${result.kind}:${result.slug}`;
     const arr = Array.isArray(state.assets) ? state.assets : [];
