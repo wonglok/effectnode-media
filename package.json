@@ -19,7 +19,7 @@
   "scripts": {
     "deploy": "npm run build; npm version minor; npm publish --access public",
     "build": "tsc && node -e \"const fs=require('node:fs');fs.cpSync('src/backend/movie-backend/agent/prompt','dist/backend/movie-backend/agent/prompt',{recursive:true})\"",
-    "dev": "concurrently -k -n backend,frontend -c blue,green \"bun run dev:backend\" \"bun run dev:frontend\"",
+    "dev": "concurrently -k -n backend,frontend -c blue,green \"bun run dev:backend\" \"bun run dev:frontend\"; open http://localhsot:5177",
     "dev:backend": "nodemon",
     "dev:frontend": "vite",
     "start": "node bin/effectnode-media"
