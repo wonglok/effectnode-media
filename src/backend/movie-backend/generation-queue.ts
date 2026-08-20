@@ -15,6 +15,7 @@ import {
   generateAssetImage,
   generateSceneImage,
   generateSceneVideo,
+  generateFastImageEditImage,
   cancelActiveRender,
 } from "./render-media.js";
 import { generateMovieStudioBible } from "./agent/agent-backend.js";
@@ -40,7 +41,8 @@ export type QueueTaskType =
   | "render-video"
   | "regenerate-asset"
   | "regenerate-video"
-  | "regenerate-scene-image";
+  | "regenerate-scene-image"
+  | "fast-image-edit";
 
 export type QueueTaskStatus =
   | "pending"
@@ -561,6 +563,20 @@ const handlers: Record<QueueTaskType, Handler> = {
     );
     ctx.log("Production bible ready.\n");
     return result;
+  },
+
+  // Generate a composite image via fast-image-edit (FLUX.2 Klein).
+  "fast-image-edit": async (ctx) => {
+    const { prompt, images } = ctx.task.payload || {};
+    ctx.log("Generating composite image (FLUX.2 Klein)…\n");
+    const r = await generateFastImageEditImage(
+      ctx.projectId,
+      String(prompt || ""),
+      Array.isArray(images) ? images : [],
+      ctx.log,
+    );
+    if ("error" in r) throw new Error(r.error);
+    return r;
   },
 
   "render-assets": async (ctx) => {

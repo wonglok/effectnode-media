@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import Mustache from "mustache";
 import Papa from "papaparse";
+import type { QueueTask } from "./queueStore";
 import {
   loadTextToImageState,
   saveTextToImageState,
@@ -198,6 +199,7 @@ interface GenerationStore {
   checkFastImageEditStatus: () => Promise<void>;
   downloadFastImageEditModel: () => Promise<void>;
   generateFastImageEdit: (projectId: string) => Promise<void>;
+  applyFastImageEditQueueTask: (task: QueueTask) => void;
 
   // Agent (mlx-vlm)
   agent: AgentState;
@@ -391,48 +393,45 @@ async function resizeImageToPng(
   }
 }
 
-async function requestFastImageEdit(
-  body: {
-    prompt: string;
-    images: string[];
-    projectId: string;
-  },
-  onLog: (text: string) => void,
-): Promise<{ ok: boolean; error?: string; result?: string }> {
-  const res = await fetch(`${API_BASE}/api/mlxgen/fast-image-edit`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    return { ok: false, error: await res.text() };
-  }
-
-  let result: string | undefined;
-  let error: string | undefined;
-
-  await readSSEStream(res, (event, data) => {
-    switch (event) {
-      case "log":
-        onLog(data.text as string);
-        break;
-      case "complete":
-        result = `http://localhost:${(window as any).PORT}/api/files?path=${encodeURIComponent(data.path)}`;
-        break;
-      case "error":
-        error = data.error || "Fast image edit failed";
-        break;
+/** Enqueue a fast image edit task in the backend queue worker. */
+async function enqueueFastImageEditTask(
+  projectId: string,
+  prompt: string,
+  images: string[],
+): Promise<{ ok: boolean; error?: string; taskId?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/queue/enqueue`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        projectId,
+        type: "fast-image-edit",
+        label: "Fast image edit",
+        payload: { prompt, images, projectId },
+      }),
+    });
+    if (!res.ok) {
+      return { ok: false, error: await res.text() };
     }
-  });
-
-  return { ok: !error, error, result };
+    const task = (await res.json()) as { id?: string };
+    return { ok: true, taskId: task.id };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
 }
 
 // ========== Abort Controllers ==========
 
 let generateAbortController: AbortController | null = null;
 let batchAbortController: AbortController | null = null;
+
+// ========== Fast Image Edit Queue ==========
+
+/** Project whose fast-image-edit task should refresh the image grid on completion. */
+let fastImageEditProjectId: string | null = null;
+
+/** The queue task id enqueued by the current generate action, if any. */
+let fastImageEditActiveTaskId: string | null = null;
 
 // ========== Beep ==========
 
@@ -1446,32 +1445,66 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       images.push(processed.dataUrl);
     }
 
-    const result = await requestFastImageEdit(
-      {
-        prompt: fastImageEdit.prompt.trim(),
-        images,
-        projectId,
-      },
-      (text) =>
-        set((s) => ({
-          fastImageEdit: {
-            ...s.fastImageEdit,
-            logs: [...s.fastImageEdit.logs, text],
-          },
-        })),
+    fastImageEditProjectId = projectId;
+    const r = await enqueueFastImageEditTask(
+      projectId,
+      fastImageEdit.prompt.trim(),
+      images,
     );
+    fastImageEditActiveTaskId = r.taskId ?? null;
+    if (!r.ok) {
+      set((s) => ({
+        fastImageEdit: {
+          ...s.fastImageEdit,
+          generating: false,
+          error: r.error ?? "Failed to enqueue fast image edit",
+        },
+      }));
+    }
+  },
 
-    set((s) => ({
-      fastImageEdit: {
-        ...s.fastImageEdit,
-        generating: false,
-        result: result.result ?? null,
-        error: result.error ?? null,
-      },
-    }));
+  // Reconcile the fast image edit state with the latest queue task state.
+  // Only the task enqueued by this tab is reflected, so tasks finished before
+  // the tab opened never surface stale results.
+  applyFastImageEditQueueTask: (task) => {
+    if (task.type !== "fast-image-edit") return;
+    if (task.id !== fastImageEditActiveTaskId) return;
+    const fie = get().fastImageEdit;
 
-    if (result.ok) {
-      get().fetchProjectImages(projectId);
+    if (task.status === "completed") {
+      const url = task.result?.url;
+      set({
+        fastImageEdit: {
+          ...fie,
+          generating: false,
+          result: url ? resolveImageUrl(url) : null,
+          error: null,
+        },
+      });
+      if (fastImageEditProjectId) {
+        get().fetchProjectImages(fastImageEditProjectId);
+      }
+    } else if (
+      task.status === "failed" ||
+      task.status === "cancelled" ||
+      task.status === "paused"
+    ) {
+      set({
+        fastImageEdit: {
+          ...fie,
+          generating: false,
+          error: task.error ?? "Fast image edit failed",
+        },
+      });
+    } else {
+      // pending / running
+      set({
+        fastImageEdit: {
+          ...fie,
+          generating: true,
+          error: null,
+        },
+      });
     }
   },
 
@@ -2103,7 +2136,9 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
   },
 
   // ---- Reset ----
-  resetAll: () =>
+  resetAll: () => {
+    fastImageEditProjectId = null;
+    fastImageEditActiveTaskId = null;
     set({
       activeTab: "movieStudio",
       image: { ...initialImage },
@@ -2135,5 +2170,6 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       batchRunning: false,
       batchProgress: null,
       batchCancelRequested: false,
-    }),
+    });
+  },
 }));

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useGenerationStore } from "../../stores/generationStore";
 import { useProjectStore } from "../../stores/projectStore";
+import { useQueueStore } from "../../stores/queueStore";
+import TaskQueuePanel from "./TaskQueuePanel";
+import TerminalLogPanel from "./TerminalLogPanel";
 
 interface Props {
   projectId: string;
@@ -9,6 +12,7 @@ interface Props {
 export default function FastImageEditTab({ projectId }: Props) {
   const store = useGenerationStore();
   const { openFolder } = useProjectStore();
+  const queue = useQueueStore();
   const referenceFileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<{
     url: string;
@@ -21,6 +25,19 @@ export default function FastImageEditTab({ projectId }: Props) {
     store.fetchCharacterSheets(projectId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
+
+  // Stream the generation queue so fast-image-edit tasks surface here.
+  useEffect(() => {
+    queue.startStreaming(projectId);
+    return () => queue.stopStreaming();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
+  // Reconcile fast-image-edit state with the latest queue task state.
+  useEffect(() => {
+    for (const task of queue.tasks) store.applyFastImageEditQueueTask(task);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queue.tasks, projectId]);
 
   // Close the preview modal on Escape.
   useEffect(() => {
@@ -246,6 +263,9 @@ export default function FastImageEditTab({ projectId }: Props) {
           Fast Image Edit
         </h2>
       </div>
+
+      <TaskQueuePanel projectId={projectId} />
+      <TerminalLogPanel />
 
       {/* ===== Setup: download model ===== */}
       <div>

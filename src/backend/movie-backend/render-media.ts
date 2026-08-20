@@ -748,6 +748,92 @@ export async function generateSceneImage(
   };
 }
 
+/**
+ * Generate a composite image via fast-image-edit (FLUX.2 Klein). `images` are
+ * base64 data URLs that are decoded into temp files and passed to the model as
+ * separate `--image` inputs. Used by the generation queue worker.
+ */
+export async function generateFastImageEditImage(
+  projectId: string,
+  prompt: string,
+  images: string[],
+  onLog?: (text: string) => void,
+): Promise<{ filename: string; url: string } | { error: string }> {
+  if (!prompt || !prompt.trim()) return { error: "Prompt is required" };
+  if (!Array.isArray(images) || images.length === 0) {
+    return { error: "At least one reference image is required" };
+  }
+
+  // Decode each base64 reference image into a temp workspace file so the
+  // FLUX model receives them as separate `--image` inputs.
+  const tempDir = join(TEMP_DIR, String(projectId));
+  ensureDir(tempDir);
+  const tempImagePaths: string[] = [];
+  try {
+    images.forEach((image, i) => {
+      const base64 = String(image).replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64, "base64");
+      const path = join(tempDir, `flux-ref-${Date.now()}-${i}.png`);
+      writeFileSync(path, buffer);
+      tempImagePaths.push(path);
+    });
+  } catch {
+    return { error: "Invalid reference image data" };
+  }
+
+  try {
+    const mlxgen = await getMlxgenBin();
+    const projectOutputDir = join(OUTPUT_DIR, projectId);
+    ensureDir(projectOutputDir);
+
+    const outputFile = `flux-edit-${Date.now()}.png`;
+    const outputPath = join(projectOutputDir, outputFile);
+
+    const args: string[] = [mlxgen, "generate", "--model", FLUX_KLEIN_MODEL];
+    for (const path of tempImagePaths) args.push("--image", path);
+    args.push(
+      "--prompt",
+      prompt.trim(),
+      "--output",
+      outputPath,
+      "--mlx-cache-limit-gb",
+      "20",
+      "--steps",
+      "5",
+      "--seed",
+      "42",
+      "--width",
+      "1024",
+      "--height",
+      "1024",
+    );
+
+    const result = await runCommand(args, { onLog });
+    if (!result.success || !existsSync(outputPath)) {
+      return { error: result.output || "Fast image edit failed" };
+    }
+
+    backupFile(outputPath, projectId);
+    return {
+      filename: outputFile,
+      url: `/api/files?path=${encodeURIComponent(outputPath)}`,
+    };
+  } finally {
+    for (const path of tempImagePaths) {
+      try {
+        unlinkSync(path);
+      } catch {
+        // already removed
+      }
+    }
+    try {
+      rmSync(tempDir, { force: true });
+    } catch {
+      // ignore cleanup failures
+    }
+  }
+}
+
 // ========== Routes ==========
 
 export async function renderMediaRoutes({
