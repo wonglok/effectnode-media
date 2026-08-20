@@ -163,15 +163,20 @@ export default function ProjectManager() {
   // ========== Render ==========
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-xl font-semibold text-ink-900 tracking-tight">
-            Projects
-          </h2>
-          <p className="text-sm text-ink-600/70 mt-0.5">
-            Manage your media projects
+    <div className="flex flex-col">
+      {/* Hero */}
+      <header className="flex flex-col gap-7 md:flex-row md:items-end md:justify-between">
+        <div className="max-w-xl">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-tiffany-600">
+            Lambobo Studio
+          </p>
+          <h1 className="mt-3 font-display text-4xl font-light leading-[1.06] text-ink-900 md:text-5xl">
+            Make the movies{" "}
+            <span className="wordmark font-medium italic">you dream of</span>
+          </h1>
+          <p className="mt-4 text-sm leading-relaxed text-ink-600/80">
+            A local AI studio for writing stories, casting characters, and
+            turning scenes into motion.
           </p>
         </div>
         <button
@@ -179,24 +184,24 @@ export default function ProjectManager() {
             resetForm();
             setShowCreate(true);
           }}
-          className="flex items-center gap-1.5 px-4 py-2 bg-tiffany-500 hover:bg-tiffany-600 active:bg-tiffany-700 text-ink-950 text-sm font-medium rounded-2xl transition-all duration-150 shadow-glow hover:shadow-glow"
+          className="btn-primary flex w-fit items-center gap-1.5 rounded-2xl px-5 py-2.5 text-sm font-medium"
         >
           {PlusIcon}
           New Project
         </button>
-      </div>
+      </header>
 
       {/* Error */}
       {error && (
-        <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm">
+        <div className="mt-8 rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-sm text-rose-600 backdrop-blur-sm">
           {error}
         </div>
       )}
 
       {/* Create / Edit Form */}
       {showCreate && (
-        <div className="mb-5 p-6 bg-white border border-ink-200 rounded-3xl shadow-card">
-          <h3 className="text-sm font-semibold text-ink-900 mb-3">
+        <div className="glass mt-8 rounded-3xl p-6 shadow-card">
+          <h3 className="font-display text-lg font-medium text-ink-900">
             {editingId ? "Edit Project" : "New Project"}
           </h3>
           <input
@@ -210,7 +215,7 @@ export default function ProjectManager() {
                 editingId ? handleUpdate() : handleCreate();
               if (e.key === "Escape") resetForm();
             }}
-            className="w-full mb-3 px-4 py-2.5 bg-ink-50 border border-ink-200 rounded-2xl text-ink-900 text-sm placeholder-ink-500/40 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/30 transition-all"
+            className="mt-4 w-full rounded-2xl border border-white/70 bg-white/70 px-4 py-2.5 text-sm text-ink-900 placeholder-ink-500/40 transition-all focus:border-tiffany-500 focus:outline-none focus:ring-2 focus:ring-tiffany-500/30"
           />
           <input
             type="text"
@@ -222,18 +227,18 @@ export default function ProjectManager() {
                 editingId ? handleUpdate() : handleCreate();
               if (e.key === "Escape") resetForm();
             }}
-            className="w-full mb-4 px-4 py-2.5 bg-ink-50 border border-ink-200 rounded-2xl text-ink-900 text-sm placeholder-ink-500/40 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/30 transition-all"
+            className="mt-3 w-full rounded-2xl border border-white/70 bg-white/70 px-4 py-2.5 text-sm text-ink-900 placeholder-ink-500/40 transition-all focus:border-tiffany-500 focus:outline-none focus:ring-2 focus:ring-tiffany-500/30"
           />
-          <div className="flex gap-2">
+          <div className="mt-4 flex gap-2">
             <button
               onClick={editingId ? handleUpdate : handleCreate}
-              className="px-5 py-2 bg-tiffany-500 hover:bg-tiffany-600 active:bg-tiffany-700 text-ink-950 text-sm font-medium rounded-2xl transition-all duration-150"
+              className="btn-primary rounded-2xl px-5 py-2 text-sm font-medium"
             >
               {editingId ? "Update" : "Create"}
             </button>
             <button
               onClick={resetForm}
-              className="px-5 py-2 bg-ink-100 hover:bg-ink-300 text-ink-700 text-sm font-medium rounded-2xl transition-all duration-150"
+              className="rounded-2xl border border-ink-200 bg-white/60 px-5 py-2 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-100"
             >
               Cancel
             </button>
@@ -241,64 +246,87 @@ export default function ProjectManager() {
         </div>
       )}
 
+      {/* Section label */}
+      <div className="mt-12 mb-4 flex items-center gap-3">
+        <h2 className="font-display text-xl font-medium text-ink-900">
+          Projects
+        </h2>
+        <span className="text-xs text-ink-500">
+          {loading ? "…" : `${projects.length} in the studio`}
+        </span>
+        <div className="hairline flex-1" />
+      </div>
+
       {/* Project List */}
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-ink-600/50 text-sm">
-          Loading...
+        <div className="flex items-center justify-center py-16 text-sm text-ink-600/50">
+          Loading…
         </div>
       ) : projects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="w-16 h-16 bg-ink-100 rounded-3xl flex items-center justify-center mb-4">
+        <div className="glass flex flex-col items-center justify-center rounded-3xl px-6 py-20 text-center shadow-card">
+          <div className="thumb flex h-20 w-20 items-center justify-center rounded-3xl text-ink-900/70 shadow-glow-sm">
             <svg
-              width="28"
-              height="28"
+              width="32"
+              height="32"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#81d8d0"
+              stroke="currentColor"
               strokeWidth="1.5"
             >
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
             </svg>
           </div>
-          <p className="text-sm font-medium text-ink-800">No projects yet</p>
-          <p className="text-xs text-ink-600/60 mt-1">
-            Create your first project to get started
+          <p className="mt-5 font-display text-2xl font-light text-ink-900">
+            Your studio is empty
           </p>
+          <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-ink-600/70">
+            Create your first project and start turning an idea into motion.
+          </p>
+          <button
+            onClick={() => {
+              resetForm();
+              setShowCreate(true);
+            }}
+            className="btn-primary mt-6 flex items-center gap-1.5 rounded-2xl px-5 py-2.5 text-sm font-medium"
+          >
+            {PlusIcon}
+            New Project
+          </button>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto space-y-2">
+        <div className="space-y-2.5">
           {projects.map((p) => (
             <div
               key={p.id}
-              className="flex items-center gap-3 px-4 py-3.5 bg-white border border-ink-200 hover:border-ink-400 hover:shadow-card-hover rounded-2xl transition-all duration-150 group"
+              className="group flex items-center gap-3 rounded-2xl px-4 py-3.5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover glass"
             >
               {/* Project info */}
               <button
                 onClick={() => openProject(p.id)}
-                className="flex-1 flex items-center gap-3 text-left min-w-0"
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
               >
-                <div className="shrink-0 w-9 h-9 bg-ink-100 border border-ink-200 rounded-2xl flex items-center justify-center">
+                <div className="thumb flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-ink-900/70">
                   <svg
-                    width="15"
-                    height="15"
+                    width="16"
+                    height="16"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="#81d8d0"
+                    stroke="currentColor"
                     strokeWidth="2"
                   >
                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-ink-900 truncate">
+                  <p className="truncate font-display text-[15px] font-medium leading-tight text-ink-900">
                     {p.name}
                   </p>
                   {p.description ? (
-                    <p className="text-xs text-ink-600/60 truncate mt-0.5">
+                    <p className="mt-0.5 truncate text-xs text-ink-600/70">
                       {p.description}
                     </p>
                   ) : (
-                    <p className="text-xs text-ink-500/60 italic mt-0.5">
+                    <p className="mt-0.5 text-xs italic text-ink-500/60">
                       No description
                     </p>
                   )}
@@ -306,38 +334,38 @@ export default function ProjectManager() {
               </button>
 
               {/* Actions */}
-              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+              <div className="flex items-center gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                 <button
                   onClick={() => startEdit(p)}
-                  className="p-2 text-ink-600/40 hover:text-tiffany-600 hover:bg-ink-100 rounded-xl transition-colors"
+                  className="rounded-xl p-2 text-ink-600/40 transition-colors hover:bg-ink-100 hover:text-tiffany-700"
                   title="Edit"
                 >
                   {EditIcon}
                 </button>
                 <button
                   onClick={() => openFolder(p.id, "upload")}
-                  className="p-2 text-ink-600/40 hover:text-tiffany-600 hover:bg-ink-100 rounded-xl transition-colors"
+                  className="rounded-xl p-2 text-ink-600/40 transition-colors hover:bg-ink-100 hover:text-tiffany-700"
                   title="Open Uploads Folder"
                 >
                   {UploadFolderIcon}
                 </button>
                 <button
                   onClick={() => openFolder(p.id, "output")}
-                  className="p-2 text-ink-600/40 hover:text-tiffany-600 hover:bg-ink-100 rounded-xl transition-colors"
+                  className="rounded-xl p-2 text-ink-600/40 transition-colors hover:bg-ink-100 hover:text-tiffany-700"
                   title="Open Outputs Folder"
                 >
                   {OutputFolderIcon}
                 </button>
                 <button
                   onClick={() => setDeleteConfirm(p.id)}
-                  className="p-2 text-ink-600/40 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                  className="rounded-xl p-2 text-ink-600/40 transition-colors hover:bg-rose-50 hover:text-rose-600"
                   title="Delete"
                 >
                   {DeleteIcon}
                 </button>
                 <button
                   onClick={() => openProject(p.id)}
-                  className="p-2 text-ink-600/40 hover:text-tiffany-600 hover:bg-ink-100 rounded-xl transition-colors"
+                  className="rounded-xl p-2 text-ink-600/40 transition-colors hover:bg-ink-100 hover:text-tiffany-700"
                   title="Open"
                 >
                   {OpenIcon}
@@ -350,25 +378,25 @@ export default function ProjectManager() {
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white border border-ink-200 rounded-3xl p-8 w-80 shadow-modal">
-            <h3 className="text-sm font-semibold text-ink-900 mb-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/40 backdrop-blur-sm">
+          <div className="w-80 rounded-3xl border border-white/70 bg-white/90 p-8 shadow-modal backdrop-blur-xl">
+            <h3 className="font-display text-lg font-medium text-ink-900">
               Delete Project
             </h3>
-            <p className="text-sm text-ink-600/80 mb-5 leading-relaxed">
+            <p className="mt-2 text-sm leading-relaxed text-ink-600/80">
               Are you sure you want to delete this project? This action cannot
               be undone.
             </p>
-            <div className="flex gap-2 justify-end">
+            <div className="mt-5 flex justify-end gap-2">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 bg-ink-100 hover:bg-ink-300 text-ink-700 text-sm font-medium rounded-2xl transition-colors"
+                className="rounded-2xl bg-ink-100 px-4 py-2 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-300"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-2xl transition-colors"
+                className="rounded-2xl bg-rose-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-rose-600"
               >
                 Delete
               </button>

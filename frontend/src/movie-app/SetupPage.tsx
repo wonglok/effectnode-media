@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLogStore, type LogEntry } from "./stores/logStore";
+import Aurora from "./components/Aurora";
 
 interface StepStatus {
   step: string;
@@ -104,7 +105,7 @@ function SetupPage({ port = 8765 }) {
             height="18"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="currentColor"
+            stroke="#4fc3bc"
             strokeWidth="2"
           >
             <circle
@@ -131,7 +132,7 @@ function SetupPage({ port = 8765 }) {
             height="18"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#22c55e"
+            stroke="#0abab5"
             strokeWidth="2"
           >
             <circle cx="12" cy="12" r="10" />
@@ -145,7 +146,7 @@ function SetupPage({ port = 8765 }) {
             height="18"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#ef4444"
+            stroke="#fb7185"
             strokeWidth="2"
           >
             <circle cx="12" cy="12" r="10" />
@@ -159,7 +160,7 @@ function SetupPage({ port = 8765 }) {
             height="18"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#9ca3af"
+            stroke="#83a0a7"
             strokeWidth="2"
           >
             <circle cx="12" cy="12" r="10" />
@@ -177,7 +178,7 @@ function SetupPage({ port = 8765 }) {
             height="14"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#ef4444"
+            stroke="#fb7185"
             strokeWidth="2"
             className="shrink-0"
           >
@@ -192,13 +193,13 @@ function SetupPage({ port = 8765 }) {
             height="14"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#f59e0b"
+            stroke="#fbbf24"
             strokeWidth="2"
             className="shrink-0"
           >
             <path d="M12 2L2 22h20L12 2z" />
             <line x1="12" y1="9" x2="12" y2="14" />
-            <circle cx="12" cy="18" r="0.5" fill="#f59e0b" />
+            <circle cx="12" cy="18" r="0.5" fill="#fbbf24" />
           </svg>
         );
       default:
@@ -208,7 +209,7 @@ function SetupPage({ port = 8765 }) {
             height="14"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#6b7280"
+            stroke="#5e7c83"
             strokeWidth="2"
             className="shrink-0"
           >
@@ -225,65 +226,99 @@ function SetupPage({ port = 8765 }) {
   };
 
   return (
-    <div className="flex flex-col h-screen p-8 font-sans bg-ink-50 text-ink-800">
-      <h2 className="text-lg font-semibold mb-4 text-ink-900">
-        Media Studio Setup
-      </h2>
+    <div className="relative min-h-screen">
+      <Aurora />
+      <div className="relative z-10 mx-auto w-full max-w-3xl px-6 py-12">
+        {/* Hero */}
+        <header>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-tiffany-600">
+            Lambobo Studio
+          </p>
+          <h1 className="mt-3 font-display text-4xl font-light leading-[1.06] text-ink-900">
+            Setting up{" "}
+            <span className="wordmark font-medium italic">your studio</span>
+          </h1>
+          <p className="mt-4 text-sm leading-relaxed text-ink-600/80">
+            Gathering models and starting the local server. The first run takes
+            a minute.
+          </p>
+        </header>
 
-      {error && <div className="text-red-600 mb-4">Error: {error}</div>}
-      {complete && !error && (
-        <div className="text-ink-600 mb-4 font-bold">
-          Setup complete! Server running on port {port}
-        </div>
-      )}
-      <div className="mb-4">
-        {steps.map((step, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-2 py-2 transition-opacity"
-            style={{ opacity: step.status === "pending" ? 0.5 : 1 }}
-          >
-            <StatusIcon status={step.status} />
-            <span className="text-sm">{step.label}</span>
+        {error && (
+          <div className="mt-8 rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-sm text-rose-600 backdrop-blur-sm">
+            Error: {error}
           </div>
-        ))}
-      </div>
-      {/* Log display panel */}
-      <div className="flex-1 flex flex-col min-h-0 border border-ink-200 rounded-2xl overflow-hidden bg-white shadow-card">
-        <div className="flex items-center justify-between px-4 py-2.5 bg-ink-50 border-b border-ink-200">
-          <span className="text-xs font-semibold text-ink-600/80 uppercase tracking-wider">
-            Logs
-          </span>
-          <span className="text-xs text-ink-500">{logs.length} entries</span>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4 font-mono text-xs leading-relaxed">
-          {logs.length === 0 ? (
-            <div className="text-ink-500 italic">Waiting for logs...</div>
-          ) : (
-            logs.map((entry) => (
-              <div
-                key={entry.id}
-                className="flex items-start gap-2 py-0.5 hover:bg-ink-100 rounded px-1"
-              >
-                <LogIcon level={entry.level} />
-                <span className="text-ink-500 shrink-0 select-none">
-                  {formatTime(entry.timestamp)}
-                </span>
-                <span
-                  className={
-                    entry.level === "error"
-                      ? "text-red-600"
-                      : entry.level === "warn"
-                        ? "text-amber-600"
-                        : "text-ink-700"
-                  }
+        )}
+        {complete && !error && (
+          <div className="glass mt-8 rounded-2xl px-4 py-3 text-sm font-medium text-tiffany-700 shadow-card">
+            Setup complete — opening your studio…
+          </div>
+        )}
+
+        {/* Checks */}
+        <div className="glass mt-8 rounded-3xl p-6 shadow-card">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-ink-500">
+            Checks
+          </p>
+          <div className="mt-2">
+            {steps.length === 0 ? (
+              <p className="py-2 text-sm italic text-ink-500/70">
+                Starting the local server…
+              </p>
+            ) : (
+              steps.map((step, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2.5 py-2 transition-opacity"
+                  style={{ opacity: step.status === "pending" ? 0.45 : 1 }}
                 >
-                  {entry.message}
-                </span>
-              </div>
-            ))
-          )}
-          <div ref={logEndRef} />
+                  <StatusIcon status={step.status} />
+                  <span className="text-sm text-ink-800">{step.label}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Log console — the film-editing-bay contrast inside the dream */}
+        <div className="glass-dark mt-5 flex min-h-0 flex-col overflow-hidden rounded-3xl shadow-card">
+          <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-tiffany-300/80">
+              Logs
+            </span>
+            <span className="text-xs text-ink-400">
+              {logs.length} {logs.length === 1 ? "entry" : "entries"}
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto p-5 font-mono text-xs leading-relaxed">
+            {logs.length === 0 ? (
+              <div className="italic text-ink-400">Waiting for logs…</div>
+            ) : (
+              logs.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="flex items-start gap-2 rounded px-1 py-0.5 hover:bg-white/5"
+                >
+                  <LogIcon level={entry.level} />
+                  <span className="shrink-0 select-none text-ink-400">
+                    {formatTime(entry.timestamp)}
+                  </span>
+                  <span
+                    className={
+                      entry.level === "error"
+                        ? "text-rose-300"
+                        : entry.level === "warn"
+                          ? "text-amber-300"
+                          : "text-tiffany-100"
+                    }
+                  >
+                    {entry.message}
+                  </span>
+                </div>
+              ))
+            )}
+            <div ref={logEndRef} />
+          </div>
         </div>
       </div>
     </div>
