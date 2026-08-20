@@ -191,9 +191,9 @@ const DOWNLOAD_MODELS: {
     desc: "Character, place & scene images",
   },
   {
-    id: "qwen",
-    name: "AbstractFramework/qwen-image-edit-2511-8bit",
-    desc: "Image editing",
+    id: "ltx",
+    name: "dgrauet/ltx-2.3-mlx-q8",
+    desc: "Video generation",
   },
 ];
 
@@ -228,7 +228,7 @@ export default function SetupAiModelTab() {
       <section>
         <h3 className="mb-2 text-sm font-semibold text-ink-900">Engines</h3>
         <div className="space-y-2">
-          <ModelRow name="mlx-gen" desc="Image generation engine (z-image · flux · qwen)">
+          <ModelRow name="mlx-gen" desc="Image generation engine (z-image · flux)">
             <StatusBadge
               value={store.mlxgenInstalled}
               okText="Installed"
@@ -259,6 +259,22 @@ export default function SetupAiModelTab() {
               {store.downloading === "mlx-vlm" ? "Installing…" : "Install"}
             </button>
           </ModelRow>
+
+          <ModelRow name="huggingface-cli" desc="HF CLI for downloading models">
+            <StatusBadge
+              value={store.hfInstalled}
+              okText="Installed"
+              missingText="Not installed"
+            />
+            <button
+              onClick={() => store.installTool("hf-cli")}
+              disabled={busy}
+              className="flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-tiffany-500 px-3 py-1.5 text-xs font-medium text-tiffany-700 transition-colors hover:bg-tiffany-50 disabled:opacity-50"
+            >
+              {store.downloading === "hf-cli" ? SpinnerIcon : InstallIcon}
+              {store.downloading === "hf-cli" ? "Installing…" : "Install"}
+            </button>
+          </ModelRow>
         </div>
       </section>
 
@@ -286,7 +302,7 @@ export default function SetupAiModelTab() {
                 ? store.zImageDownloaded
                 : m.id === "flux"
                   ? store.fluxDownloaded
-                  : store.qwenDownloaded;
+                  : store.ltxDownloaded;
             return (
               <ModelRow key={m.id} name={m.name} desc={m.desc}>
                 <StatusBadge value={downloaded} />
@@ -301,15 +317,6 @@ export default function SetupAiModelTab() {
               </ModelRow>
             );
           })}
-
-          <ModelRow
-            name="dgrauet/ltx-2.3-mlx-q8"
-            desc="Video generation"
-          >
-            <span className="text-xs italic text-ink-400">
-              Downloads on first render
-            </span>
-          </ModelRow>
 
           <ModelRow
             name="Qwen/Qwen3-TTS-12Hz-1.7B-Base"

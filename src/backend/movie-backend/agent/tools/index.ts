@@ -8,7 +8,6 @@ import removeFileTool from "./remove-file.js";
 import renameFileTool from "./rename-file.js";
 import grepFilesTool from "./grep-files.js";
 import showImageTool from "./show-image.js";
-import editImageTool from "./edit-image.js";
 import imageToVideoGenerationTool from "./image-to-video-generation.js";
 import textToVideoGenerationTool from "./text-to-video-generation.js";
 import stitchVideosTool from "./stitch-videos.js";
@@ -25,7 +24,6 @@ export const TOOLS: AgentTool[] = [
   renameFileTool,
   grepFilesTool,
   showImageTool,
-  editImageTool,
   imageToVideoGenerationTool,
   textToVideoGenerationTool,
   stitchVideosTool,
