@@ -183,6 +183,9 @@ interface MovieStudioStore {
   regenerateVideo: (projectId: string, slug: string) => Promise<void>;
   renderSceneImages: (projectId: string) => Promise<void>;
   regenerateSceneImage: (projectId: string, slug: string) => Promise<void>;
+  updateCharacter: (slug: string, patch: Partial<MovieCharacter>) => void;
+  updatePlace: (slug: string, patch: Partial<MoviePlace>) => void;
+  updateScene: (slug: string, patch: Partial<MovieScene>) => void;
   applyQueueTask: (task: QueueTask) => void;
   primeAppliedQueue: (tasks: QueueTask[]) => void;
   stop: () => void;
@@ -408,6 +411,48 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
         sceneImagesError: r.error,
       }));
     }
+  },
+
+  updateCharacter: (slug, patch) => {
+    const result = get().result;
+    if (!result) return;
+    set({
+      result: {
+        ...result,
+        characters: result.characters.map((c) =>
+          c.slug === slug ? { ...c, ...patch } : c,
+        ),
+      },
+    });
+    persistMovieStudioState();
+  },
+
+  updatePlace: (slug, patch) => {
+    const result = get().result;
+    if (!result) return;
+    set({
+      result: {
+        ...result,
+        places: result.places.map((p) =>
+          p.slug === slug ? { ...p, ...patch } : p,
+        ),
+      },
+    });
+    persistMovieStudioState();
+  },
+
+  updateScene: (slug, patch) => {
+    const result = get().result;
+    if (!result) return;
+    set({
+      result: {
+        ...result,
+        scenes: result.scenes.map((s) =>
+          s.slug === slug ? { ...s, ...patch } : s,
+        ),
+      },
+    });
+    persistMovieStudioState();
   },
 
   // Reconcile the movie studio store with the latest queue task state.

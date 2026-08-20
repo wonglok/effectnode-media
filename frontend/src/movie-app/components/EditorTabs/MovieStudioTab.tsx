@@ -56,7 +56,6 @@ export default function MovieStudioTab({ projectId }: Props) {
     projectId,
     store.assets.length,
     store.sceneImages.length,
-    store.videos.length,
     store.renderedScenes.length,
   ]);
 
@@ -192,12 +191,6 @@ export default function MovieStudioTab({ projectId }: Props) {
     </thead>
   );
 
-  const PromptCell = ({ text }: { text: string }) => (
-    <span className="text-ink-700 whitespace-pre-wrap leading-relaxed">
-      {text}
-    </span>
-  );
-
   const slugify = (v: string): string =>
     (v || "").trim().replace(/[^a-zA-Z0-9_-]/g, "_");
   const resolveUrl = (url?: string): string | null =>
@@ -236,6 +229,63 @@ export default function MovieStudioTab({ projectId }: Props) {
     ) : (
       <span className="text-ink-300 text-xs">—</span>
     );
+
+  const EditableInput = ({
+    value,
+    onChange,
+    type = "text",
+    className = "",
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    type?: string;
+    className?: string;
+  }) => (
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`w-full rounded-lg border border-ink-200 bg-ink-50 px-2 py-1.5 text-xs text-ink-800 placeholder-ink-400 transition-all focus:border-tiffany-500 focus:outline-none focus:ring-2 focus:ring-tiffany-500/25 ${className}`}
+    />
+  );
+
+  const EditableTextarea = ({
+    value,
+    onChange,
+    rows = 3,
+    mono = false,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    rows?: number;
+    mono?: boolean;
+  }) => (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      rows={rows}
+      className={`w-full min-w-[150px] resize-y rounded-lg border border-ink-200 bg-ink-50 px-2 py-1.5 leading-relaxed text-ink-800 placeholder-ink-400 transition-all focus:border-tiffany-500 focus:outline-none focus:ring-2 focus:ring-tiffany-500/25 ${
+        mono ? "font-mono text-[11px]" : "text-xs"
+      }`}
+    />
+  );
+
+  const RegenerateButton = ({
+    onClick,
+    spinning,
+  }: {
+    onClick: () => void;
+    spinning: boolean;
+  }) => (
+    <button
+      onClick={onClick}
+      disabled={spinning}
+      className="mt-1 flex items-center gap-1 whitespace-nowrap rounded-md border border-ink-200 px-2 py-1 text-[10px] font-medium text-ink-600 transition-colors hover:border-tiffany-400 hover:text-tiffany-600 disabled:opacity-50"
+    >
+      {spinning ? SpinnerIcon : RefreshIcon}
+      Regenerate
+    </button>
+  );
 
   return (
     <div className="flex flex-col gap-7">
@@ -331,25 +381,60 @@ export default function MovieStudioTab({ projectId }: Props) {
                         ]}
                       />
                       <tbody>
-                        {store.result.characters.map((c) => (
-                          <tr key={c.slug} className="border-b border-ink-200">
-                            <td className="border border-ink-200 px-2 py-1.5 align-top font-mono text-[11px] text-tiffany-700">
-                              {c.slug}
-                            </td>
-                            <td className="border border-ink-200 px-2 py-1.5 align-top font-medium text-ink-800">
-                              {c.name}
-                            </td>
-                            <td className="border border-ink-200 px-2 py-1.5 align-middle">
-                              <Thumb
-                                url={imageUrlFor("character", c.slug)}
-                                filename={c.slug}
-                              />
-                            </td>
-                            <td className="border border-ink-200 px-2 py-1.5 align-top">
-                              <PromptCell text={c.imagePrompt} />
-                            </td>
-                          </tr>
-                        ))}
+                        {store.result.characters.map((c) => {
+                          const url = imageUrlFor("character", c.slug);
+                          const spinning = store.regenerating.includes(
+                            `character:${c.slug}`,
+                          );
+                          return (
+                            <tr key={c.slug} className="border-b border-ink-200">
+                              <td className="border border-ink-200 px-2 py-1.5 align-top font-mono text-[11px] text-tiffany-700">
+                                {c.slug}
+                              </td>
+                              <td className="border border-ink-200 px-2 py-1.5 align-top min-w-[140px]">
+                                <EditableInput
+                                  value={c.name}
+                                  onChange={(v) =>
+                                    store.updateCharacter(c.slug, { name: v })
+                                  }
+                                />
+                              </td>
+                              <td className="border border-ink-200 px-2 py-1.5 align-top">
+                                {url ? (
+                                  <div className="flex flex-col items-start">
+                                    <div className="h-16 w-16">
+                                      <Thumb url={url} filename={c.slug} />
+                                    </div>
+                                    <RegenerateButton
+                                      spinning={spinning}
+                                      onClick={() =>
+                                        store.regenerateAsset(
+                                          projectId,
+                                          "character",
+                                          c.slug,
+                                          c.imagePrompt,
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                ) : (
+                                  <span className="text-ink-300 text-xs">—</span>
+                                )}
+                              </td>
+                              <td className="border border-ink-200 px-2 py-1.5 align-top">
+                                <EditableTextarea
+                                  value={c.imagePrompt}
+                                  onChange={(v) =>
+                                    store.updateCharacter(c.slug, {
+                                      imagePrompt: v,
+                                    })
+                                  }
+                                  rows={3}
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -377,25 +462,58 @@ export default function MovieStudioTab({ projectId }: Props) {
                         ]}
                       />
                       <tbody>
-                        {store.result.places.map((p) => (
-                          <tr key={p.slug} className="border-b border-ink-200">
-                            <td className="border border-ink-200 px-2 py-1.5 align-top font-mono text-[11px] text-tiffany-700">
-                              {p.slug}
-                            </td>
-                            <td className="border border-ink-200 px-2 py-1.5 align-top font-medium text-ink-800">
-                              {p.name}
-                            </td>
-                            <td className="border border-ink-200 px-2 py-1.5 align-middle">
-                              <Thumb
-                                url={imageUrlFor("place", p.slug)}
-                                filename={p.slug}
-                              />
-                            </td>
-                            <td className="border border-ink-200 px-2 py-1.5 align-top">
-                              <PromptCell text={p.imagePrompt} />
-                            </td>
-                          </tr>
-                        ))}
+                        {store.result.places.map((p) => {
+                          const url = imageUrlFor("place", p.slug);
+                          const spinning = store.regenerating.includes(
+                            `place:${p.slug}`,
+                          );
+                          return (
+                            <tr key={p.slug} className="border-b border-ink-200">
+                              <td className="border border-ink-200 px-2 py-1.5 align-top font-mono text-[11px] text-tiffany-700">
+                                {p.slug}
+                              </td>
+                              <td className="border border-ink-200 px-2 py-1.5 align-top min-w-[140px]">
+                                <EditableInput
+                                  value={p.name}
+                                  onChange={(v) =>
+                                    store.updatePlace(p.slug, { name: v })
+                                  }
+                                />
+                              </td>
+                              <td className="border border-ink-200 px-2 py-1.5 align-top">
+                                {url ? (
+                                  <div className="flex flex-col items-start">
+                                    <div className="h-16 w-16">
+                                      <Thumb url={url} filename={p.slug} />
+                                    </div>
+                                    <RegenerateButton
+                                      spinning={spinning}
+                                      onClick={() =>
+                                        store.regenerateAsset(
+                                          projectId,
+                                          "place",
+                                          p.slug,
+                                          p.imagePrompt,
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                ) : (
+                                  <span className="text-ink-300 text-xs">—</span>
+                                )}
+                              </td>
+                              <td className="border border-ink-200 px-2 py-1.5 align-top">
+                                <EditableTextarea
+                                  value={p.imagePrompt}
+                                  onChange={(v) =>
+                                    store.updatePlace(p.slug, { imagePrompt: v })
+                                  }
+                                  rows={3}
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -444,57 +562,137 @@ export default function MovieStudioTab({ projectId }: Props) {
                         ]}
                       />
                       <tbody>
-                        {store.result.scenes.map((s) => (
-                          <tr key={s.slug} className="border-b border-ink-200">
-                            <td className="border border-ink-200 px-2 py-1.5 align-top font-mono text-[11px] text-tiffany-700">
-                              {s.slug}
-                            </td>
-                            <td className="border border-ink-200 px-2 py-1.5 align-top text-ink-800 tabular-nums whitespace-nowrap">
-                              {s.duration > 0 ? `${s.duration}s` : "—"}
-                            </td>
-                            <td className="border border-ink-200 px-2 py-1.5 align-top text-ink-800 min-w-[150px]">
-                              {s.description}
-                            </td>
-                            <td className="border border-ink-200 px-2 py-1.5 align-top font-mono text-[11px] text-ink-600  min-w-[150px]">
-                              {s.characterSlugs.join(", ")}
-                            </td>
-                            <td className="border border-ink-200 px-2 py-1.5 align-top font-mono text-[11px] text-ink-600  min-w-[150px]">
-                              {s.placeSlug}
-                            </td>
-                            <td className="border border-ink-200 px-2 py-1.5 align-middle  min-w-[200px]">
-                              <Thumb
-                                url={imageUrlFor("scene", s.slug)}
-                                filename={s.slug}
-                              />
-                            </td>
-                            <td className="border border-ink-200 px-2 py-1.5 align-top  min-w-[300px]">
-                              {s.scriptLines.length === 0 ? (
-                                <span className="text-ink-400">—</span>
-                              ) : (
-                                <div className="flex flex-col gap-1">
-                                  {s.scriptLines.map((line, i) => (
-                                    <div key={i} className="text-ink-700">
-                                      <span className="font-mono text-[11px] font-medium text-tiffany-700">
-                                        {line.characterSlug}:
-                                      </span>{" "}
-                                      {line.line}
+                        {store.result.scenes.map((s) => {
+                          const url = imageUrlFor("scene", s.slug);
+                          const spinning =
+                            store.regeneratingSceneImages.includes(s.slug);
+                          return (
+                            <tr key={s.slug} className="border-b border-ink-200">
+                              <td className="border border-ink-200 px-2 py-1.5 align-top font-mono text-[11px] text-tiffany-700">
+                                {s.slug}
+                              </td>
+                              <td className="border border-ink-200 px-2 py-1.5 align-top">
+                                <EditableInput
+                                  type="number"
+                                  value={s.duration > 0 ? String(s.duration) : ""}
+                                  onChange={(v) =>
+                                    store.updateScene(s.slug, {
+                                      duration: Number(v) || 0,
+                                    })
+                                  }
+                                  className="w-20"
+                                />
+                              </td>
+                              <td className="border border-ink-200 px-2 py-1.5 align-top min-w-[150px]">
+                                <EditableTextarea
+                                  value={s.description}
+                                  onChange={(v) =>
+                                    store.updateScene(s.slug, {
+                                      description: v,
+                                    })
+                                  }
+                                  rows={3}
+                                />
+                              </td>
+                              <td className="border border-ink-200 px-2 py-1.5 align-top min-w-[150px]">
+                                <EditableTextarea
+                                  mono
+                                  value={s.characterSlugs.join(", ")}
+                                  onChange={(v) =>
+                                    store.updateScene(s.slug, {
+                                      characterSlugs: v
+                                        .split(",")
+                                        .map((x) => x.trim())
+                                        .filter(Boolean),
+                                    })
+                                  }
+                                  rows={2}
+                                />
+                              </td>
+                              <td className="border border-ink-200 px-2 py-1.5 align-top min-w-[150px]">
+                                <EditableInput
+                                  value={s.placeSlug}
+                                  onChange={(v) =>
+                                    store.updateScene(s.slug, { placeSlug: v })
+                                  }
+                                  className="font-mono text-[11px]"
+                                />
+                              </td>
+                              <td className="border border-ink-200 px-2 py-1.5 align-top min-w-[200px]">
+                                {url ? (
+                                  <div className="flex flex-col items-start">
+                                    <div className="h-16 w-16">
+                                      <Thumb url={url} filename={s.slug} />
                                     </div>
-                                  ))}
-                                </div>
-                              )}
-                            </td>
-                            <td className="border border-ink-200 px-2 py-1.5 align-top  min-w-[300px]">
-                              {s.voiceOver ? (
-                                <PromptCell text={s.voiceOver} />
-                              ) : (
-                                <span className="text-ink-400">—</span>
-                              )}
-                            </td>
-                            <td className="border border-ink-200 px-2 py-1.5 align-top min-w-[300px]">
-                              <PromptCell text={s.imagePrompt} />
-                            </td>
-                          </tr>
-                        ))}
+                                    <RegenerateButton
+                                      spinning={spinning}
+                                      onClick={() =>
+                                        store.regenerateSceneImage(
+                                          projectId,
+                                          s.slug,
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                ) : (
+                                  <span className="text-ink-300 text-xs">—</span>
+                                )}
+                              </td>
+                              <td className="border border-ink-200 px-2 py-1.5 align-top min-w-[300px]">
+                                <EditableTextarea
+                                  mono
+                                  value={s.scriptLines
+                                    .map((l) => `${l.characterSlug}: ${l.line}`)
+                                    .join("\n")}
+                                  onChange={(v) =>
+                                    store.updateScene(s.slug, {
+                                      scriptLines: v
+                                        .split("\n")
+                                        .map((ln) => {
+                                          const i = ln.indexOf(":");
+                                          return i === -1
+                                            ? {
+                                                characterSlug: "",
+                                                line: ln.trim(),
+                                              }
+                                            : {
+                                                characterSlug: ln
+                                                  .slice(0, i)
+                                                  .trim(),
+                                                line: ln.slice(i + 1).trim(),
+                                              };
+                                        })
+                                        .filter((l) =>
+                                          Boolean(l.characterSlug || l.line),
+                                        ),
+                                    })
+                                  }
+                                  rows={4}
+                                />
+                              </td>
+                              <td className="border border-ink-200 px-2 py-1.5 align-top min-w-[300px]">
+                                <EditableTextarea
+                                  value={s.voiceOver}
+                                  onChange={(v) =>
+                                    store.updateScene(s.slug, { voiceOver: v })
+                                  }
+                                  rows={3}
+                                />
+                              </td>
+                              <td className="border border-ink-200 px-2 py-1.5 align-top min-w-[300px]">
+                                <EditableTextarea
+                                  value={s.imagePrompt}
+                                  onChange={(v) =>
+                                    store.updateScene(s.slug, {
+                                      imagePrompt: v,
+                                    })
+                                  }
+                                  rows={3}
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -675,96 +873,6 @@ export default function MovieStudioTab({ projectId }: Props) {
                           <button
                             onClick={() =>
                               store.regenerateSceneImage(projectId, img.slug)
-                            }
-                            disabled={isRegenerating}
-                            className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-lg border border-ink-200 text-ink-600 hover:border-tiffany-400 hover:text-tiffany-600 transition-colors disabled:opacity-50"
-                          >
-                            {isRegenerating ? SpinnerIcon : RefreshIcon}
-                            Regenerate
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ===== Videos ===== */}
-          {store.result && (
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold text-ink-900">Videos</h3>
-                {store.videosRendering ? (
-                  <span className="flex items-center gap-1.5 text-xs text-tiffany-600">
-                    {SpinnerIcon}
-                    {store.videoStatus ?? "Rendering..."}
-                  </span>
-                ) : (
-                  <button
-                    onClick={() => store.renderVideos(projectId)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl bg-tiffany-500 hover:bg-tiffany-600 text-ink-950 transition-colors"
-                  >
-                    {SparkleIcon}
-                    Render Videos
-                  </button>
-                )}
-              </div>
-
-              {store.videosRendering &&
-                store.videoProgress &&
-                store.videoProgress.total > 0 && (
-                  <div className="flex items-center gap-3 px-1">
-                    <div className="flex-1 h-2 bg-ink-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-tiffany-500 rounded-full transition-all duration-300"
-                        style={{
-                          width: `${(store.videoProgress.current / store.videoProgress.total) * 100}%`,
-                        }}
-                      />
-                    </div>
-                    <span className="text-xs font-semibold text-ink-700 tabular-nums whitespace-nowrap">
-                      {store.videoProgress.current}/{store.videoProgress.total}
-                    </span>
-                  </div>
-                )}
-
-              {store.videosError && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-xs">
-                  {store.videosError}
-                </div>
-              )}
-
-              {store.videos.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {store.videos.map((video) => {
-                    const isRegenerating = store.regeneratingVideos.includes(
-                      video.slug,
-                    );
-                    const fullUrl = video.url.startsWith("http")
-                      ? video.url
-                      : `http://localhost:${(window as any).PORT}${video.url}`;
-                    return (
-                      <div
-                        key={video.slug}
-                        className="flex flex-col gap-1.5 border border-ink-200 rounded-xl p-2 bg-white"
-                      >
-                        <video
-                          src={`${fullUrl}&t=${video.updatedAt}`}
-                          controls
-                          onClick={() =>
-                            openPreview(fullUrl, video.slug, "video")
-                          }
-                          className="w-full rounded-lg border border-ink-200 cursor-pointer"
-                        />
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="text-[11px] font-mono text-ink-600 truncate">
-                            {video.slug}
-                          </span>
-                          <button
-                            onClick={() =>
-                              store.regenerateVideo(projectId, video.slug)
                             }
                             disabled={isRegenerating}
                             className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-lg border border-ink-200 text-ink-600 hover:border-tiffany-400 hover:text-tiffany-600 transition-colors disabled:opacity-50"

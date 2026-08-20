@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
@@ -91,6 +92,28 @@ function slugify(v: unknown): string {
 
 function isValidProjectId(id: string): boolean {
   return PROJECT_ID_RE.test(id);
+}
+
+const OUTPUT_DIR = join(APP_DATA_DIR, "output");
+
+/** Return an existing output file's metadata if already generated, else null. */
+function existingOutput(
+  projectId: string,
+  filename: string,
+): { filename: string; url: string; updatedAt: number } | null {
+  const path = join(OUTPUT_DIR, projectId, filename);
+  if (!existsSync(path)) return null;
+  let updatedAt = Date.now();
+  try {
+    updatedAt = statSync(path).mtimeMs;
+  } catch {
+    // Fall back to now — only affects the cache-busting query param.
+  }
+  return {
+    filename,
+    url: `/api/files?path=${encodeURIComponent(path)}`,
+    updatedAt,
+  };
 }
 
 interface QueueState {
@@ -289,22 +312,32 @@ async function runRenderAssets(
       statusText: `Generating character: ${c?.name || slug}`,
       progress: { current, total },
     });
-    const r = await generateAssetImage(
-      ctx.projectId,
-      "character",
-      slug,
-      prompt,
-      ctx.log,
-    );
-    throwIfAborted(ctx.signal);
-    if ("error" in r) throw new Error(r.error);
-    assets.push({
-      kind: "character",
-      slug,
-      filename: r.filename,
-      url: r.url,
-      updatedAt: Date.now(),
-    });
+
+    // Skip media that's already been generated for this character.
+    const existing = existingOutput(ctx.projectId, `character-${slug}.png`);
+    let entry: any;
+    if (existing) {
+      ctx.log(`Already generated: character-${slug}.png — skipping\n`);
+      entry = { kind: "character", slug, ...existing };
+    } else {
+      const r = await generateAssetImage(
+        ctx.projectId,
+        "character",
+        slug,
+        prompt,
+        ctx.log,
+      );
+      throwIfAborted(ctx.signal);
+      if ("error" in r) throw new Error(r.error);
+      entry = {
+        kind: "character",
+        slug,
+        filename: r.filename,
+        url: r.url,
+        updatedAt: Date.now(),
+      };
+    }
+    assets.push(entry);
     ctx.update({ result: { assets: [...assets] } });
   }
 
@@ -318,22 +351,31 @@ async function runRenderAssets(
       statusText: `Generating place: ${p?.name || slug}`,
       progress: { current, total },
     });
-    const r = await generateAssetImage(
-      ctx.projectId,
-      "place",
-      slug,
-      prompt,
-      ctx.log,
-    );
-    throwIfAborted(ctx.signal);
-    if ("error" in r) throw new Error(r.error);
-    assets.push({
-      kind: "place",
-      slug,
-      filename: r.filename,
-      url: r.url,
-      updatedAt: Date.now(),
-    });
+
+    const existing = existingOutput(ctx.projectId, `place-${slug}.png`);
+    let entry: any;
+    if (existing) {
+      ctx.log(`Already generated: place-${slug}.png — skipping\n`);
+      entry = { kind: "place", slug, ...existing };
+    } else {
+      const r = await generateAssetImage(
+        ctx.projectId,
+        "place",
+        slug,
+        prompt,
+        ctx.log,
+      );
+      throwIfAborted(ctx.signal);
+      if ("error" in r) throw new Error(r.error);
+      entry = {
+        kind: "place",
+        slug,
+        filename: r.filename,
+        url: r.url,
+        updatedAt: Date.now(),
+      };
+    }
+    assets.push(entry);
     ctx.update({ result: { assets: [...assets] } });
   }
 
@@ -359,15 +401,24 @@ async function runRenderSceneImages(
       statusText: `Generating scene image: ${slug}`,
       progress: { current, total },
     });
-    const r = await generateSceneImage(ctx.projectId, sc, ctx.log);
-    throwIfAborted(ctx.signal);
-    if ("error" in r) throw new Error(r.error);
-    sceneImages.push({
-      slug,
-      filename: r.filename,
-      url: r.url,
-      updatedAt: Date.now(),
-    });
+
+    const existing = existingOutput(ctx.projectId, `scene-${slug}.png`);
+    let entry: any;
+    if (existing) {
+      ctx.log(`Already generated: scene-${slug}.png — skipping\n`);
+      entry = { slug, ...existing };
+    } else {
+      const r = await generateSceneImage(ctx.projectId, sc, ctx.log);
+      throwIfAborted(ctx.signal);
+      if ("error" in r) throw new Error(r.error);
+      entry = {
+        slug,
+        filename: r.filename,
+        url: r.url,
+        updatedAt: Date.now(),
+      };
+    }
+    sceneImages.push(entry);
     ctx.update({ result: { sceneImages: [...sceneImages] } });
   }
 
@@ -396,15 +447,24 @@ async function runRenderVideos(
       statusText: `Generating video: ${slug}`,
       progress: { current, total },
     });
-    const r = await generateSceneVideo(uvPath, ctx.projectId, sc, chars, ctx.log);
-    throwIfAborted(ctx.signal);
-    if ("error" in r) throw new Error(r.error);
-    videos.push({
-      slug,
-      filename: r.filename,
-      url: r.url,
-      updatedAt: Date.now(),
-    });
+
+    const existing = existingOutput(ctx.projectId, `scene-${slug}.mp4`);
+    let entry: any;
+    if (existing) {
+      ctx.log(`Already generated: scene-${slug}.mp4 — skipping\n`);
+      entry = { slug, ...existing };
+    } else {
+      const r = await generateSceneVideo(uvPath, ctx.projectId, sc, chars, ctx.log);
+      throwIfAborted(ctx.signal);
+      if ("error" in r) throw new Error(r.error);
+      entry = {
+        slug,
+        filename: r.filename,
+        url: r.url,
+        updatedAt: Date.now(),
+      };
+    }
+    videos.push(entry);
     ctx.update({ result: { videos: [...videos] } });
   }
 
