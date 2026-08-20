@@ -297,9 +297,7 @@ export default function GenerateVideoTab({ projectId }: Props) {
                       <tr
                         key={rowIdx}
                         className={`border-b border-ink-200 transition-colors ${
-                          isSelected
-                            ? "bg-white"
-                            : "bg-ink-100/50 opacity-60"
+                          isSelected ? "bg-white" : "bg-ink-100/50 opacity-60"
                         }`}
                       >
                         <td className="px-3 py-1.5">
@@ -335,9 +333,7 @@ export default function GenerateVideoTab({ projectId }: Props) {
         {!store.csvFilename && (
           <p className="text-xs text-ink-600/50 mt-1.5">
             Upload a CSV with a{" "}
-            <code className="text-[11px] bg-ink-100 px-1 rounded">
-              name
-            </code>{" "}
+            <code className="text-[11px] bg-ink-100 px-1 rounded">name</code>{" "}
             column to batch-generate many videos. Use{" "}
             <code className="text-[11px] bg-ink-100 px-1 rounded">{`{{column}}`}</code>{" "}
             in your prompt as a template.
@@ -362,8 +358,9 @@ export default function GenerateVideoTab({ projectId }: Props) {
         </p>
 
         <a
-          href={`/lambobo.png.zip`}
-          download="lambobo.zip"
+          href={`/lambobo.png`}
+          download="lambobo.png"
+          target="_blank"
           className="inline-flex items-center gap-1.5 mt-2 text-xs font-medium text-ink-600 hover:text-ink-900 transition-colors"
         >
           {DownloadIcon}
