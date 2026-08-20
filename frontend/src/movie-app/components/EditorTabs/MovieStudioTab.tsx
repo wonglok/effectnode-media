@@ -534,9 +534,47 @@ export default function MovieStudioTab({ projectId }: Props) {
 
               {/* Scenes */}
               <div>
-                <h3 className="text-sm font-semibold text-ink-900 mb-2">
-                  Scenes
-                </h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-ink-900">Scenes</h3>
+                  {store.videosRendering ? (
+                    <span className="flex items-center gap-1.5 text-xs text-tiffany-600">
+                      {SpinnerIcon}
+                      {store.videoStatus ?? "Rendering..."}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => store.renderVideos(projectId)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl bg-tiffany-500 hover:bg-tiffany-600 text-ink-950 transition-colors"
+                    >
+                      {SparkleIcon}
+                      Generate All Videos
+                    </button>
+                  )}
+                </div>
+
+                {store.videosRendering &&
+                  store.videoProgress &&
+                  store.videoProgress.total > 0 && (
+                    <div className="flex items-center gap-3 mb-2 px-1">
+                      <div className="flex-1 h-2 bg-ink-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-tiffany-500 rounded-full transition-all duration-300"
+                          style={{
+                            width: `${(store.videoProgress.current / store.videoProgress.total) * 100}%`,
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs font-semibold text-ink-700 tabular-nums whitespace-nowrap">
+                        {store.videoProgress.current}/{store.videoProgress.total}
+                      </span>
+                    </div>
+                  )}
+
+                {store.videosError && (
+                  <div className="mb-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs">
+                    {store.videosError}
+                  </div>
+                )}
                 {store.result.scenes.length === 0 ? (
                   <p className="text-xs text-ink-500 italic py-3 border border-dashed border-ink-200 rounded-2xl text-center">
                     No scenes found.
@@ -564,6 +602,7 @@ export default function MovieStudioTab({ projectId }: Props) {
                           },
                           { key: "place", label: "Place", className: "w-24" },
                           { key: "image", label: "Image", className: "w-16" },
+                          { key: "video", label: "Video", className: "w-40" },
                           { key: "script", label: "Script", className: "w-60" },
                           {
                             key: "voiceover",
@@ -578,6 +617,12 @@ export default function MovieStudioTab({ projectId }: Props) {
                           const url = imageUrlFor("scene", s.slug);
                           const spinning =
                             store.regeneratingSceneImages.includes(s.slug);
+                          const video = store.videos.find(
+                            (v) => v.slug === s.slug,
+                          );
+                          const videoUrl = resolveUrl(video?.url);
+                          const videoSpinning =
+                            store.regeneratingVideos.includes(s.slug);
                           return (
                             <tr
                               key={s.slug}
@@ -655,6 +700,28 @@ export default function MovieStudioTab({ projectId }: Props) {
                                   <span className="text-ink-300 text-xs">
                                     —
                                   </span>
+                                )}
+                              </td>
+                              <td className="border border-ink-200 px-2 py-1.5 align-top min-w-[180px]">
+                                {videoUrl ? (
+                                  <div className="flex flex-col items-start">
+                                    <video
+                                      src={`${videoUrl}&t=${video?.updatedAt}`}
+                                      controls
+                                      className="w-40 rounded-lg border border-ink-200 cursor-pointer"
+                                      onClick={() =>
+                                        openPreview(videoUrl, s.slug, "video")
+                                      }
+                                    />
+                                    <RegenerateButton
+                                      spinning={videoSpinning}
+                                      onClick={() =>
+                                        store.regenerateVideo(projectId, s.slug)
+                                      }
+                                    />
+                                  </div>
+                                ) : (
+                                  <span className="text-ink-300 text-xs">—</span>
                                 )}
                               </td>
                               <td className="border border-ink-200 px-2 py-1.5 align-top min-w-[300px]">
