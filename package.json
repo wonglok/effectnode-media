@@ -17,7 +17,7 @@
     "frontend"
   ],
   "scripts": {
-    "deploy": "npm version patch; npm publish --access public",
+    "deploy": "npm run build; npm version patch; npm publish --access public",
     "build": "tsc",
     "dev": "concurrently -k -n backend,frontend -c blue,green \"bun run dev:backend\" \"bun run dev:frontend\"",
     "dev:backend": "nodemon",
@@ -47,9 +47,7 @@
     "sharp": "^0.35.3",
     "vite": "^6.0.0",
     "ws": "^8.18.0",
-    "zustand": "^5.0.15"
-  },
-  "devDependencies": {
+    "zustand": "^5.0.15",
     "@tailwindcss/vite": "^4.3.3",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
@@ -62,5 +60,6 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
-  }
+  },
+  "devDependencies": {}
 }
