@@ -1,0 +1,7 @@
+{
+  "watch": ["src/backend"],
+  "ext": "ts",
+  "exec": "node --import tsx src/backend/server.ts",
+  "signal": "SIGTERM",
+  "delay": "500"
+}

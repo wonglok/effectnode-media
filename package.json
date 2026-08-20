@@ -1,0 +1,62 @@
+{
+  "name": "@effectnode/media",
+  "version": "0.1.0",
+  "description": "Start a full-stack media app: Vite + React + TypeScript frontend, Express backend with REST + WebSocket API",
+  "license": "MIT",
+  "author": "",
+  "type": "module",
+  "bin": {
+    "effectnode-media": "./bin/effectnode-media"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "frontend"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "concurrently -k -n backend,frontend -c blue,green \"bun run dev:backend\" \"bun run dev:frontend\"",
+    "dev:backend": "nodemon",
+    "dev:frontend": "vite",
+    "start": "node bin/effectnode-media"
+  },
+  "dependencies": {
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "localforage": "^1.10.0",
+    "mustache": "^4.2.0",
+    "open": "^10.1.0",
+    "openai": "^7.5.0",
+    "papaparse": "^5.6.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "react-router": "^8.3.0",
+    "react-router-dom": "^7.18.2",
+    "remark-gfm": "^4.0.1",
+    "sharp": "^0.35.3",
+    "vite": "^6.0.0",
+    "ws": "^8.18.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.13.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/ws": "^8.5.14",
+    "concurrently": "^10.0.5",
+    "nodemon": "^3.1.0",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>effectnode-media</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script>
+    // The backend (src/backend/movie-backend/core.ts) binds to the first free
+    // port starting at BACKEND_PORT_START = 4000. Previously this was injected
+    // by an Electron `preload` script; with the Bun → Node.js migration it must
+    // be set here, before any module reads `window.PORT`.
+    window.PORT = "4000";
+  </script>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>
