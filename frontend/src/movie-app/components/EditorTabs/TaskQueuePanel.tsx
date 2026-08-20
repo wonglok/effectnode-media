@@ -126,9 +126,11 @@ function StatusBadge({ status }: { status: QueueTaskStatus }) {
 
 function TaskRow({
   task,
+  showProject = false,
   onCancel,
 }: {
   task: QueueTask;
+  showProject?: boolean;
   onCancel: () => void;
 }) {
   const active = task.status === "pending" || task.status === "running";
@@ -142,6 +144,11 @@ function TaskRow({
     <li className="flex flex-col gap-1.5 px-3 py-2 rounded-xl border border-ink-200 bg-white">
       <div className="flex items-center gap-2">
         <StatusBadge status={task.status} />
+        {showProject && task.projectId && (
+          <span className="px-1.5 py-0.5 rounded bg-ink-100 text-ink-500 text-[10px] font-mono whitespace-nowrap">
+            {task.projectId}
+          </span>
+        )}
         <span className="flex-1 text-sm font-medium text-ink-800 truncate">
           {task.label}
         </span>
@@ -179,19 +186,25 @@ function TaskRow({
 
 export default function TaskQueuePanel({ projectId }: Props) {
   const tasks = useQueueStore((s) => s.tasks);
+  const allTasks = useQueueStore((s) => s.allTasks);
+  const showAll = useQueueStore((s) => s.showAll);
   const paused = useQueueStore((s) => s.paused);
   const cancel = useQueueStore((s) => s.cancel);
   const pause = useQueueStore((s) => s.pause);
   const resume = useQueueStore((s) => s.resume);
   const clearFinished = useQueueStore((s) => s.clearFinished);
+  const setShowAll = useQueueStore((s) => s.setShowAll);
 
-  if (tasks.length === 0 && !paused) return null;
+  const displayTasks = showAll ? allTasks : tasks;
 
-  const hasActive = tasks.some(
+  if (!showAll && tasks.length === 0 && !paused) return null;
+
+  const hasActive = displayTasks.some(
     (t) => t.status === "pending" || t.status === "running",
   );
-  const hasFinished = tasks.some(
-    (t) => t.status !== "pending" && t.status !== "running" && t.status !== "paused",
+  const hasFinished = displayTasks.some(
+    (t) =>
+      t.status !== "pending" && t.status !== "running" && t.status !== "paused",
   );
 
   return (
@@ -199,9 +212,22 @@ export default function TaskQueuePanel({ projectId }: Props) {
       <div className="flex items-center gap-2">
         <span className="text-tiffany-600">{QueueIcon}</span>
         <h3 className="text-sm font-semibold text-ink-900">Generation Queue</h3>
-        <span className="text-xs text-ink-500">{tasks.length}</span>
+        <span className="text-xs text-ink-500">{displayTasks.length}</span>
+
+        <button
+          onClick={() => setShowAll(!showAll)}
+          title={showAll ? "Show only this project" : "Show all projects"}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-xl transition-colors ${
+            showAll
+              ? "bg-tiffany-500 text-ink-950 hover:bg-tiffany-600"
+              : "border border-ink-200 text-ink-600 hover:border-ink-300 hover:text-ink-900"
+          }`}
+        >
+          {showAll ? "All projects" : "This project"}
+        </button>
+
         <div className="ml-auto flex items-center gap-2">
-          {paused ? (
+          {!showAll && paused ? (
             <button
               onClick={() => resume(projectId)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-xl bg-tiffany-500 hover:bg-tiffany-600 text-ink-950 transition-colors"
@@ -210,6 +236,7 @@ export default function TaskQueuePanel({ projectId }: Props) {
               Resume
             </button>
           ) : (
+            !showAll &&
             hasActive && (
               <button
                 onClick={() => pause(projectId)}
@@ -220,7 +247,7 @@ export default function TaskQueuePanel({ projectId }: Props) {
               </button>
             )
           )}
-          {hasFinished && (
+          {!showAll && hasFinished && (
             <button
               onClick={() => clearFinished(projectId)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-xl border border-ink-200 text-ink-600 hover:border-ink-300 hover:text-ink-900 transition-colors"
@@ -233,11 +260,12 @@ export default function TaskQueuePanel({ projectId }: Props) {
       </div>
 
       <ul className="flex flex-col gap-1.5">
-        {tasks.map((task) => (
+        {displayTasks.map((task) => (
           <TaskRow
             key={task.id}
             task={task}
-            onCancel={() => cancel(projectId, task.id)}
+            showProject={showAll}
+            onCancel={() => cancel(task.projectId ?? projectId, task.id)}
           />
         ))}
       </ul>

@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   statSync,
   writeFileSync,
 } from "node:fs";
@@ -149,16 +150,27 @@ const pausedProjects = new Set<string>();
 // Connected SSE clients (one per open Movie Studio tab), keyed by project id.
 interface SseClient {
   res: Response;
-  projectId: string;
+  // The project this client watches, or null to watch every project.
+  projectId: string | null;
 }
 const sseClients = new Set<SseClient>();
 
 /** Push an event to every SSE client watching the given project. */
 function broadcast(projectId: string, event: string, data: any): void {
   for (const client of sseClients) {
-    if (client.projectId !== projectId) continue;
+    if (client.projectId !== null && client.projectId !== projectId) continue;
+    let payload = data;
+    // Global watchers need to know which project each task belongs to.
+    if (
+      client.projectId === null &&
+      event === "task" &&
+      data &&
+      typeof data === "object"
+    ) {
+      payload = { ...data, projectId };
+    }
     try {
-      client.res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      client.res.write(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`);
     } catch {
       sseClients.delete(client);
     }
@@ -211,6 +223,22 @@ function loadState(projectId: string): QueueState {
   if (hasPending) void pump();
 
   return state;
+}
+
+/** Load every persisted project queue into memory so it is visible and resumed. */
+function loadAllStates(): void {
+  let entries: string[] = [];
+  try {
+    entries = existsSync(TASKS_DIR) ? readdirSync(TASKS_DIR) : [];
+  } catch {
+    entries = [];
+  }
+  entries.sort();
+  for (const entry of entries) {
+    if (!isValidProjectId(entry)) continue;
+    if (!existsSync(queueFile(entry))) continue;
+    loadState(entry);
+  }
 }
 
 function persist(projectId: string): void {
@@ -902,6 +930,19 @@ export function generationQueueSetup({
     });
   });
 
+  // List every task across all projects, each tagged with its project id.
+  app.get("/api/queue/all", (_req, res) => {
+    loadAllStates();
+    const tasks: (QueueTask & { projectId: string })[] = [];
+    for (const [projectId, state] of queues) {
+      for (const t of state.tasks) {
+        tasks.push({ ...t, projectId });
+      }
+    }
+    tasks.sort((a, b) => a.createdAt - b.createdAt);
+    res.json({ tasks });
+  });
+
   // Read a project's persisted terminal log (tail, so large logs stay bounded).
   app.get("/api/logs", (req, res) => {
     const projectId = String(req.query.projectId ?? "");
@@ -928,7 +969,8 @@ export function generationQueueSetup({
   // Server-Sent Events: push queue/task and log updates to a watching client.
   app.get("/api/events", (req, res) => {
     const projectId = String(req.query.projectId ?? "");
-    if (!isValidProjectId(projectId)) {
+    const all = projectId === "*";
+    if (!all && !isValidProjectId(projectId)) {
       res.status(400).json({ error: "Invalid project ID" });
       return;
     }
@@ -940,7 +982,7 @@ export function generationQueueSetup({
     });
     res.write(`event: hello\ndata: {}\n\n`);
 
-    const client: SseClient = { res, projectId };
+    const client: SseClient = { res, projectId: all ? null : projectId };
     sseClients.add(client);
     req.on("close", () => {
       sseClients.delete(client);

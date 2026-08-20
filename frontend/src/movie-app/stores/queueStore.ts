@@ -36,6 +36,8 @@ export interface QueueTask {
   createdAt: number;
   startedAt: number | null;
   completedAt: number | null;
+  /** Only present in the "all projects" view — the task's owning project. */
+  projectId?: string;
 }
 
 interface QueueStore {
@@ -44,10 +46,14 @@ interface QueueStore {
   projectId: string | null;
   paused: boolean;
   logs: string;
+  showAll: boolean;
+  allTasks: QueueTask[];
   refresh: (projectId: string) => Promise<void>;
   refreshLogs: (projectId: string) => Promise<void>;
+  refreshAll: () => Promise<void>;
   startStreaming: (projectId: string) => void;
   stopStreaming: () => void;
+  setShowAll: (show: boolean) => void;
   cancel: (projectId: string, taskId: string) => Promise<void>;
   cancelActive: (projectId: string) => Promise<void>;
   clearFinished: (projectId: string) => Promise<void>;
@@ -56,6 +62,7 @@ interface QueueStore {
 }
 
 let eventSource: EventSource | null = null;
+let allEventSource: EventSource | null = null;
 
 /** Upsert a task into the list, replacing any existing entry with the same id. */
 function upsertTask(tasks: QueueTask[], task: QueueTask): QueueTask[] {
@@ -72,6 +79,8 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
   projectId: null,
   paused: false,
   logs: "",
+  showAll: false,
+  allTasks: [],
 
   refresh: async (projectId) => {
     try {
@@ -101,6 +110,19 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
       set({ logs: data.logs ?? "" });
     } catch {
       // ignore log fetch failures
+    }
+  },
+
+  refreshAll: async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/queue/all`);
+      if (!res.ok) return;
+      const data = (await res.json()) as { tasks: QueueTask[] };
+      const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+      tasks.sort((a, b) => a.createdAt - b.createdAt);
+      set({ allTasks: tasks });
+    } catch {
+      // ignore fetch failures
     }
   },
 
@@ -147,7 +169,47 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
       eventSource.close();
       eventSource = null;
     }
-    set({ tasks: [], projectId: null, loading: false, paused: false, logs: "" });
+    if (allEventSource) {
+      allEventSource.close();
+      allEventSource = null;
+    }
+    set({
+      tasks: [],
+      allTasks: [],
+      projectId: null,
+      loading: false,
+      paused: false,
+      logs: "",
+      showAll: false,
+    });
+  },
+
+  setShowAll: (show) => {
+    if (show) {
+      if (allEventSource) allEventSource.close();
+      set({ showAll: true });
+      void get().refreshAll();
+
+      const es = new EventSource(`${API_BASE}/api/events?projectId=*`);
+      allEventSource = es;
+      es.addEventListener("task", (event) => {
+        try {
+          const task = JSON.parse((event as MessageEvent).data) as QueueTask;
+          set((s) => ({ allTasks: upsertTask(s.allTasks, task) }));
+        } catch {
+          // ignore malformed events
+        }
+      });
+      es.onopen = () => {
+        void get().refreshAll();
+      };
+    } else {
+      if (allEventSource) {
+        allEventSource.close();
+        allEventSource = null;
+      }
+      set({ showAll: false, allTasks: [] });
+    }
   },
 
   cancel: async (projectId, taskId) => {
