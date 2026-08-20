@@ -44,7 +44,7 @@ const CHARACTERS_FILE = join(JSON_DIR, "characters.json");
 
 const Z_IMAGE_MODEL = "AbstractFramework/z-image-turbo-8bit";
 const FLUX_KLEIN_MODEL = "AbstractFramework/flux.2-klein-4b-8bit";
-const MLX_VLM_MODEL = "mlx-community/gemma-4-e2b-it-4bit";
+const MLX_VLM_MODEL = "mlx-community/gemma-4-e4b-it-8bit";
 
 const VIDEO_STAGE_FLAGS: Record<string, string> = {
   distilled: "--distilled",
@@ -2868,10 +2868,64 @@ export async function renderMediaRoutes({
         label: "Downloading dgrauet/ltx-2.3-mlx-q8...",
       });
 
-      const proc = spawn(
-        ["hf", "download", "dgrauet/ltx-2.3-mlx-q8"],
-        { stdout: "pipe", stderr: "pipe" },
+      const proc = spawn(["hf", "download", "dgrauet/ltx-2.3-mlx-q8"], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+
+      activeProc = proc;
+
+      const stdoutPromise = streamToSSE(
+        proc.stdout as ReadableStream<Uint8Array>,
+        "HF Download",
+        send,
       );
+      const stderrText = await streamToSSE(
+        proc.stderr as ReadableStream<Uint8Array>,
+        "HF Download",
+        send,
+      );
+      await stdoutPromise;
+
+      const exitCode = await proc.exited;
+      if (exitCode === 0) {
+        send("complete", { success: true });
+      } else {
+        send("error", {
+          error: stderrText || `Process exited with code ${exitCode}`,
+          exitCode,
+        });
+      }
+    } catch (e) {
+      send("error", { error: String(e) });
+    } finally {
+      activeProc = null;
+      res.end();
+    }
+  });
+
+  app.post("/api/hf/download-mlx-vlm", async (_req, res) => {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+
+    const send = (event: string, data: object) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      send("progress", {
+        status: "starting",
+        label: `Downloading ${MLX_VLM_MODEL}...`,
+      });
+
+      const proc = spawn(["hf", "download", MLX_VLM_MODEL], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
 
       activeProc = proc;
 
@@ -2922,10 +2976,10 @@ export async function renderMediaRoutes({
         label: "Downloading Qwen/Qwen3-TTS-12Hz-1.7B-Base...",
       });
 
-      const proc = spawn(
-        ["hf", "download", "Qwen/Qwen3-TTS-12Hz-1.7B-Base"],
-        { stdout: "pipe", stderr: "pipe" },
-      );
+      const proc = spawn(["hf", "download", "Qwen/Qwen3-TTS-12Hz-1.7B-Base"], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
 
       activeProc = proc;
 

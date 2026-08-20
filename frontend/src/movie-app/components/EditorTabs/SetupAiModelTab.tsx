@@ -200,6 +200,11 @@ const DOWNLOAD_MODELS: {
     name: "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
     desc: "Voice-over & speech",
   },
+  {
+    id: "gemma",
+    name: "mlx-community/gemma-4-e4b-it-8bit",
+    desc: "Story planning & dialogue (LLM)",
+  },
 ];
 
 export default function SetupAiModelTab() {
@@ -233,7 +238,10 @@ export default function SetupAiModelTab() {
       <section>
         <h3 className="mb-2 text-sm font-semibold text-ink-900">Engines</h3>
         <div className="space-y-2">
-          <ModelRow name="mlx-gen" desc="Image generation engine (z-image · flux)">
+          <ModelRow
+            name="mlx-gen"
+            desc="Image generation engine (z-image · flux)"
+          >
             <StatusBadge
               value={store.mlxgenInstalled}
               okText="Installed"
@@ -287,20 +295,6 @@ export default function SetupAiModelTab() {
       <section>
         <h3 className="mb-2 text-sm font-semibold text-ink-900">Models</h3>
         <div className="space-y-2">
-          <ModelRow
-            name="mlx-community/gemma-4-e2b-it-4bit"
-            desc="Story planning & dialogue (LLM)"
-          >
-            <StatusBadge
-              value={store.mlxVlmInstalled}
-              okText="Ready"
-              missingText="Not set up"
-            />
-            <span className="text-xs italic text-ink-400">
-              Downloads on first server start
-            </span>
-          </ModelRow>
-
           {DOWNLOAD_MODELS.map((m) => {
             const downloaded =
               m.id === "z-image"
@@ -309,7 +303,9 @@ export default function SetupAiModelTab() {
                   ? store.fluxDownloaded
                   : m.id === "ltx"
                     ? store.ltxDownloaded
-                    : store.ttsDownloaded;
+                    : m.id === "gemma"
+                      ? store.gemmaDownloaded
+                      : store.ttsDownloaded;
             return (
               <ModelRow key={m.id} name={m.name} desc={m.desc}>
                 <StatusBadge value={downloaded} />
