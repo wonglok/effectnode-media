@@ -731,9 +731,9 @@ export async function generateSceneImage(
     "--seed",
     "42",
     "--width",
-    "448",
+    "1024",
     "--height",
-    "796",
+    "1024",
   );
 
   const result = await runCommand(fluxArgs, { onLog });
