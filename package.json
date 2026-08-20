@@ -5,6 +5,9 @@
   "license": "MIT",
   "author": "",
   "type": "module",
+  "repository": {
+    "url": "https://github.com/wonglok/effectnode-media"
+  },
   "bin": {
     "effectnode-media": "./bin/effectnode-media"
   },
@@ -14,6 +17,7 @@
     "frontend"
   ],
   "scripts": {
+    "deploy": "npm version patch; npm publish --access public",
     "build": "tsc",
     "dev": "concurrently -k -n backend,frontend -c blue,green \"bun run dev:backend\" \"bun run dev:frontend\"",
     "dev:backend": "nodemon",
