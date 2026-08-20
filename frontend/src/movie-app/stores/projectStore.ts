@@ -32,8 +32,12 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const res = await fetch(`${API_BASE}/api/projects`);
-      const projects = await res.json();
-      set({ projects, loading: false });
+      const projects: Project[] = await res.json();
+      const sorted = [...projects].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      set({ projects: sorted, loading: false });
     } catch (e) {
       set({ error: String(e), loading: false });
     }
@@ -49,7 +53,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       });
       if (!res.ok) throw new Error(await res.text());
       const project = await res.json();
-      set({ projects: [...get().projects, project] });
+      set({ projects: [project, ...get().projects] });
       return project;
     } catch (e) {
       set({ error: String(e) });
