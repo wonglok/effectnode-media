@@ -264,8 +264,11 @@ export default function UpscaleTab({ projectId }: Props) {
         <div className="flex flex-wrap gap-2">
           {[
             { value: "1x" as UpscaleMode, label: "Refine (1x)" },
+            { value: "1000" as UpscaleMode, label: "Upscale to 1000px" },
             { value: "1500" as UpscaleMode, label: "Upscale to 1500px" },
-            { value: "2048" as UpscaleMode, label: "Upscale to 2048px" },
+            { value: "2000" as UpscaleMode, label: "Upscale to 2000px" },
+            { value: "3000" as UpscaleMode, label: "Upscale to 3000px" },
+            { value: "3500" as UpscaleMode, label: "Upscale to 3500px" },
           ].map((m) => (
             <button
               key={m.value}
