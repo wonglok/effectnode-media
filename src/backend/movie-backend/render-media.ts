@@ -1274,6 +1274,8 @@ export async function generateAdvancedVoiceClone(
     outDir,
     "--out-prefix",
     prefix,
+    "--max-generate-length",
+    "3000",
   ]);
 
   const result = await runCommand(
@@ -1293,6 +1295,8 @@ export async function generateAdvancedVoiceClone(
       outDir,
       "--out-prefix",
       prefix,
+      "--max-generate-length",
+      "3000",
     ],
     { cwd: dirname(dotsTtsBin), onLog },
   );
