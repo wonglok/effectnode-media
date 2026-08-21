@@ -306,7 +306,7 @@ const DOTS_TTS_FOLDER = join(APP_DATA_DIR, "python-src", "dots-tts-mlx");
 const DOTS_TTS_WEIGHTS_DIR = join(DOTS_TTS_FOLDER, "dots-tts-mlx-weights");
 
 /**
- * Resolve a dots-tts `--model` value. Accepts `./dots-tts-mlx-weights/mf-int4`
+ * Resolve a dots-tts `--model` value. Accepts `./dots-tts-mlx-weights/int4`
  * (relative to the dots-tts-mlx folder), a bare variant (`mf-int4`), or an
  * explicit path.
  */

@@ -79,7 +79,7 @@ export const useAdvancedVoiceCloneStore = create<AdvancedVoiceCloneStore>(
     text: "",
     language: "YUE",
     outPrefix: "voice",
-    model: "./dots-tts-mlx-weights/mf-int4",
+    model: "./dots-tts-mlx-weights/int4",
     refAudio: null,
     audios: [],
     audiosLoading: false,
@@ -127,9 +127,7 @@ export const useAdvancedVoiceCloneStore = create<AdvancedVoiceCloneStore>(
           uploading: false,
           refAudio: {
             filename: data.filename,
-            url: resolveUrl(
-              `/api/files?path=${encodeURIComponent(data.path)}`,
-            ),
+            url: resolveUrl(`/api/files?path=${encodeURIComponent(data.path)}`),
           },
         });
         void get().fetchAudios(projectId);
@@ -193,7 +191,7 @@ export const useAdvancedVoiceCloneStore = create<AdvancedVoiceCloneStore>(
         text: "",
         language: "YUE",
         outPrefix: "voice",
-        model: "./dots-tts-mlx-weights/mf-int4",
+        model: "./dots-tts-mlx-weights/int4",
         refAudio: null,
         audios: [],
         audiosLoading: false,
