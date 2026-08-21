@@ -103,6 +103,7 @@ interface TextToImageState {
 
 interface FastImageEditState {
   prompt: string;
+  steps: number;
   referenceImages: ProjectImage[];
   downloading: boolean;
   downloadingLogs: string[];
@@ -175,6 +176,7 @@ interface GenerationStore {
   // Fast image edit (mlx-gen FLUX.2 Klein)
   fastImageEdit: FastImageEditState;
   setFastImageEditPrompt: (v: string) => void;
+  setFastImageEditSteps: (v: number) => void;
   toggleFastImageEditImage: (img: ProjectImage) => void;
   clearFastImageEditImages: () => void;
   clearFastImageEditResult: () => void;
@@ -373,6 +375,7 @@ async function enqueueFastImageEditTask(
   projectId: string,
   prompt: string,
   images: string[],
+  steps: number,
 ): Promise<{ ok: boolean; error?: string; taskId?: string }> {
   try {
     const res = await fetch(`${API_BASE}/api/queue/enqueue`, {
@@ -382,7 +385,7 @@ async function enqueueFastImageEditTask(
         projectId,
         type: "fast-image-edit",
         label: "Fast image edit",
-        payload: { prompt, images, projectId },
+        payload: { prompt, images, steps, projectId },
       }),
     });
     if (!res.ok) {
@@ -542,6 +545,7 @@ const initialTextToImage: TextToImageState = {
 
 const initialFastImageEdit: FastImageEditState = {
   prompt: "",
+  steps: 5,
   referenceImages: [],
   downloading: false,
   downloadingLogs: [],
@@ -1113,6 +1117,14 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       fastImageEdit: { ...s.fastImageEdit, prompt, error: null },
     })),
 
+  setFastImageEditSteps: (steps) =>
+    set((s) => ({
+      fastImageEdit: {
+        ...s.fastImageEdit,
+        steps: Math.max(1, Math.round(Number(steps)) || 1),
+      },
+    })),
+
   toggleFastImageEditImage: (img) =>
     set((s) => {
       const current = s.fastImageEdit.referenceImages;
@@ -1279,6 +1291,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       projectId,
       fastImageEdit.prompt.trim(),
       images,
+      fastImageEdit.steps,
     );
     fastImageEditActiveTaskId = r.taskId ?? null;
     if (!r.ok) {

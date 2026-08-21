@@ -415,6 +415,22 @@ export default function FastImageEditTab({ projectId }: Props) {
         />
       </div>
 
+      {/* ===== Steps ===== */}
+      <div>
+        <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-2">
+          Steps
+        </label>
+        <input
+          type="number"
+          min={1}
+          step={1}
+          value={store.fastImageEdit.steps}
+          onChange={(e) => store.setFastImageEditSteps(Number(e.target.value))}
+          disabled={store.fastImageEdit.generating}
+          className="w-32 px-4 py-2.5 bg-ink-50 border border-ink-200 rounded-2xl text-ink-900 text-sm placeholder-ink-500/40 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/30 transition-all disabled:opacity-50"
+        />
+      </div>
+
       {/* ===== Generate ===== */}
       {store.fastImageEdit.generating ? (
         <div className="flex items-center gap-2 px-4 py-3 bg-ink-50 border border-ink-200 rounded-2xl">

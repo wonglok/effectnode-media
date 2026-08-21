@@ -839,6 +839,7 @@ export async function generateFastImageEditImage(
   projectId: string,
   prompt: string,
   images: string[],
+  steps?: number,
   onLog?: (text: string) => void,
 ): Promise<{ filename: string; url: string } | { error: string }> {
   if (!isValidProjectId(projectId)) return { error: "Invalid project ID" };
@@ -846,6 +847,7 @@ export async function generateFastImageEditImage(
   if (!Array.isArray(images) || images.length === 0) {
     return { error: "At least one reference image is required" };
   }
+  const stepCount = Math.max(1, Number(steps) || 5);
 
   // Decode each base64 reference image into a temp workspace file so the
   // FLUX model receives them as separate `--image` inputs.
@@ -882,7 +884,7 @@ export async function generateFastImageEditImage(
       "--mlx-cache-limit-gb",
       "20",
       "--steps",
-      "5",
+      String(stepCount),
       "--seed",
       "42",
       "--width",
