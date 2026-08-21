@@ -170,10 +170,11 @@ afplay ./out/good_mf-int4_000.wav
 ##
 
 # Faster 15 steps
-
+# cwd at the git folder
 uv run ltx-2-mlx a2v --image /Users/loklok/coder-workspace/cantonese/food.png --audio /Users/loklok/coder-workspace/cantonese/food-short.wav --frame-rate 24 --output ./out-mp4 --prompt "scene at restarurant" --stage1-steps 15 --stage2-steps 3
 
 # Standard 30 steps
+# cwd at the git folder
 
 uv run ltx-2-mlx a2v --image /Users/loklok/coder-workspace/cantonese/food.png --audio /Users/loklok/coder-workspace/cantonese/food-short.wav --frame-rate 24 --output ./out-mp4 --prompt "scene at restarurant" --stage1-steps 30 --stage2-steps 3
 
