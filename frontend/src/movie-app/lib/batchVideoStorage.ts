@@ -22,6 +22,8 @@ export interface PersistedBatchVideoState {
   aspectRatio: AspectRatio;
   resolution: Resolution;
   mode: VideoMode;
+  stage1Steps: number;
+  stage2Steps: number;
 }
 
 const store = localforage.createInstance({

@@ -5,6 +5,7 @@ import type {
   VideoMode,
   ProjectImage,
 } from "./generationStore";
+import type { QueueTask } from "./queueStore";
 import { loadFFmpeg } from "../lib/ffmpeg";
 import {
   clearBatchVideoState,
@@ -43,6 +44,8 @@ interface BatchVideoStore {
   aspectRatio: AspectRatio;
   resolution: Resolution;
   mode: VideoMode;
+  stage1Steps: number;
+  stage2Steps: number;
 
   // Batch generation state
   running: boolean;
@@ -78,10 +81,13 @@ interface BatchVideoStore {
   setAspectRatio: (v: AspectRatio) => void;
   setResolution: (v: Resolution) => void;
   setMode: (v: VideoMode) => void;
+  setStage1Steps: (v: number) => void;
+  setStage2Steps: (v: number) => void;
 
   generateRows: (projectId: string, ids: string[]) => Promise<void>;
   generateRow: (projectId: string, id: string) => Promise<void>;
   generateAll: (projectId: string) => Promise<void>;
+  applyQueueTask: (task: QueueTask) => void;
   cancel: () => void;
 
   stitchVideos: () => Promise<void>;
@@ -89,7 +95,54 @@ interface BatchVideoStore {
   reset: () => void;
 }
 
-let batchAbortController: AbortController | null = null;
+// Queue-task tracking for the current batch run: which row each queue task maps
+// to, and which rows are part of the active batch (for progress accounting).
+const rowTaskMap = new Map<string, string>(); // rowId -> taskId
+const taskRowMap = new Map<string, string>(); // taskId -> rowId
+let batchRowIds: string[] = [];
+
+/** Resolve a queue task result URL (relative `/api/files` path) to absolute. */
+function resolveMediaUrl(url: string): string {
+  return url.startsWith("http")
+    ? url
+    : `http://localhost:${(window as any).PORT}${url}`;
+}
+
+/** Enqueue a single batch-video task in the backend queue. */
+async function enqueueBatchVideoTask(
+  projectId: string,
+  payload: {
+    prompt: string;
+    imagePath: string;
+    width: number;
+    height: number;
+    frames: number;
+    frameRate: number;
+    mode: string;
+    stage1Steps: number;
+    stage2Steps: number;
+  },
+): Promise<{ ok: boolean; error?: string; taskId?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/queue/enqueue`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        projectId,
+        type: "image-to-video",
+        label: "Batch video",
+        payload,
+      }),
+    });
+    if (!res.ok) {
+      return { ok: false, error: await res.text() };
+    }
+    const task = (await res.json()) as { id?: string };
+    return { ok: true, taskId: task.id };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
 
 function getDimensions(
   aspect: AspectRatio,
@@ -126,44 +179,6 @@ function normalizeImagePath(path: string): string {
     p = p.slice(7);
   }
   return p.split("/").pop() || p;
-}
-
-async function readSSEStream(
-  response: Response,
-  onEvent: (event: string, data: any) => void,
-): Promise<void> {
-  const reader = response.body?.getReader();
-  if (!reader) return;
-
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      let eventType = "message";
-      for (const line of lines) {
-        if (line.startsWith("event: ")) {
-          eventType = line.slice(7).trim();
-        } else if (line.startsWith("data: ")) {
-          try {
-            onEvent(eventType, JSON.parse(line.slice(6)));
-          } catch {
-            // skip malformed lines
-          }
-          eventType = "message";
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
 }
 
 function playBeep() {
@@ -203,7 +218,7 @@ function makeRow(): BatchVideoRow {
 function toPersistedState(
   s: Pick<
     BatchVideoStore,
-    "rows" | "duration" | "aspectRatio" | "resolution" | "mode"
+    "rows" | "duration" | "aspectRatio" | "resolution" | "mode" | "stage1Steps" | "stage2Steps"
   >,
 ): PersistedBatchVideoState {
   return {
@@ -218,6 +233,8 @@ function toPersistedState(
     aspectRatio: s.aspectRatio,
     resolution: s.resolution,
     mode: s.mode,
+    stage1Steps: s.stage1Steps,
+    stage2Steps: s.stage2Steps,
   };
 }
 
@@ -235,6 +252,8 @@ export const useBatchVideoStore = create<BatchVideoStore>((set, get) => ({
   aspectRatio: "1:1",
   resolution: "480p",
   mode: "distilled",
+  stage1Steps: 30,
+  stage2Steps: 3,
 
   running: false,
   progress: null,
@@ -283,6 +302,8 @@ export const useBatchVideoStore = create<BatchVideoStore>((set, get) => ({
         aspectRatio: stored.aspectRatio ?? s.aspectRatio,
         resolution: stored.resolution ?? s.resolution,
         mode: stored.mode ?? s.mode,
+        stage1Steps: stored.stage1Steps ?? s.stage1Steps,
+        stage2Steps: stored.stage2Steps ?? s.stage2Steps,
       };
     });
   },
@@ -406,6 +427,14 @@ export const useBatchVideoStore = create<BatchVideoStore>((set, get) => ({
     set({ mode });
     persistBatchState();
   },
+  setStage1Steps: (stage1Steps) => {
+    set({ stage1Steps: Math.max(1, Math.round(Number(stage1Steps)) || 1) });
+    persistBatchState();
+  },
+  setStage2Steps: (stage2Steps) => {
+    set({ stage2Steps: Math.max(1, Math.round(Number(stage2Steps)) || 1) });
+    persistBatchState();
+  },
 
   generateRows: async (projectId, ids) => {
     if (get().running) return;
@@ -418,130 +447,70 @@ export const useBatchVideoStore = create<BatchVideoStore>((set, get) => ({
 
     if (targets.length === 0) return;
 
-    const { duration, aspectRatio, resolution, mode } = get();
+    const { duration, aspectRatio, resolution, mode, stage1Steps, stage2Steps } =
+      get();
     const { width, height } = getDimensions(aspectRatio, resolution);
 
-    batchAbortController = new AbortController();
-    const signal = batchAbortController.signal;
+    // Reset queue-task tracking for this batch run.
+    rowTaskMap.clear();
+    taskRowMap.clear();
+    batchRowIds = targets.map((r) => r.id);
 
-    set({
+    set((s) => ({
       running: true,
       progress: { current: 0, total: targets.length },
       cancelRequested: false,
       logs: [],
-    });
+      rows: s.rows.map((r) =>
+        targets.some((t) => t.id === r.id)
+          ? { ...r, status: "generating", error: null, logs: [] }
+          : r,
+      ),
+    }));
 
-    let cancelled = false;
+    // Enqueue one queue task per row; the queue worker runs them sequentially.
+    for (const row of targets) {
+      // Stop enqueuing if the batch was cancelled while we were enqueuing.
+      if (!get().running) break;
 
-    for (let i = 0; i < targets.length; i++) {
-      if (get().cancelRequested) {
-        cancelled = true;
-        break;
-      }
-
-      const row = targets[i];
       const imagePath = normalizeImagePath(row.imagePath!);
+      const r = await enqueueBatchVideoTask(projectId, {
+        prompt: row.prompt.trim(),
+        imagePath,
+        width,
+        height,
+        frames: duration * 24 + 1,
+        frameRate: 24,
+        mode,
+        stage1Steps,
+        stage2Steps,
+      });
 
-      set((s) => ({
-        progress: { current: i + 1, total: targets.length },
-        rows: s.rows.map((r) =>
-          r.id === row.id
-            ? { ...r, status: "generating", error: null, logs: [] }
-            : r,
-        ),
-        logs: [
-          ...s.logs,
-          `[${i + 1}/${targets.length}] Generating: ${row.prompt.trim().slice(0, 80)}`,
-        ],
-      }));
-
-      try {
-        const res = await fetch(`${API_BASE}/api/render/image-to-video`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            prompt: row.prompt.trim(),
-            imagePath,
-            projectId,
-            width,
-            height,
-            frames: duration * 24 + 1,
-            frameRate: 24,
-            mode,
-          }),
-          signal,
-        });
-
-        if (!res.ok) {
-          const err = await res.text();
-          set((s) => ({
-            rows: s.rows.map((r) =>
-              r.id === row.id ? { ...r, status: "error", error: err } : r,
-            ),
-          }));
-          continue;
-        }
-
-        await readSSEStream(res, (event, data) => {
-          switch (event) {
-            case "log":
-              set((s) => ({
-                rows: s.rows.map((r) =>
-                  r.id === row.id
-                    ? { ...r, logs: [...r.logs, data.text as string] }
-                    : r,
-                ),
-                logs: [...s.logs, data.text as string],
-              }));
-              break;
-            case "complete":
-              set((s) => ({
-                rows: s.rows.map((r) =>
-                  r.id === row.id
-                    ? {
-                        ...r,
-                        status: "done",
-                        result: `http://localhost:${(window as any).PORT}/api/files?path=${encodeURIComponent(data.path)}`,
-                      }
-                    : r,
-                ),
-              }));
-              break;
-            case "error":
-              set((s) => ({
-                rows: s.rows.map((r) =>
-                  r.id === row.id
-                    ? {
-                        ...r,
-                        status: "error",
-                        error: data.error || "Video generation failed",
-                      }
-                    : r,
-                ),
-              }));
-              break;
-          }
-        });
-      } catch (e: any) {
-        if (e?.name === "AbortError") {
-          cancelled = true;
-          break;
-        }
+      if (r.ok && r.taskId) {
+        rowTaskMap.set(row.id, r.taskId);
+        taskRowMap.set(r.taskId, row.id);
         set((s) => ({
-          rows: s.rows.map((r) =>
-            r.id === row.id
-              ? { ...r, status: "error", error: String(e) }
-              : r,
+          logs: [...s.logs, `Enqueued: ${row.prompt.trim().slice(0, 80)}`],
+        }));
+      } else {
+        // Enqueue failed — mark the row as errored (terminal) so progress can
+        // still complete.
+        set((s) => ({
+          rows: s.rows.map((x) =>
+            x.id === row.id
+              ? { ...x, status: "error", error: r.error ?? "Failed to enqueue" }
+              : x,
           ),
         }));
       }
     }
 
-    batchAbortController = null;
-    set({ running: false, progress: null, cancelRequested: false });
-
-    if (!cancelled) {
-      playBeep();
+    // Nothing was enqueued — reset the batch UI immediately.
+    if (rowTaskMap.size === 0) {
+      rowTaskMap.clear();
+      taskRowMap.clear();
+      batchRowIds = [];
+      set({ running: false, progress: null, cancelRequested: false });
     }
   },
 
@@ -554,11 +523,85 @@ export const useBatchVideoStore = create<BatchVideoStore>((set, get) => ({
     return get().generateRows(projectId, ids);
   },
 
-  cancel: () => {
-    set({ cancelRequested: true });
-    if (batchAbortController) {
-      batchAbortController.abort();
+  applyQueueTask: (task) => {
+    if (task.type !== "image-to-video") return;
+    const rowId = taskRowMap.get(task.id);
+    if (!rowId) return;
+
+    if (task.status === "completed") {
+      const url = task.result?.url;
+      set((s) => ({
+        rows: s.rows.map((r) =>
+          r.id === rowId
+            ? {
+                ...r,
+                status: "done",
+                result: url ? resolveMediaUrl(url) : null,
+                error: null,
+              }
+            : r,
+        ),
+      }));
+    } else if (task.status === "failed") {
+      set((s) => ({
+        rows: s.rows.map((r) =>
+          r.id === rowId
+            ? { ...r, status: "error", error: task.error ?? "Video generation failed" }
+            : r,
+        ),
+      }));
+    } else if (task.status === "cancelled") {
+      set((s) => ({
+        rows: s.rows.map((r) =>
+          r.id === rowId ? { ...r, status: "idle", error: null } : r,
+        ),
+      }));
+    } else {
+      // pending / running / paused
+      set((s) => ({
+        rows: s.rows.map((r) =>
+          r.id === rowId ? { ...r, status: "generating" } : r,
+        ),
+      }));
     }
+
+    // Recompute batch progress from terminal rows.
+    const batchRows = get().rows.filter((r) => batchRowIds.includes(r.id));
+    const terminal = batchRows.filter(
+      (r) => r.status === "done" || r.status === "error",
+    ).length;
+    const total = batchRowIds.length;
+
+    if (total > 0 && terminal >= total) {
+      batchRowIds = [];
+      rowTaskMap.clear();
+      taskRowMap.clear();
+      set((s) => ({
+        running: false,
+        progress: null,
+        cancelRequested: false,
+        logs: [...s.logs, "Batch complete."],
+      }));
+      playBeep();
+    } else if (total > 0) {
+      set({ progress: { current: terminal, total } });
+    }
+  },
+
+  cancel: () => {
+    const projectId = get().projectId;
+    if (projectId) {
+      for (const taskId of Array.from(taskRowMap.keys())) {
+        fetch(`${API_BASE}/api/queue/cancel`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectId, taskId }),
+        }).catch(() => {});
+      }
+    }
+    rowTaskMap.clear();
+    taskRowMap.clear();
+    batchRowIds = [];
     set({
       running: false,
       progress: null,
@@ -567,7 +610,6 @@ export const useBatchVideoStore = create<BatchVideoStore>((set, get) => ({
         r.status === "generating" ? { ...r, status: "idle" } : r,
       ),
     });
-    fetch(`${API_BASE}/api/render/cancel`, { method: "POST" }).catch(() => {});
   },
 
   stitchVideos: async () => {
@@ -658,6 +700,8 @@ export const useBatchVideoStore = create<BatchVideoStore>((set, get) => ({
       aspectRatio: "1:1",
       resolution: "480p",
       mode: "distilled",
+      stage1Steps: 30,
+      stage2Steps: 3,
       running: false,
       progress: null,
       cancelRequested: false,

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useBatchVideoStore, type BatchRowStatus } from "../../stores/batchVideoStore";
 import { useGenerationStore } from "../../stores/generationStore";
 import { useProjectStore } from "../../stores/projectStore";
+import { useQueueStore } from "../../stores/queueStore";
 
 interface Props {
   projectId: string;
@@ -209,6 +210,7 @@ function StatusBadge({ status }: { status: BatchRowStatus }) {
 export default function BatchVideoTab({ projectId }: Props) {
   const store = useBatchVideoStore();
   const genStore = useGenerationStore();
+  const queue = useQueueStore();
   const { openFolder } = useProjectStore();
 
   const logRef = useRef<HTMLDivElement | null>(null);
@@ -221,6 +223,19 @@ export default function BatchVideoTab({ projectId }: Props) {
     store.hydrate(projectId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
+
+  // Stream the generation queue so batch-video tasks surface here.
+  useEffect(() => {
+    queue.startStreaming(projectId);
+    return () => queue.stopStreaming();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
+  // Reconcile batch rows with the latest queue task state.
+  useEffect(() => {
+    for (const task of queue.tasks) store.applyQueueTask(task);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queue.tasks, projectId]);
 
   useEffect(() => {
     if (logRef.current) {
@@ -389,6 +404,43 @@ export default function BatchVideoTab({ projectId }: Props) {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Steps */}
+      <div>
+        <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-2">
+          Steps
+        </label>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[11px] font-medium text-ink-600 mb-1">
+              Stage 1 Steps
+            </label>
+            <input
+              type="number"
+              min={1}
+              value={store.stage1Steps}
+              onChange={(e) => store.setStage1Steps(Number(e.target.value))}
+              disabled={store.running}
+              className="w-full px-4 py-2 bg-ink-50 border border-ink-200 rounded-2xl text-ink-900 text-sm focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/30 transition-all disabled:opacity-50"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-medium text-ink-600 mb-1">
+              Stage 2 Steps
+            </label>
+            <input
+              type="number"
+              min={1}
+              value={store.stage2Steps}
+              onChange={(e) => store.setStage2Steps(Number(e.target.value))}
+              disabled={store.running}
+              className="w-full px-4 py-2 bg-ink-50 border border-ink-200 rounded-2xl text-ink-900 text-sm focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/30 transition-all disabled:opacity-50"
+            />
+          </div>
+        </div>
+        <pre className="text-[11px] text-ink-500/70 mt-2 font-mono whitespace-pre-wrap">{`--stage1-steps      Stage 1 steps (default: 30 standard, 15 HQ)
+--stage2-steps      Stage 2 steps (default: 3)`}</pre>
       </div>
 
       {/* Table */}

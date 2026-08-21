@@ -601,6 +601,7 @@ const handlers: Record<QueueTaskType, Handler> = {
       frames,
       frameRate,
       mode,
+      model,
       stage1Steps,
       stage2Steps,
     } = ctx.task.payload || {};
@@ -616,6 +617,7 @@ const handlers: Record<QueueTaskType, Handler> = {
         frames,
         frameRate,
         mode,
+        model,
         stage1Steps,
         stage2Steps,
       },
