@@ -10,6 +10,16 @@ export interface VoiceAudio {
   url: string;
 }
 
+export interface GeneratedVoice {
+  id: string;
+  transcript: string;
+  quality: string;
+  refAudioFilename: string | null;
+  filename: string;
+  createdAt: string | null;
+  url: string;
+}
+
 function resolveUrl(url: string): string {
   return url.startsWith("http") ? url : `${API_BASE}${url}`;
 }
@@ -20,6 +30,8 @@ interface VoiceCloneStore {
   refAudio: VoiceAudio | null;
   audios: VoiceAudio[];
   audiosLoading: boolean;
+  voices: GeneratedVoice[];
+  voicesLoading: boolean;
   uploading: boolean;
   generating: boolean;
   result: string | null;
@@ -30,6 +42,7 @@ interface VoiceCloneStore {
   setRefAudio: (a: VoiceAudio | null) => void;
   clearResult: () => void;
   fetchAudios: (projectId: string) => Promise<void>;
+  fetchVoices: (projectId: string) => Promise<void>;
   uploadAudio: (
     projectId: string,
     base64: string,
@@ -42,6 +55,9 @@ interface VoiceCloneStore {
 
 /** The queue task id enqueued by the current generate action, if any. */
 let voiceCloneActiveTaskId: string | null = null;
+
+/** Project whose voice-clone task should refresh the generated list on completion. */
+let voiceCloneProjectId: string | null = null;
 
 async function enqueueVoiceCloneTask(
   projectId: string,
@@ -76,6 +92,8 @@ export const useVoiceCloneStore = create<VoiceCloneStore>((set, get) => ({
   refAudio: null,
   audios: [],
   audiosLoading: false,
+  voices: [],
+  voicesLoading: false,
   uploading: false,
   generating: false,
   result: null,
@@ -98,6 +116,21 @@ export const useVoiceCloneStore = create<VoiceCloneStore>((set, get) => ({
       });
     } catch {
       set({ audiosLoading: false });
+    }
+  },
+
+  fetchVoices: async (projectId) => {
+    set({ voicesLoading: true });
+    try {
+      const res = await fetch(`${API_BASE}/api/projects/${projectId}/voices`);
+      if (!res.ok) throw new Error(await res.text());
+      const voices: GeneratedVoice[] = await res.json();
+      set({
+        voices: voices.map((v) => ({ ...v, url: resolveUrl(v.url) })),
+        voicesLoading: false,
+      });
+    } catch {
+      set({ voicesLoading: false });
     }
   },
 
@@ -135,6 +168,7 @@ export const useVoiceCloneStore = create<VoiceCloneStore>((set, get) => ({
 
     set({ generating: true, error: null, result: null });
 
+    voiceCloneProjectId = projectId;
     const r = await enqueueVoiceCloneTask(
       projectId,
       transcript.trim(),
@@ -160,6 +194,9 @@ export const useVoiceCloneStore = create<VoiceCloneStore>((set, get) => ({
         result: url ? resolveUrl(url) : null,
         error: null,
       });
+      if (voiceCloneProjectId) {
+        void get().fetchVoices(voiceCloneProjectId);
+      }
     } else if (task.status === "failed") {
       set({ generating: false, error: task.error ?? "Voice clone failed" });
     } else if (task.status === "cancelled" || task.status === "paused") {
@@ -172,12 +209,15 @@ export const useVoiceCloneStore = create<VoiceCloneStore>((set, get) => ({
 
   reset: () => {
     voiceCloneActiveTaskId = null;
+    voiceCloneProjectId = null;
     set({
       quality: "high",
       transcript: "",
       refAudio: null,
       audios: [],
       audiosLoading: false,
+      voices: [],
+      voicesLoading: false,
       uploading: false,
       generating: false,
       result: null,

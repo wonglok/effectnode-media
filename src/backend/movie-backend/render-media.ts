@@ -903,7 +903,8 @@ export async function generateVoiceClone(
   const projectOutputDir = resolveOutputDir(undefined, projectId);
   if (!projectOutputDir) return { error: "Invalid output directory." };
 
-  const voiceDir = join(projectOutputDir, "voices", `voice-${Date.now()}`);
+  const voiceId = `voice-${Date.now()}`;
+  const voiceDir = join(projectOutputDir, "voices", voiceId);
   ensureDir(voiceDir);
 
   const result = await runCommand(
@@ -937,8 +938,27 @@ export async function generateVoiceClone(
     return { error: "TTS completed but no audio file was produced" };
   }
 
+  const filename = path.split(sep).pop() || TTS_OUTPUT_FILENAME;
+
+  // Persist a per-voice metadata file so the generated-voice list can be rebuilt
+  // from the folder structure (each voice in its own folder with meta.json), with
+  // no central JSON index.
+  const meta = {
+    id: voiceId,
+    transcript: cleanText,
+    quality,
+    refAudioFilename: refAudioPath,
+    filename,
+    createdAt: new Date().toISOString(),
+  };
+  writeFileSync(
+    join(voiceDir, "meta.json"),
+    JSON.stringify(meta, null, 2),
+    "utf-8",
+  );
+
   return {
-    filename: path.split(sep).pop() || TTS_OUTPUT_FILENAME,
+    filename,
     url: `/api/files?path=${encodeURIComponent(path)}`,
   };
 }
@@ -1366,6 +1386,73 @@ export async function renderMediaRoutes({
 
     raw.sort((a, b) => b.birthtime - a.birthtime);
     res.json(raw.map(({ filename, url }) => ({ filename, url })));
+  });
+
+  // List previously generated voice clones by scanning the voices folder. Each
+  // voice lives in its own subfolder with a meta.json (no central JSON index).
+  app.get("/api/projects/:id/voices", (req, res) => {
+    const { id } = req.params;
+    if (!isValidProjectId(id)) {
+      res.status(400).json({ error: "Invalid project ID" });
+      return;
+    }
+
+    const voicesRoot = join(OUTPUT_DIR, id, "voices");
+    const results: {
+      id: string;
+      transcript: string;
+      quality: string;
+      refAudioFilename: string | null;
+      filename: string;
+      createdAt: string | null;
+      url: string;
+    }[] = [];
+
+    if (existsSync(voicesRoot)) {
+      let names: string[] = [];
+      try {
+        names = readdirSync(voicesRoot);
+      } catch {
+        names = [];
+      }
+
+      for (const name of names) {
+        const voiceDir = join(voicesRoot, name);
+        let isDir = false;
+        try {
+          isDir = statSync(voiceDir).isDirectory();
+        } catch {
+          isDir = false;
+        }
+        if (!isDir) continue;
+
+        let meta: any = null;
+        try {
+          meta = JSON.parse(readFileSync(join(voiceDir, "meta.json"), "utf-8"));
+        } catch {
+          continue; // folder without a meta.json — skip
+        }
+
+        const filename = String(meta?.filename || TTS_OUTPUT_FILENAME);
+        const audioPath = join(voiceDir, filename);
+        if (!existsSync(audioPath)) continue;
+
+        results.push({
+          id: name,
+          transcript: String(meta?.transcript ?? ""),
+          quality: String(meta?.quality ?? "high"),
+          refAudioFilename: meta?.refAudioFilename ?? null,
+          filename,
+          createdAt: meta?.createdAt ?? null,
+          url: `/api/files?path=${encodeURIComponent(audioPath)}`,
+        });
+      }
+    }
+
+    results.sort((a, b) =>
+      String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")),
+    );
+    res.json(results);
   });
 
   // ========== Render: Text-to-Image ==========

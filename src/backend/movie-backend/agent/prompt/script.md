@@ -8,7 +8,17 @@ uv run mlx_audio.tts.generate \
  --ref_audio ./reference_voice.wav \
  --play --output ./out --audio_format mp3 --stream --save --instruct "slow down"
 
+
+
+uv run mlx_audio.tts.generate \
+ --model Qwen/Qwen3-TTS-12Hz-1.7B-Base \
+ --text "Ghost reporting. ... 你好嗎?" \
+ --ref_audio ./reference_voice.wav \
+ --play --output ./out --audio_format mp3 --stream --save --instruct "slow down"
+
 ```
+
+<!-- mlx-community/Kokoro-82M-bf16 -->
 
 <!-- Low quality -->
 

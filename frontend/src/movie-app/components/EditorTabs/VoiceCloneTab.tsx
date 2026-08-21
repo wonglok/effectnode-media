@@ -19,6 +19,7 @@ export default function VoiceCloneTab({ projectId }: Props) {
 
   useEffect(() => {
     vc.fetchAudios(projectId);
+    vc.fetchVoices(projectId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
@@ -269,6 +270,45 @@ export default function VoiceCloneTab({ projectId }: Props) {
           <audio src={vc.result} controls className="w-full" />
         </div>
       )}
+
+      {/* ===== Previously Generated Voices ===== */}
+      <div>
+        <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-2">
+          Previously Generated
+        </label>
+        {vc.voicesLoading ? (
+          <p className="text-xs text-ink-500 italic py-3 text-center">
+            Loading voices…
+          </p>
+        ) : vc.voices.length === 0 ? (
+          <p className="text-xs text-ink-500 italic py-3 text-center border border-dashed border-ink-200 rounded-2xl">
+            No generated voices yet.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {vc.voices.map((v) => (
+              <li
+                key={v.id}
+                className="flex flex-col gap-1.5 rounded-2xl border border-ink-200 bg-white p-3"
+              >
+                <audio src={v.url} controls className="w-full" />
+                {v.transcript && (
+                  <p className="text-xs text-ink-600 wrap-break-word">
+                    “{v.transcript}”
+                  </p>
+                )}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-500">
+                  <span className="font-medium uppercase">{v.quality}</span>
+                  {v.refAudioFilename && <span>ref: {v.refAudioFilename}</span>}
+                  {v.createdAt && (
+                    <span>{new Date(v.createdAt).toLocaleString()}</span>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
