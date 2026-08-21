@@ -666,7 +666,7 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
         ),
       },
     });
-    persistMovieStudioState();
+    scheduleMovieStudioPersist();
   },
 
   updatePlace: (slug, patch) => {
@@ -680,7 +680,7 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
         ),
       },
     });
-    persistMovieStudioState();
+    scheduleMovieStudioPersist();
   },
 
   updateScene: (slug, patch) => {
@@ -694,7 +694,7 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
         ),
       },
     });
-    persistMovieStudioState();
+    scheduleMovieStudioPersist();
   },
 
   // Reconcile the movie studio store with the latest queue task state.
@@ -1032,6 +1032,7 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
   },
 
   reset: () => {
+    flushMovieStudioPersist();
     batches.clear();
     countedBatch.clear();
     set({
@@ -1069,6 +1070,10 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
   },
 }));
 
+/** Timer for the debounced autosave of table edits. */
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Write the current state to disk immediately. */
 function persistMovieStudioState() {
   const s = useMovieStudioStore.getState();
   if (!s.projectId) return;
@@ -1085,4 +1090,25 @@ function persistMovieStudioState() {
       renderedScenes: s.renderedScenes,
     }),
   }).catch(() => {});
+}
+
+/**
+ * Debounced autosave: coalesce rapid table edits into a single write shortly
+ * after the user pauses typing.
+ */
+function scheduleMovieStudioPersist() {
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    persistMovieStudioState();
+  }, 500);
+}
+
+/** Flush any pending debounced save (e.g. before switching projects). */
+function flushMovieStudioPersist() {
+  if (persistTimer) {
+    clearTimeout(persistTimer);
+    persistTimer = null;
+    persistMovieStudioState();
+  }
 }

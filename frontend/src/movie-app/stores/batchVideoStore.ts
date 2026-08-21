@@ -218,7 +218,13 @@ function makeRow(): BatchVideoRow {
 function toPersistedState(
   s: Pick<
     BatchVideoStore,
-    "rows" | "duration" | "aspectRatio" | "resolution" | "mode" | "stage1Steps" | "stage2Steps"
+    | "rows"
+    | "duration"
+    | "aspectRatio"
+    | "resolution"
+    | "mode"
+    | "stage1Steps"
+    | "stage2Steps"
   >,
 ): PersistedBatchVideoState {
   return {
@@ -242,7 +248,10 @@ function toPersistedState(
 function persistBatchState() {
   const { projectId } = useBatchVideoStore.getState();
   if (!projectId) return;
-  void saveBatchVideoState(projectId, toPersistedState(useBatchVideoStore.getState()));
+  void saveBatchVideoState(
+    projectId,
+    toPersistedState(useBatchVideoStore.getState()),
+  );
 }
 
 export const useBatchVideoStore = create<BatchVideoStore>((set, get) => ({
@@ -447,8 +456,14 @@ export const useBatchVideoStore = create<BatchVideoStore>((set, get) => ({
 
     if (targets.length === 0) return;
 
-    const { duration, aspectRatio, resolution, mode, stage1Steps, stage2Steps } =
-      get();
+    const {
+      duration,
+      aspectRatio,
+      resolution,
+      mode,
+      stage1Steps,
+      stage2Steps,
+    } = get();
     const { width, height } = getDimensions(aspectRatio, resolution);
 
     // Reset queue-task tracking for this batch run.
@@ -546,7 +561,11 @@ export const useBatchVideoStore = create<BatchVideoStore>((set, get) => ({
       set((s) => ({
         rows: s.rows.map((r) =>
           r.id === rowId
-            ? { ...r, status: "error", error: task.error ?? "Video generation failed" }
+            ? {
+                ...r,
+                status: "error",
+                error: task.error ?? "Video generation failed",
+              }
             : r,
         ),
       }));
@@ -649,7 +668,10 @@ export const useBatchVideoStore = create<BatchVideoStore>((set, get) => ({
         await ffmpeg.writeFile(name, data);
         list.push(`file '${name}'`);
         set((s) => ({
-          stitchLogs: [...s.stitchLogs, `Added video ${i + 1}/${results.length}`],
+          stitchLogs: [
+            ...s.stitchLogs,
+            `Added video ${i + 1}/${results.length}`,
+          ],
         }));
       }
 
