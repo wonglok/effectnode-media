@@ -18,8 +18,6 @@ export type GenerationTab =
   | "video"
   | "agent"
   | "storyWriter"
-  | "extract"
-  | "sceneVisual"
   | "textToImage"
   | "batchVideo"
   | "batchImageToVideo"

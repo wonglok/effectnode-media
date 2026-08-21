@@ -191,6 +191,11 @@ const DOWNLOAD_MODELS: {
     desc: "Character, place & scene images",
   },
   {
+    id: "seedvr2",
+    name: "AbstractFramework/seedvr2-7b-8bit",
+    desc: "Video generation (SeedVR2)",
+  },
+  {
     id: "ltx",
     name: "dgrauet/ltx-2.3-mlx-q8",
     desc: "Video generation",
@@ -301,11 +306,13 @@ export default function SetupAiModelTab() {
                 ? store.zImageDownloaded
                 : m.id === "flux"
                   ? store.fluxDownloaded
-                  : m.id === "ltx"
-                    ? store.ltxDownloaded
-                    : m.id === "gemma"
-                      ? store.gemmaDownloaded
-                      : store.ttsDownloaded;
+                  : m.id === "seedvr2"
+                    ? store.seedvr2Downloaded
+                    : m.id === "ltx"
+                      ? store.ltxDownloaded
+                      : m.id === "gemma"
+                        ? store.gemmaDownloaded
+                        : store.ttsDownloaded;
             return (
               <ModelRow key={m.id} name={m.name} desc={m.desc}>
                 <StatusBadge value={downloaded} />

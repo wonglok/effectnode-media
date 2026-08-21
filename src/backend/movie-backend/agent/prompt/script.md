@@ -73,10 +73,10 @@ mlxgen upscale \
 mlxgen upscale \
   --model AbstractFramework/seedvr2-7b-8bit \
   --image-path input.png \
-  --resolution 1500 \
+  --resolution 1x \
   --seed 42 \
   --mlx-cache-limit-gb 100 \
-  --output input_upscaled_1500.png
+  --output input_refined_1x.png
 
 
 ```

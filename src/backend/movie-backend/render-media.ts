@@ -32,7 +32,6 @@ const APP_DATA_DIR = join(homedir(), "media-studio");
 const OUTPUT_DIR = join(APP_DATA_DIR, "output");
 const UPLOAD_DIR = join(APP_DATA_DIR, "upload");
 const AGENT_UPLOAD_DIR = join(APP_DATA_DIR, "agent-upload");
-const EXTRACTED_FRAMES_DIR = join(APP_DATA_DIR, "extracted-frames");
 const AGENTS_DIR = join(APP_DATA_DIR, "agents");
 const JSON_DIR = join(APP_DATA_DIR, "json");
 const PYTHON_DIR = join(APP_DATA_DIR, "python-src");
@@ -42,6 +41,7 @@ const CHARACTERS_FILE = join(JSON_DIR, "characters.json");
 
 const Z_IMAGE_MODEL = "AbstractFramework/z-image-turbo-8bit";
 const FLUX_KLEIN_MODEL = "AbstractFramework/flux.2-klein-4b-8bit";
+const SEEDVR2_MODEL = "AbstractFramework/seedvr2-7b-8bit";
 const MLX_VLM_MODEL = "mlx-community/gemma-4-e4b-it-8bit";
 
 const VIDEO_STAGE_FLAGS: Record<string, string> = {
@@ -2648,6 +2648,7 @@ export async function renderMediaRoutes({
       installed: isMlxgenInstalled(),
       zModelDownloaded: isModelDownloaded(Z_IMAGE_MODEL),
       fluxModelDownloaded: isModelDownloaded(FLUX_KLEIN_MODEL),
+      seedvr2Downloaded: isModelDownloaded(SEEDVR2_MODEL),
     });
   });
 
@@ -2789,6 +2790,63 @@ export async function renderMediaRoutes({
       });
 
       const proc = spawn([mlxgen, "download", "--model", FLUX_KLEIN_MODEL], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+
+      activeProc = proc;
+
+      const stdoutPromise = streamToSSE(
+        proc.stdout as ReadableStream<Uint8Array>,
+        "Download",
+        send,
+      );
+      const stderrText = await streamToSSE(
+        proc.stderr as ReadableStream<Uint8Array>,
+        "Download",
+        send,
+      );
+      await stdoutPromise;
+
+      const exitCode = await proc.exited;
+      if (exitCode === 0) {
+        send("complete", { success: true });
+      } else {
+        send("error", {
+          error: stderrText || `Process exited with code ${exitCode}`,
+          exitCode,
+        });
+      }
+    } catch (e) {
+      send("error", { error: String(e) });
+    } finally {
+      activeProc = null;
+      res.end();
+    }
+  });
+
+  // ========== MLX-Gen: Download SeedVR2 Model ==========
+
+  app.post("/api/mlxgen/download-seedvr2-model", async (_req, res) => {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+
+    const send = (event: string, data: object) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      const mlxgen = await getMlxgenBin();
+      send("progress", {
+        status: "starting",
+        label: `Downloading model ${SEEDVR2_MODEL}...`,
+      });
+
+      const proc = spawn([mlxgen, "download", "--model", SEEDVR2_MODEL], {
         stdout: "pipe",
         stderr: "pipe",
       });
@@ -3697,40 +3755,6 @@ export async function renderMediaRoutes({
     const [removed] = characters.splice(index, 1);
     writeCharacters(characters);
     res.json(removed);
-  });
-
-  // Save an extracted video frame into the project's extracted-frames folder.
-  app.post("/api/extracted-frames", (req, res) => {
-    const { image, filename, projectId } = req.body || {};
-    if (!image) {
-      res.status(400).json({ error: "Image data is required (base64)" });
-      return;
-    }
-    if (!projectId || !isValidProjectId(String(projectId))) {
-      res.status(400).json({ error: "Invalid project ID" });
-      return;
-    }
-    try {
-      const base64 = String(image).replace(/^data:[^;]+;base64,/, "");
-      const buffer = Buffer.from(base64, "base64");
-      const dir = join(EXTRACTED_FRAMES_DIR, String(projectId));
-      ensureDir(dir);
-      const safeName = (filename || `frame-${Date.now()}.png`).replace(
-        /[^a-zA-Z0-9._-]/g,
-        "_",
-      );
-      writeFileSync(join(dir, safeName), buffer);
-      res.json({
-        success: true,
-        path: join(dir, safeName),
-        filename: safeName,
-        size: buffer.length,
-      });
-    } catch (e) {
-      res
-        .status(500)
-        .json({ error: "Failed to save frame", details: String(e) });
-    }
   });
 
   // Open project folder in Finder

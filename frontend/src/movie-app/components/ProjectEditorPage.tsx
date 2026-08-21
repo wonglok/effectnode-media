@@ -7,8 +7,6 @@ import MovieStudioTab from "./EditorTabs/MovieStudioTab";
 import GenerateVideoTab from "./EditorTabs/GenerateVideoTab";
 import AgentTab from "./EditorTabs/AgentTab";
 import StoryWriterTab from "./EditorTabs/StoryWriterTab";
-import ExtractImageTab from "./EditorTabs/ExtractImageTab";
-import SceneVisualTab from "./EditorTabs/SceneVisualTab";
 import TextToImageTab from "./EditorTabs/TextToImageTab";
 import BatchVideoTab from "./EditorTabs/BatchVideoTab";
 import BatchImageToVideoTab from "./EditorTabs/BatchImageToVideoTab";
@@ -150,39 +148,6 @@ export default function ProjectEditorPage() {
     >
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-    </svg>
-  );
-
-  const ExtractIcon = (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-      <circle cx="12" cy="13" r="4" />
-    </svg>
-  );
-
-  const SceneVisualIcon = (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-      <circle cx="8.5" cy="8.5" r="1.5" />
-      <polyline points="21 15 16 10 5 21" />
     </svg>
   );
 
@@ -425,28 +390,6 @@ export default function ProjectEditorPage() {
               Story Writer
             </button>
             <button
-              onClick={() => store.setActiveTab("extract")}
-              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "extract"
-                  ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
-                  : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
-              }`}
-            >
-              {ExtractIcon}
-              Extract Image
-            </button>
-            <button
-              onClick={() => store.setActiveTab("sceneVisual")}
-              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "sceneVisual"
-                  ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
-                  : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
-              }`}
-            >
-              {SceneVisualIcon}
-              Scene Visual
-            </button>
-            <button
               onClick={() => store.setActiveTab("textToImage")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
                 store.activeTab === "textToImage"
@@ -534,14 +477,6 @@ export default function ProjectEditorPage() {
           {/* ========== STORY WRITER PANEL ========== */}
           {store.activeTab === "storyWriter" && (
             <StoryWriterTab projectId={id!} />
-          )}
-
-          {/* ========== EXTRACT IMAGE PANEL ========== */}
-          {store.activeTab === "extract" && <ExtractImageTab projectId={id!} />}
-
-          {/* ========== SCENE VISUAL PANEL ========== */}
-          {store.activeTab === "sceneVisual" && (
-            <SceneVisualTab projectId={id!} />
           )}
 
           {/* ========== TEXT-TO-IMAGE PANEL ========== */}

@@ -3,7 +3,13 @@ import { create } from "zustand";
 const API_BASE = `http://localhost:${(window as any).PORT}`;
 
 /** Models that have a dedicated download endpoint in the backend. */
-export type AiModelId = "z-image" | "flux" | "ltx" | "tts" | "gemma";
+export type AiModelId =
+  | "z-image"
+  | "flux"
+  | "seedvr2"
+  | "ltx"
+  | "tts"
+  | "gemma";
 
 /** Tools whose "install" step must run before their models can be downloaded. */
 export type AiToolId = "mlxgen" | "mlx-vlm" | "hf-cli";
@@ -16,6 +22,7 @@ interface AiModelStore {
   // Model download status
   zImageDownloaded: boolean | null;
   fluxDownloaded: boolean | null;
+  seedvr2Downloaded: boolean | null;
   ltxDownloaded: boolean | null;
   ttsDownloaded: boolean | null;
   gemmaDownloaded: boolean | null;
@@ -68,6 +75,7 @@ async function readSSE(
 const DOWNLOAD_ENDPOINTS: Record<AiModelId, string> = {
   "z-image": "/api/mlxgen/download-z-model",
   flux: "/api/mlxgen/download-flux-model",
+  seedvr2: "/api/mlxgen/download-seedvr2-model",
   ltx: "/api/hf/download-ltx",
   tts: "/api/hf/download-tts",
   gemma: "/api/hf/download-mlx-vlm",
@@ -85,6 +93,7 @@ export const useAiModelStore = create<AiModelStore>((set, get) => ({
   hfInstalled: null,
   zImageDownloaded: null,
   fluxDownloaded: null,
+  seedvr2Downloaded: null,
   ltxDownloaded: null,
   ttsDownloaded: null,
   gemmaDownloaded: null,
@@ -107,6 +116,7 @@ export const useAiModelStore = create<AiModelStore>((set, get) => ({
         mlxgenInstalled: mlxgen ? Boolean(mlxgen.installed) : null,
         zImageDownloaded: mlxgen ? Boolean(mlxgen.zModelDownloaded) : null,
         fluxDownloaded: mlxgen ? Boolean(mlxgen.fluxModelDownloaded) : null,
+        seedvr2Downloaded: mlxgen ? Boolean(mlxgen.seedvr2Downloaded) : null,
         mlxVlmInstalled: agent ? Boolean(agent.installed) : null,
         hfInstalled: hf ? Boolean(hf.installed) : null,
         ltxDownloaded: hf ? Boolean(hf.ltxDownloaded) : null,
