@@ -593,8 +593,17 @@ const handlers: Record<QueueTaskType, Handler> = {
 
   // Generate a video from a project image via LTX-2.3 (Scene Video Generation).
   "image-to-video": async (ctx, getUvPath) => {
-    const { prompt, imagePath, width, height, frames, frameRate, mode } =
-      ctx.task.payload || {};
+    const {
+      prompt,
+      imagePath,
+      width,
+      height,
+      frames,
+      frameRate,
+      mode,
+      stage1Steps,
+      stage2Steps,
+    } = ctx.task.payload || {};
     ctx.log("Generating scene video (LTX-2.3)…\n");
     const r = await generateImageToVideo(
       await getUvPath(),
@@ -607,6 +616,8 @@ const handlers: Record<QueueTaskType, Handler> = {
         frames,
         frameRate,
         mode,
+        stage1Steps,
+        stage2Steps,
       },
       ctx.log,
     );

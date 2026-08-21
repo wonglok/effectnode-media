@@ -2033,6 +2033,8 @@ export async function renderMediaRoutes({
       const videoHeight = Number(height) || 480;
       const videoFrames = Number(frames) || 121;
       const videoFps = Number(frameRate) || 24;
+      const stage1 = Math.max(1, Math.round(Number(stage1Steps)) || 30);
+      const stage2 = Math.max(1, Math.round(Number(stage2Steps)) || 3);
 
       send("progress", {
         status: "starting",
@@ -2057,6 +2059,10 @@ export async function renderMediaRoutes({
           "--prompt",
           prompt,
           stageFlagFor(mode),
+          "--stage1-steps",
+          String(stage1),
+          "--stage2-steps",
+          String(stage2),
           // "--low-ram",
           "--frames",
           String(videoFrames),
