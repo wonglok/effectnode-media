@@ -963,6 +963,121 @@ export async function generateVoiceClone(
   };
 }
 
+/** Find the newest video file (mp4/webm/mov) inside a directory. */
+function findNewestVideo(dir: string): string | null {
+  let entries: string[] = [];
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return null;
+  }
+  let newest: { path: string; mtime: number } | null = null;
+  for (const name of entries) {
+    const ext = name.slice(name.lastIndexOf(".")).toLowerCase();
+    if (ext !== ".mp4" && ext !== ".webm" && ext !== ".mov") continue;
+    const full = join(dir, name);
+    try {
+      const st = statSync(full);
+      if (!st.isFile()) continue;
+      if (!newest || st.mtimeMs > newest.mtime) {
+        newest = { path: full, mtime: st.mtimeMs };
+      }
+    } catch {
+      // skip unreadable entries
+    }
+  }
+  return newest ? newest.path : null;
+}
+
+/**
+ * Generate a video from an image + audio via ltx-2-mlx `a2v` (audio-to-video).
+ * `imagePath` and `audioPath` must be bare filenames previously uploaded/generated
+ * for this project. `stage1Steps` maps to `--stage1-steps` (15 default, 30 HD).
+ */
+export async function generateAudioToVideo(
+  uvPath: string,
+  projectId: string,
+  params: {
+    imagePath: string;
+    audioPath: string;
+    prompt: string;
+    stage1Steps: number;
+  },
+  onLog?: (text: string) => void,
+): Promise<{ filename: string; url: string } | { error: string }> {
+  if (!isValidProjectId(projectId)) return { error: "Invalid project ID" };
+  if (!params.imagePath) return { error: "Image path is required" };
+  if (!params.audioPath) return { error: "Audio path is required" };
+
+  const resolvedImage = resolveSafePath(params.imagePath, projectId);
+  if (!resolvedImage) {
+    return {
+      error:
+        "Invalid image path. Provide a filename previously uploaded to this project.",
+    };
+  }
+
+  const resolvedAudio = resolveSafePath(params.audioPath, projectId);
+  if (!resolvedAudio) {
+    return {
+      error:
+        "Invalid audio path. Provide a filename previously uploaded to this project.",
+    };
+  }
+
+  // Collapse whitespace so the prompt stays a single well-formed CLI argument.
+  const cleanPrompt =
+    String(params.prompt || "").replace(/\s+/g, " ").trim() || "scene";
+  const stage1Steps = Math.max(1, Math.round(Number(params.stage1Steps)) || 15);
+
+  const ltxFolder = join(PYTHON_DIR, "ltx-2-mlx");
+  if (!existsSync(ltxFolder)) {
+    return { error: "ltx-2-mlx not found. Run setup first." };
+  }
+
+  const outputDir = join(OUTPUT_DIR, projectId, `a2v-${Date.now()}`);
+  ensureDir(outputDir);
+
+  const result = await runCommand(
+    [
+      uvPath,
+      "run",
+      "ltx-2-mlx",
+      "a2v",
+      "--image",
+      resolvedImage,
+      "--audio",
+      resolvedAudio,
+      "--frame-rate",
+      "24",
+      "--output",
+      outputDir,
+      "--prompt",
+      cleanPrompt,
+      "--stage1-steps",
+      String(stage1Steps),
+      "--stage2-steps",
+      "3",
+    ],
+    { cwd: ltxFolder, onLog },
+  );
+
+  if (!result.success) {
+    return { error: result.output || "Audio-to-video generation failed" };
+  }
+
+  const videoPath = findNewestVideo(outputDir);
+  if (!videoPath) {
+    return { error: "a2v completed but no video file was produced" };
+  }
+
+  backupFile(videoPath, projectId);
+  return {
+    filename: videoPath.split(sep).pop() || "a2v.mp4",
+    url: `/api/files?path=${encodeURIComponent(videoPath)}`,
+  };
+}
+
 /**
  * Generate a composite image via fast-image-edit (FLUX.2 Klein). `images` are
  * base64 data URLs that are decoded into temp files and passed to the model as

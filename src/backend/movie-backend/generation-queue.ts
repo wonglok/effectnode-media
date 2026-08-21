@@ -19,6 +19,7 @@ import {
   generateImageToVideo,
   generateUpscale,
   generateVoiceClone,
+  generateAudioToVideo,
   cancelActiveRender,
 } from "./render-media.js";
 import { generateMovieStudioBible } from "./agent/agent-backend.js";
@@ -48,7 +49,8 @@ export type QueueTaskType =
   | "fast-image-edit"
   | "image-to-video"
   | "upscale"
-  | "voice-clone";
+  | "voice-clone"
+  | "audio-to-video";
 
 export type QueueTaskStatus =
   | "pending"
@@ -633,6 +635,25 @@ const handlers: Record<QueueTaskType, Handler> = {
       String(text || ""),
       String(refAudioPath || ""),
       String(quality || "high"),
+      ctx.log,
+    );
+    if ("error" in r) throw new Error(r.error);
+    return r;
+  },
+
+  // Generate a video from an image + audio via ltx-2-mlx a2v.
+  "audio-to-video": async (ctx, getUvPath) => {
+    const { imagePath, audioPath, prompt, stage1Steps } = ctx.task.payload || {};
+    ctx.log("Generating audio-to-video…\n");
+    const r = await generateAudioToVideo(
+      await getUvPath(),
+      ctx.projectId,
+      {
+        imagePath: String(imagePath || ""),
+        audioPath: String(audioPath || ""),
+        prompt: String(prompt || ""),
+        stage1Steps: Number(stage1Steps),
+      },
       ctx.log,
     );
     if ("error" in r) throw new Error(r.error);

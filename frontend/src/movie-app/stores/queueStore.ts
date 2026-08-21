@@ -17,7 +17,8 @@ export type QueueTaskType =
   | "fast-image-edit"
   | "image-to-video"
   | "upscale"
-  | "voice-clone";
+  | "voice-clone"
+  | "audio-to-video";
 
 export type QueueTaskStatus =
   | "pending"
