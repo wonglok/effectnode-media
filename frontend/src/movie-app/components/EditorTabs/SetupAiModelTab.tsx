@@ -201,6 +201,11 @@ const DOWNLOAD_MODELS: {
     desc: "Video generation",
   },
   {
+    id: "ltx-base",
+    name: "dgrauet/ltx-2.3-mlx",
+    desc: "Video generation (full precision)",
+  },
+  {
     id: "tts",
     name: "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
     desc: "Voice-over & speech",
@@ -310,9 +315,11 @@ export default function SetupAiModelTab() {
                     ? store.seedvr2Downloaded
                     : m.id === "ltx"
                       ? store.ltxDownloaded
-                      : m.id === "gemma"
-                        ? store.gemmaDownloaded
-                        : store.ttsDownloaded;
+                      : m.id === "ltx-base"
+                        ? store.ltxBaseDownloaded
+                        : m.id === "gemma"
+                          ? store.gemmaDownloaded
+                          : store.ttsDownloaded;
             return (
               <ModelRow key={m.id} name={m.name} desc={m.desc}>
                 <StatusBadge value={downloaded} />

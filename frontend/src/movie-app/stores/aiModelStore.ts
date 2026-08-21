@@ -8,6 +8,7 @@ export type AiModelId =
   | "flux"
   | "seedvr2"
   | "ltx"
+  | "ltx-base"
   | "tts"
   | "gemma";
 
@@ -24,6 +25,7 @@ interface AiModelStore {
   fluxDownloaded: boolean | null;
   seedvr2Downloaded: boolean | null;
   ltxDownloaded: boolean | null;
+  ltxBaseDownloaded: boolean | null;
   ttsDownloaded: boolean | null;
   gemmaDownloaded: boolean | null;
   // In-flight install/download (a model id or tool id)
@@ -77,6 +79,7 @@ const DOWNLOAD_ENDPOINTS: Record<AiModelId, string> = {
   flux: "/api/mlxgen/download-flux-model",
   seedvr2: "/api/mlxgen/download-seedvr2-model",
   ltx: "/api/hf/download-ltx",
+  "ltx-base": "/api/hf/download-ltx-base",
   tts: "/api/hf/download-tts",
   gemma: "/api/hf/download-mlx-vlm",
 };
@@ -95,6 +98,7 @@ export const useAiModelStore = create<AiModelStore>((set, get) => ({
   fluxDownloaded: null,
   seedvr2Downloaded: null,
   ltxDownloaded: null,
+  ltxBaseDownloaded: null,
   ttsDownloaded: null,
   gemmaDownloaded: null,
   downloading: null,
@@ -120,6 +124,7 @@ export const useAiModelStore = create<AiModelStore>((set, get) => ({
         mlxVlmInstalled: agent ? Boolean(agent.installed) : null,
         hfInstalled: hf ? Boolean(hf.installed) : null,
         ltxDownloaded: hf ? Boolean(hf.ltxDownloaded) : null,
+        ltxBaseDownloaded: hf ? Boolean(hf.ltxBaseDownloaded) : null,
         ttsDownloaded: hf ? Boolean(hf.ttsDownloaded) : null,
         gemmaDownloaded: hf ? Boolean(hf.mlxVlmDownloaded) : null,
       });

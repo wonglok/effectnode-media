@@ -1002,6 +1002,7 @@ export async function generateAudioToVideo(
     audioPath: string;
     prompt: string;
     stage1Steps: number;
+    frames: number;
   },
   onLog?: (text: string) => void,
 ): Promise<{ filename: string; url: string } | { error: string }> {
@@ -1029,6 +1030,8 @@ export async function generateAudioToVideo(
   const cleanPrompt =
     String(params.prompt || "").replace(/\s+/g, " ").trim() || "scene";
   const stage1Steps = Math.max(1, Math.round(Number(params.stage1Steps)) || 15);
+  // 1 second = 24 frames, plus a terminal frame (24n + 1).
+  const frames = Math.max(1, Math.round(Number(params.frames)) || 25);
 
   const ltxFolder = join(PYTHON_DIR, "ltx-2-mlx");
   if (!existsSync(ltxFolder)) {
@@ -1050,6 +1053,8 @@ export async function generateAudioToVideo(
       resolvedAudio,
       "--frame-rate",
       "24",
+      "--frames",
+      String(frames),
       "--output",
       outputDir,
       "--prompt",
@@ -2925,6 +2930,7 @@ export async function renderMediaRoutes({
     res.json({
       installed: whichSync("hf") !== null,
       ltxDownloaded: isModelDownloaded("dgrauet/ltx-2.3-mlx-q8"),
+      ltxBaseDownloaded: isModelDownloaded("dgrauet/ltx-2.3-mlx"),
       ttsDownloaded: isModelDownloaded("Qwen/Qwen3-TTS-12Hz-1.7B-Base"),
       mlxVlmDownloaded: isModelDownloaded(MLX_VLM_MODEL),
     });
@@ -3003,6 +3009,60 @@ export async function renderMediaRoutes({
       });
 
       const proc = spawn(["hf", "download", "dgrauet/ltx-2.3-mlx-q8"], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+
+      activeProc = proc;
+
+      const stdoutPromise = streamToSSE(
+        proc.stdout as ReadableStream<Uint8Array>,
+        "HF Download",
+        send,
+      );
+      const stderrText = await streamToSSE(
+        proc.stderr as ReadableStream<Uint8Array>,
+        "HF Download",
+        send,
+      );
+      await stdoutPromise;
+
+      const exitCode = await proc.exited;
+      if (exitCode === 0) {
+        send("complete", { success: true });
+      } else {
+        send("error", {
+          error: stderrText || `Process exited with code ${exitCode}`,
+          exitCode,
+        });
+      }
+    } catch (e) {
+      send("error", { error: String(e) });
+    } finally {
+      activeProc = null;
+      res.end();
+    }
+  });
+
+  app.post("/api/hf/download-ltx-base", async (_req, res) => {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+
+    const send = (event: string, data: object) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      send("progress", {
+        status: "starting",
+        label: "Downloading dgrauet/ltx-2.3-mlx...",
+      });
+
+      const proc = spawn(["hf", "download", "dgrauet/ltx-2.3-mlx"], {
         stdout: "pipe",
         stderr: "pipe",
       });

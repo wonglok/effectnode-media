@@ -22,6 +22,7 @@ interface AudioToVideoStore {
   uploadingImage: boolean;
   uploadingAudio: boolean;
   steps: number;
+  frames: number;
   prompt: string;
   generating: boolean;
   result: string | null;
@@ -30,6 +31,7 @@ interface AudioToVideoStore {
   setImage: (a: AssetFile | null) => void;
   setAudio: (a: AssetFile | null) => void;
   setSteps: (n: number) => void;
+  setFrames: (n: number) => void;
   setPrompt: (p: string) => void;
   clearResult: () => void;
   fetchImages: (projectId: string) => Promise<void>;
@@ -58,6 +60,7 @@ async function enqueueAudioToVideoTask(
   audioPath: string,
   prompt: string,
   stage1Steps: number,
+  frames: number,
 ): Promise<{ ok: boolean; error?: string; taskId?: string }> {
   try {
     const res = await fetch(`${API_BASE}/api/queue/enqueue`, {
@@ -67,7 +70,7 @@ async function enqueueAudioToVideoTask(
         projectId,
         type: "audio-to-video",
         label: "Audio to video",
-        payload: { imagePath, audioPath, prompt, stage1Steps },
+        payload: { imagePath, audioPath, prompt, stage1Steps, frames },
       }),
     });
     if (!res.ok) {
@@ -90,6 +93,7 @@ export const useAudioToVideoStore = create<AudioToVideoStore>((set, get) => ({
   uploadingImage: false,
   uploadingAudio: false,
   steps: 15,
+  frames: 25,
   prompt: "",
   generating: false,
   result: null,
@@ -99,6 +103,8 @@ export const useAudioToVideoStore = create<AudioToVideoStore>((set, get) => ({
   setAudio: (audio) => set({ audio, error: null }),
   setSteps: (steps) =>
     set({ steps: Math.max(1, Math.round(Number(steps)) || 1), error: null }),
+  setFrames: (frames) =>
+    set({ frames: Math.max(1, Math.round(Number(frames)) || 1), error: null }),
   setPrompt: (prompt) => set({ prompt, error: null }),
   clearResult: () => set({ result: null, error: null }),
 
@@ -189,7 +195,7 @@ export const useAudioToVideoStore = create<AudioToVideoStore>((set, get) => ({
   },
 
   generate: async (projectId) => {
-    const { image, audio, prompt, steps, generating } = get();
+    const { image, audio, prompt, steps, frames, generating } = get();
     if (generating || !image || !audio) return;
 
     set({ generating: true, error: null, result: null });
@@ -200,6 +206,7 @@ export const useAudioToVideoStore = create<AudioToVideoStore>((set, get) => ({
       audio.filename,
       prompt.trim(),
       steps,
+      frames,
     );
     audioToVideoActiveTaskId = r.taskId ?? null;
     if (!r.ok) {
@@ -245,6 +252,7 @@ export const useAudioToVideoStore = create<AudioToVideoStore>((set, get) => ({
       uploadingImage: false,
       uploadingAudio: false,
       steps: 15,
+      frames: 25,
       prompt: "",
       generating: false,
       result: null,

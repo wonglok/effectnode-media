@@ -643,7 +643,8 @@ const handlers: Record<QueueTaskType, Handler> = {
 
   // Generate a video from an image + audio via ltx-2-mlx a2v.
   "audio-to-video": async (ctx, getUvPath) => {
-    const { imagePath, audioPath, prompt, stage1Steps } = ctx.task.payload || {};
+    const { imagePath, audioPath, prompt, stage1Steps, frames } =
+      ctx.task.payload || {};
     ctx.log("Generating audio-to-video…\n");
     const r = await generateAudioToVideo(
       await getUvPath(),
@@ -653,6 +654,7 @@ const handlers: Record<QueueTaskType, Handler> = {
         audioPath: String(audioPath || ""),
         prompt: String(prompt || ""),
         stage1Steps: Number(stage1Steps),
+        frames: Number(frames),
       },
       ctx.log,
     );

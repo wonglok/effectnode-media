@@ -178,6 +178,11 @@ uv run ltx-2-mlx a2v --image /Users/loklok/coder-workspace/cantonese/food.png --
 
 uv run ltx-2-mlx a2v --image /Users/loklok/coder-workspace/cantonese/food.png --audio /Users/loklok/coder-workspace/cantonese/food-short.wav --frame-rate 24 --output ./out-mp4 --prompt "scene at restarurant" --stage1-steps 30 --stage2-steps 3
 
+#
+
+uv run ltx-2-mlx a2v --image /Users/loklok/coder-workspace/cantonese/food.png --audio /Users/loklok/coder-workspace/cantonese/food-short.wav --frame-rate 24 --frames 481 --output ./out/yo.mp4 --prompt "happy food ondering story at the restarurant" --stage1-steps 8 --stage2-steps 3
+
+
 ##
 ##
 ##
