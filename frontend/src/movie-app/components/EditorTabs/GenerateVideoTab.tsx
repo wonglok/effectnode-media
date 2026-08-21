@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useGenerationStore } from "../../stores/generationStore";
 import { useProjectStore } from "../../stores/projectStore";
 import { useQueueStore } from "../../stores/queueStore";
+import { useAiModelStore } from "../../stores/aiModelStore";
 import TaskQueuePanel from "./TaskQueuePanel";
 import TerminalLogPanel from "./TerminalLogPanel";
 
@@ -9,14 +10,33 @@ interface Props {
   projectId: string;
 }
 
+const VIDEO_MODEL_OPTIONS = [
+  {
+    value: "dgrauet/ltx-2.3-mlx",
+    quality: "High Quality",
+    aiId: "ltx-base",
+  },
+  {
+    value: "dgrauet/ltx-2.3-mlx-q8",
+    quality: "Standard Quality",
+    aiId: "ltx",
+  },
+] as const;
+
 export default function GenerateVideoTab({ projectId }: Props) {
   const store = useGenerationStore();
   const { openFolder } = useProjectStore();
   const queue = useQueueStore();
+  const ai = useAiModelStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const videoLogRef = useRef<HTMLPreElement | any>(null);
+
+  useEffect(() => {
+    ai.checkStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (videoLogRef.current) {
@@ -196,6 +216,21 @@ export default function GenerateVideoTab({ projectId }: Props) {
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <polyline points="7 10 12 15 17 10" />
       <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+
+  const SpinnerIcon = (
+    <svg
+      className="animate-spin"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+      <path d="M12 2a10 10 0 0 1 10 10" strokeOpacity="0.75" />
     </svg>
   );
 

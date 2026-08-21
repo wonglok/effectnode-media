@@ -77,6 +77,7 @@ interface VideoState {
   aspectRatio: AspectRatio;
   resolution: Resolution;
   mode: VideoMode;
+  model: string;
   stage1Steps: number;
   stage2Steps: number;
   generating: boolean;
@@ -153,6 +154,7 @@ interface GenerationStore {
   setVideoAspectRatio: (v: AspectRatio) => void;
   setVideoResolution: (v: Resolution) => void;
   setVideoMode: (v: VideoMode) => void;
+  setVideoModel: (v: string) => void;
   setVideoStage1Steps: (v: number) => void;
   setVideoStage2Steps: (v: number) => void;
   clearVideoResult: () => void;
@@ -417,6 +419,7 @@ async function enqueueImageToVideoTask(
     frames: number;
     frameRate: number;
     mode: string;
+    model: string;
     stage1Steps: number;
     stage2Steps: number;
   },
@@ -503,6 +506,7 @@ const initialVideo: VideoState = {
   aspectRatio: "1:1",
   resolution: "480p",
   mode: "distilled",
+  model: "dgrauet/ltx-2.3-mlx-q8",
   stage1Steps: 30,
   stage2Steps: 3,
   generating: false,
@@ -715,6 +719,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
   setVideoResolution: (resolution) =>
     set((s) => ({ video: { ...s.video, resolution } })),
   setVideoMode: (mode) => set((s) => ({ video: { ...s.video, mode } })),
+  setVideoModel: (model) => set((s) => ({ video: { ...s.video, model } })),
   setVideoStage1Steps: (stage1Steps) =>
     set((s) => ({
       video: {
@@ -797,6 +802,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       frames: video.duration * 24 + 1,
       frameRate: 24,
       mode: video.mode,
+      model: video.model,
       stage1Steps: video.stage1Steps,
       stage2Steps: video.stage2Steps,
     });
@@ -1071,6 +1077,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
             frames: video.duration * 24 + 1,
             frameRate: 24,
             mode: video.mode,
+            model: video.model,
             stage1Steps: video.stage1Steps,
             stage2Steps: video.stage2Steps,
           }),

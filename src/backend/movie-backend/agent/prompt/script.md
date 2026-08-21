@@ -203,5 +203,11 @@ uv run pip install -e .
 ##
 ##
 ##
+## dgrauet/ltx-2.3-mlx (High Quality)
+## dgrauet/ltx-2.3-mlx-q8 (Standard Quality)
+##
+##
+##
+
 
 ```

@@ -43,6 +43,8 @@ const Z_IMAGE_MODEL = "AbstractFramework/z-image-turbo-8bit";
 const FLUX_KLEIN_MODEL = "AbstractFramework/flux.2-klein-4b-8bit";
 const SEEDVR2_MODEL = "AbstractFramework/seedvr2-7b-8bit";
 const MLX_VLM_MODEL = "mlx-community/gemma-4-e4b-it-8bit";
+const LTX_MODEL_HIGH_QUALITY = "dgrauet/ltx-2.3-mlx";
+const LTX_MODEL_STANDARD = "dgrauet/ltx-2.3-mlx-q8";
 
 const VIDEO_STAGE_FLAGS: Record<string, string> = {
   distilled: "--distilled",
@@ -60,6 +62,13 @@ function stageFlagFor(mode: unknown): string {
   return typeof mode === "string"
     ? (VIDEO_STAGE_FLAGS[mode] ?? "--distilled")
     : "--distilled";
+}
+
+/** Resolve a ltx-2-mlx model id, falling back to the q8 standard model. */
+function resolveLtxModel(model: unknown): string {
+  return String(model) === LTX_MODEL_HIGH_QUALITY
+    ? LTX_MODEL_HIGH_QUALITY
+    : LTX_MODEL_STANDARD;
 }
 
 // ========== Project Types ==========
@@ -715,6 +724,7 @@ export async function generateImageToVideo(
     frames?: number;
     frameRate?: number;
     mode?: string;
+    model?: string;
     stage1Steps?: number;
     stage2Steps?: number;
   },
@@ -759,7 +769,7 @@ export async function generateImageToVideo(
       "ltx-2-mlx",
       "generate",
       "--model",
-      "dgrauet/ltx-2.3-mlx-q8",
+      resolveLtxModel(params.model),
       "--prompt",
       prompt.trim(),
       stageFlagFor(mode),
@@ -1966,6 +1976,7 @@ export async function renderMediaRoutes({
       mode = "distilled",
       stage1Steps,
       stage2Steps,
+      model,
     } = req.body || {};
 
     if (!prompt) {
@@ -2055,7 +2066,7 @@ export async function renderMediaRoutes({
           "ltx-2-mlx",
           "generate",
           "--model",
-          "dgrauet/ltx-2.3-mlx-q8",
+          resolveLtxModel(model),
           "--prompt",
           prompt,
           stageFlagFor(mode),
