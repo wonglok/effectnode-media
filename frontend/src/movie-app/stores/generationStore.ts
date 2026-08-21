@@ -21,7 +21,6 @@ export type GenerationTab =
   | "textToImage"
   | "batchVideo"
   | "batchImageToVideo"
-  | "batchVoice"
   | "llmServer"
   | "aiModels"
   | "upscale"
