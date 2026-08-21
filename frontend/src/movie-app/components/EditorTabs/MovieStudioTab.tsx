@@ -909,20 +909,40 @@ export default function MovieStudioTab({ projectId }: Props) {
                 <h3 className="text-sm font-semibold text-ink-900">
                   Scene Images
                 </h3>
-                {store.sceneImagesRendering ? (
-                  <span className="flex items-center gap-1.5 text-xs text-tiffany-600">
-                    {SpinnerIcon}
-                    {store.sceneImageStatus ?? "Rendering..."}
-                  </span>
-                ) : (
-                  <button
-                    onClick={() => store.renderSceneImages(projectId)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl bg-tiffany-500 hover:bg-tiffany-600 text-ink-950 transition-colors"
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="scene-image-steps"
+                    className="text-xs font-medium text-ink-600"
                   >
-                    {SparkleIcon}
-                    Render Scene Images
-                  </button>
-                )}
+                    Steps
+                  </label>
+                  <input
+                    id="scene-image-steps"
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={store.sceneImageSteps}
+                    onChange={(e) =>
+                      store.setSceneImageSteps(Number(e.target.value))
+                    }
+                    disabled={store.sceneImagesRendering}
+                    className="w-20 px-2 py-1.5 text-xs bg-ink-50 border border-ink-200 rounded-lg text-ink-800 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/25 disabled:opacity-50"
+                  />
+                  {store.sceneImagesRendering ? (
+                    <span className="flex items-center gap-1.5 text-xs text-tiffany-600">
+                      {SpinnerIcon}
+                      {store.sceneImageStatus ?? "Rendering..."}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => store.renderSceneImages(projectId)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl bg-tiffany-500 hover:bg-tiffany-600 text-ink-950 transition-colors"
+                    >
+                      {SparkleIcon}
+                      Render Scene Images
+                    </button>
+                  )}
+                </div>
               </div>
 
               {store.sceneImagesRendering &&

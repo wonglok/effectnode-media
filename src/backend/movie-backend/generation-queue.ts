@@ -444,7 +444,7 @@ async function runRenderSceneImages(
       ctx.log(`Already generated: scene-${slug}.png — skipping\n`);
       entry = { slug, ...existing };
     } else {
-      const r = await generateSceneImage(ctx.projectId, sc, ctx.log);
+      const r = await generateSceneImage(ctx.projectId, sc, undefined, ctx.log);
       throwIfAborted(ctx.signal);
       if ("error" in r) throw new Error(r.error);
       entry = {
@@ -659,7 +659,7 @@ const handlers: Record<QueueTaskType, Handler> = {
 
   // Generate a single scene image, skipping if it already exists.
   "render-scene-image": async (ctx) => {
-    const { scene } = ctx.task.payload || {};
+    const { scene, steps } = ctx.task.payload || {};
     if (!scene || typeof scene !== "object") throw new Error("scene is required");
     const s = slugify(scene?.slug);
     if (!s) throw new Error("Invalid scene slug");
@@ -670,7 +670,7 @@ const handlers: Record<QueueTaskType, Handler> = {
       return { slug: s, ...existing };
     }
 
-    const r = await generateSceneImage(ctx.projectId, scene, ctx.log);
+    const r = await generateSceneImage(ctx.projectId, scene, Number(steps), ctx.log);
     if ("error" in r) throw new Error(r.error);
     return {
       slug: s,
@@ -748,9 +748,9 @@ const handlers: Record<QueueTaskType, Handler> = {
   },
 
   "regenerate-scene-image": async (ctx) => {
-    const { scene } = ctx.task.payload || {};
+    const { scene, steps } = ctx.task.payload || {};
     if (!scene || typeof scene !== "object") throw new Error("scene is required");
-    const r = await generateSceneImage(ctx.projectId, scene, ctx.log);
+    const r = await generateSceneImage(ctx.projectId, scene, Number(steps), ctx.log);
     if ("error" in r) throw new Error(r.error);
     return {
       slug: slugify(scene?.slug),

@@ -772,10 +772,12 @@ function slugify(v: unknown): string {
 export async function generateSceneImage(
   projectId: string,
   scene: any,
+  steps?: number,
   onLog?: (text: string) => void,
 ): Promise<{ filename: string; url: string } | { error: string }> {
   const s = slugify(scene?.slug);
   if (!s) return { error: "Invalid scene slug" };
+  const stepCount = Math.max(1, Number(steps) || 6);
 
   const outputDir = join(OUTPUT_DIR, projectId);
   const mlxgen = await getMlxgenBin();
@@ -809,7 +811,7 @@ export async function generateSceneImage(
     "--mlx-cache-limit-gb",
     "20",
     "--steps",
-    "5",
+    String(stepCount),
     "--seed",
     "42",
     "--width",
@@ -847,7 +849,7 @@ export async function generateFastImageEditImage(
   if (!Array.isArray(images) || images.length === 0) {
     return { error: "At least one reference image is required" };
   }
-  const stepCount = Math.max(1, Number(steps) || 5);
+  const stepCount = Math.max(1, Number(steps) || 4);
 
   // Decode each base64 reference image into a temp workspace file so the
   // FLUX model receives them as separate `--image` inputs.

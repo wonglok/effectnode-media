@@ -274,7 +274,9 @@ interface MovieStudioStore {
   sceneImagesError: string | null;
   sceneImageProgress: { current: number; total: number } | null;
   regeneratingSceneImages: string[];
+  sceneImageSteps: number;
   setIdea: (v: string) => void;
+  setSceneImageSteps: (v: number) => void;
   hydrate: (projectId: string) => Promise<void>;
   generate: (projectId: string, model: string) => Promise<void>;
   render: (projectId: string) => Promise<void>;
@@ -330,11 +332,15 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
   sceneImagesError: null,
   sceneImageProgress: null,
   regeneratingSceneImages: [],
+  sceneImageSteps: 6,
 
   setIdea: (idea) => {
     set({ idea, error: null });
     persistMovieStudioState();
   },
+
+  setSceneImageSteps: (steps) =>
+    set({ sceneImageSteps: Math.max(1, Math.round(Number(steps)) || 1) }),
 
   hydrate: async (projectId) => {
     // Switching projects: reset to defaults so the previous project's idea
@@ -435,7 +441,7 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
         projectId,
         "render-scene-image",
         `Render scene image: ${scene.slug}`,
-        { scene, batchId },
+        { scene, batchId, steps: get().sceneImageSteps },
       );
       if (!r.ok) {
         const b = batches.get(batchId);
@@ -611,7 +617,7 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
         projectId,
         "render-scene-image",
         `Render scene image: ${scene.slug}`,
-        { scene, batchId },
+        { scene, batchId, steps: get().sceneImageSteps },
       );
       if (!r.ok) {
         const b = batches.get(batchId);
@@ -637,7 +643,7 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
       projectId,
       "regenerate-scene-image",
       `Regenerate scene image: ${slug}`,
-      { slug, scene },
+      { slug, scene, steps: get().sceneImageSteps },
     );
     if (!r.ok) {
       set((s) => ({
@@ -1058,6 +1064,7 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
       sceneImagesError: null,
       sceneImageProgress: null,
       regeneratingSceneImages: [],
+      sceneImageSteps: 6,
     });
   },
 }));

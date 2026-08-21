@@ -545,7 +545,7 @@ const initialTextToImage: TextToImageState = {
 
 const initialFastImageEdit: FastImageEditState = {
   prompt: "",
-  steps: 5,
+  steps: 4,
   referenceImages: [],
   downloading: false,
   downloadingLogs: [],
