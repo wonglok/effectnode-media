@@ -408,7 +408,7 @@ export default function ProjectEditorPage() {
               }`}
             >
               {VideoIcon}
-              Generate Avatar Video
+              Scene Video Generation
             </button>
             <button
               onClick={() => store.setActiveTab("extend")}
