@@ -895,6 +895,76 @@ export async function generateUpscale(
 }
 
 /**
+ * Clone a reference voice and speak `text` via mlx_audio.tts.generate. `refAudioPath`
+ * must be a bare filename previously uploaded to this project. `quality` is "low"
+ * or "high" (maps to a TTS model). Output is saved under <output>/voices/.
+ */
+export async function generateVoiceClone(
+  uvPath: string,
+  projectId: string,
+  text: string,
+  refAudioPath: string,
+  quality: string,
+  onLog?: (text: string) => void,
+): Promise<{ filename: string; url: string } | { error: string }> {
+  if (!isValidProjectId(projectId)) return { error: "Invalid project ID" };
+  if (!text || !text.trim()) return { error: "Text is required" };
+  if (!refAudioPath) return { error: "Reference audio is required" };
+
+  const resolvedRef = resolveSafePath(refAudioPath, projectId);
+  if (!resolvedRef) {
+    return {
+      error:
+        "Invalid reference audio path. Provide a filename previously uploaded to this project.",
+    };
+  }
+
+  const model = quality === "low" ? TTS_MODELS.low : TTS_MODELS.high;
+
+  const projectOutputDir = resolveOutputDir(undefined, projectId);
+  if (!projectOutputDir) return { error: "Invalid output directory." };
+
+  const voiceDir = join(projectOutputDir, "voices", `voice-${Date.now()}`);
+  ensureDir(voiceDir);
+
+  const result = await runCommand(
+    [
+      uvPath,
+      "run",
+      "mlx_audio.tts.generate",
+      "--model",
+      model,
+      "--text",
+      text.trim(),
+      "--ref_audio",
+      resolvedRef,
+      "--output",
+      voiceDir,
+      "--audio_format",
+      "mp3",
+      "--play",
+      "--instruct",
+      "slow down speech",
+    ],
+    { cwd: voiceDir, onLog },
+  );
+
+  if (!result.success) {
+    return { error: result.output || "Voice generation failed" };
+  }
+
+  const path = resolveAudioFile(voiceDir);
+  if (!path) {
+    return { error: "TTS completed but no audio file was produced" };
+  }
+
+  return {
+    filename: path.split(sep).pop() || TTS_OUTPUT_FILENAME,
+    url: `/api/files?path=${encodeURIComponent(path)}`,
+  };
+}
+
+/**
  * Generate a composite image via fast-image-edit (FLUX.2 Klein). `images` are
  * base64 data URLs that are decoded into temp files and passed to the model as
  * separate `--image` inputs. Used by the generation queue worker.

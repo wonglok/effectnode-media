@@ -18,6 +18,7 @@ import {
   generateFastImageEditImage,
   generateImageToVideo,
   generateUpscale,
+  generateVoiceClone,
   cancelActiveRender,
 } from "./render-media.js";
 import { generateMovieStudioBible } from "./agent/agent-backend.js";
@@ -46,7 +47,8 @@ export type QueueTaskType =
   | "regenerate-scene-image"
   | "fast-image-edit"
   | "image-to-video"
-  | "upscale";
+  | "upscale"
+  | "voice-clone";
 
 export type QueueTaskStatus =
   | "pending"
@@ -615,6 +617,22 @@ const handlers: Record<QueueTaskType, Handler> = {
       ctx.projectId,
       String(imagePath || ""),
       String(resolution || "1x"),
+      ctx.log,
+    );
+    if ("error" in r) throw new Error(r.error);
+    return r;
+  },
+
+  // Clone a reference voice and speak the transcript.
+  "voice-clone": async (ctx, getUvPath) => {
+    const { text, refAudioPath, quality } = ctx.task.payload || {};
+    ctx.log("Cloning voice…\n");
+    const r = await generateVoiceClone(
+      await getUvPath(),
+      ctx.projectId,
+      String(text || ""),
+      String(refAudioPath || ""),
+      String(quality || "high"),
       ctx.log,
     );
     if ("error" in r) throw new Error(r.error);

@@ -156,7 +156,9 @@ export default function UpscaleTab({ projectId }: Props) {
           className="ml-auto flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-xl border transition-all bg-white border-ink-200 text-ink-600 hover:border-ink-300 disabled:opacity-50"
         >
           {ai.downloading === "seedvr2" ? SpinnerIcon : DownloadIcon}
-          {ai.downloading === "seedvr2" ? "Downloading…" : "Download SeedVR2 Model"}
+          {ai.downloading === "seedvr2"
+            ? "Downloading…"
+            : "Download SeedVR2 Model"}
         </button>
       </div>
 
@@ -221,7 +223,9 @@ export default function UpscaleTab({ projectId }: Props) {
               return (
                 <button
                   key={`${img.source}-${img.filename}`}
-                  onClick={() => up.setImage({ filename: img.filename, url: fullUrl })}
+                  onClick={() =>
+                    up.setImage({ filename: img.filename, url: fullUrl })
+                  }
                   disabled={up.generating}
                   className={`relative rounded-xl border-2 overflow-hidden transition-all ${
                     isSelected
@@ -245,7 +249,9 @@ export default function UpscaleTab({ projectId }: Props) {
         {up.image && (
           <p className="text-xs text-ink-600/60 mt-1.5">
             Selected:{" "}
-            <span className="font-medium text-ink-700">{up.image.filename}</span>
+            <span className="font-medium text-ink-700">
+              {up.image.filename}
+            </span>
           </p>
         )}
       </div>
@@ -256,12 +262,11 @@ export default function UpscaleTab({ projectId }: Props) {
           Mode
         </label>
         <div className="flex flex-wrap gap-2">
-          {(
-            [
-              { value: "1x" as UpscaleMode, label: "Refine (1x)" },
-              { value: "2048" as UpscaleMode, label: "Upscale to 2048px" },
-            ]
-          ).map((m) => (
+          {[
+            { value: "1x" as UpscaleMode, label: "Refine (1x)" },
+            { value: "1500" as UpscaleMode, label: "Upscale to 1500px" },
+            { value: "2048" as UpscaleMode, label: "Upscale to 2048px" },
+          ].map((m) => (
             <button
               key={m.value}
               onClick={() => up.setMode(m.value)}
@@ -282,9 +287,7 @@ export default function UpscaleTab({ projectId }: Props) {
       {up.generating ? (
         <div className="flex items-center gap-2 px-4 py-3 bg-ink-50 border border-ink-200 rounded-2xl">
           {SpinnerIcon}
-          <span className="text-sm font-medium text-ink-700">
-            Upscaling...
-          </span>
+          <span className="text-sm font-medium text-ink-700">Upscaling...</span>
         </div>
       ) : (
         <button
