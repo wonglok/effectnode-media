@@ -1174,28 +1174,6 @@ export async function generateAdvancedVoiceClone(
     };
   }
 
-  // dots-tts requires `--ref-text` (the reference audio's transcript). Transcribe
-  // the reference with mlx_whisper to supply it.
-  const whisperBin = await getMlxWhisperBin();
-  const transcribeDir = join(TEMP_DIR, String(projectId));
-  ensureDir(transcribeDir);
-  const whisperResult = await runCommand(
-    [whisperBin, resolvedRef, "--output-dir", transcribeDir],
-    { onLog },
-  );
-  const refTxtPath = join(
-    transcribeDir,
-    (resolvedRef.split(sep).pop() || "ref").replace(/\.[^.]+$/, "") + ".txt",
-  );
-  const refText =
-    whisperResult.success && existsSync(refTxtPath)
-      ? readFileSync(refTxtPath, "utf-8").replace(/\s+/g, " ").trim()
-      : "";
-
-  if (!refText) {
-    return { error: "Failed to transcribe reference audio (mlx_whisper)" };
-  }
-
   const language = String(params.language || "YUE").trim() || "YUE";
   const prefix =
     String(params.outPrefix || "voice")
@@ -1203,7 +1181,8 @@ export async function generateAdvancedVoiceClone(
       .slice(0, 64) || "voice";
   const model = resolveDotsTtsModel(String(params.model || ""));
 
-  // dots-tts expects a WAV reference — convert mp3/other formats to 16-bit PCM WAV.
+  // dots-tts and mlx_whisper both expect a WAV reference — convert mp3/other
+  // formats to 16-bit PCM WAV first.
   let refAudio = resolvedRef;
   if (!resolvedRef.toLowerCase().endsWith(".wav")) {
     const tempDir = join(TEMP_DIR, String(projectId));
@@ -1232,8 +1211,33 @@ export async function generateAdvancedVoiceClone(
     refAudio = convertedRef;
   }
 
+  // dots-tts requires `--ref-text` (the reference audio's transcript). Transcribe
+  // the WAV reference with mlx_whisper to supply it.
+  const whisperBin = await getMlxWhisperBin();
+  const transcribeDir = join(TEMP_DIR, String(projectId));
+  ensureDir(transcribeDir);
+  const whisperResult = await runCommand(
+    [whisperBin, refAudio, "--output-dir", transcribeDir],
+    { onLog },
+  );
+  const refTxtPath = join(
+    transcribeDir,
+    (refAudio.split(sep).pop() || "ref").replace(/\.[^.]+$/, "") + ".txt",
+  );
+  const refText =
+    whisperResult.success && existsSync(refTxtPath)
+      ? readFileSync(refTxtPath, "utf-8").replace(/\s+/g, " ").trim()
+      : "";
+
+  if (!refText) {
+    return { error: "Failed to transcribe reference audio (mlx_whisper)" };
+  }
+
   const dotsTtsBin = await getDotsTtsBin();
-  const outDir = join(OUTPUT_DIR, projectId, "dots-tts");
+  // Mirror the voice-clone tab's timestamped-folder layout so outputs never
+  // overwrite each other.
+  const voiceId = `voice-${Date.now()}`;
+  const outDir = join(OUTPUT_DIR, projectId, "dots-tts", voiceId);
   ensureDir(outDir);
 
   console.log([
@@ -1284,6 +1288,27 @@ export async function generateAdvancedVoiceClone(
   if (!existsSync(outputPath)) {
     return { error: `Expected output ${outputFile} was not produced` };
   }
+
+  // Mirror the voice-clone tab's on-disk conventions: a timestamped backup copy
+  // plus a per-voice meta.json so the output can be listed without a central index.
+  backupFile(outputPath, projectId);
+
+  const meta = {
+    id: voiceId,
+    transcript: cleanText,
+    refText,
+    language,
+    model,
+    refAudioFilename: params.refAudioPath,
+    outPrefix: prefix,
+    filename: outputFile,
+    createdAt: new Date().toISOString(),
+  };
+  writeFileSync(
+    join(outDir, "meta.json"),
+    JSON.stringify(meta, null, 2),
+    "utf-8",
+  );
 
   return {
     filename: outputFile,
