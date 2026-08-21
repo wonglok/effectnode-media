@@ -291,6 +291,15 @@ function resolveDotsTtsModel(model: string): string {
   return join(DOTS_TTS_WEIGHTS_DIR, model);
 }
 
+/** Resolve the ffmpeg binary installed via Homebrew (Apple Silicon then Intel). */
+async function getFfmpegBin(): Promise<string> {
+  const candidates = ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg"];
+  for (const p of candidates) {
+    if (existsSync(p)) return p;
+  }
+  return "ffmpeg";
+}
+
 /** True when the `mlxgen` executable is installed (known paths or PATH). */
 function isMlxgenInstalled(): boolean {
   const candidates = [
@@ -1145,6 +1154,35 @@ export async function generateAdvancedVoiceClone(
     "voice";
   const model = resolveDotsTtsModel(String(params.model || ""));
 
+  // dots-tts expects a WAV reference — convert mp3/other formats to 16-bit PCM WAV.
+  let refAudio = resolvedRef;
+  if (!resolvedRef.toLowerCase().endsWith(".wav")) {
+    const tempDir = join(TEMP_DIR, String(projectId));
+    ensureDir(tempDir);
+    const convertedRef = join(tempDir, `avc-ref-${Date.now()}.wav`);
+    const ffmpegBin = await getFfmpegBin();
+    const conv = await runCommand(
+      [
+        ffmpegBin,
+        "-y",
+        "-i",
+        resolvedRef,
+        "-c:a",
+        "pcm_s16le",
+        "-ar",
+        "44100",
+        "-ac",
+        "2",
+        convertedRef,
+      ],
+      { onLog },
+    );
+    if (!conv.success || !existsSync(convertedRef)) {
+      return { error: "Failed to convert reference audio to WAV" };
+    }
+    refAudio = convertedRef;
+  }
+
   const dotsTtsBin = await getDotsTtsBin();
   const outDir = join(OUTPUT_DIR, projectId, "dots-tts");
   ensureDir(outDir);
@@ -1157,7 +1195,7 @@ export async function generateAdvancedVoiceClone(
       "--text",
       cleanText,
       "--ref-audio",
-      resolvedRef,
+      refAudio,
       "--language",
       language,
       "--out-path",
