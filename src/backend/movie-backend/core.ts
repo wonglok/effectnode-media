@@ -733,7 +733,15 @@ async function installPythonDependencies(): Promise<boolean> {
     if (!existsSync(dotsTtsFolder)) {
       const cloneCMD = await runCommand(
         "git",
-        ["clone", "https://github.com/sb1992/dots-tts-mlx.git", "dots-tts-mlx"],
+        [
+          "clone",
+          "--depth",
+          "1",
+          "--branch",
+          "v0.2.0",
+          "https://github.com/sb1992/dots-tts-mlx",
+          "dots-tts-mlx",
+        ],
         { cwd: pythonAppSrcDir },
       );
 

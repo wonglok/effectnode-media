@@ -217,7 +217,7 @@ const DOWNLOAD_MODELS: {
   },
   {
     id: "dots-tts",
-    name: "shraey/dots-tts-mlx (mf-int4)",
+    name: "shraey/dots-tts-mlx (int4)",
     desc: "Advanced voice clone (dots-tts)",
   },
 ];

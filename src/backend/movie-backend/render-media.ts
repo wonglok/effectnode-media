@@ -307,19 +307,19 @@ const DOTS_TTS_WEIGHTS_DIR = join(DOTS_TTS_FOLDER, "dots-tts-mlx-weights");
 
 /**
  * Resolve a dots-tts `--model` value. Accepts `./dots-tts-mlx-weights/int4`
- * (relative to the dots-tts-mlx folder), a bare variant (`mf-int4`), or an
+ * (relative to the dots-tts-mlx folder), a bare variant (`int4`), or an
  * explicit path.
  */
 function resolveDotsTtsModel(model: string): string {
-  if (!model) return join(DOTS_TTS_WEIGHTS_DIR, "mf-int4");
+  if (!model) return join(DOTS_TTS_WEIGHTS_DIR, "int4");
   if (model.startsWith("./")) return join(DOTS_TTS_FOLDER, model.slice(2));
   if (model.includes("/")) return model;
   return join(DOTS_TTS_WEIGHTS_DIR, model);
 }
 
-/** True when the dots-tts `mf-int4` weights have been downloaded. */
+/** True when the dots-tts `int4` weights have been downloaded. */
 function isDotsTtsModelDownloaded(): boolean {
-  return existsSync(join(DOTS_TTS_WEIGHTS_DIR, "mf-int4"));
+  return existsSync(join(DOTS_TTS_WEIGHTS_DIR, "int4"));
 }
 
 /** Resolve the ffmpeg binary installed via Homebrew (Apple Silicon then Intel). */
@@ -3237,7 +3237,7 @@ export async function renderMediaRoutes({
       ensureDir(DOTS_TTS_FOLDER);
       send("progress", {
         status: "starting",
-        label: "Downloading dots-tts model (mf-int4)...",
+        label: "Downloading dots-tts model (int4)...",
       });
 
       const proc = spawn(
@@ -3246,7 +3246,7 @@ export async function renderMediaRoutes({
           "download",
           "shraey/dots-tts-mlx",
           "--include",
-          "mf-int4/*",
+          "int4/*",
           "--local-dir",
           "./dots-tts-mlx-weights",
         ],
