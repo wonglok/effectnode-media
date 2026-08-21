@@ -264,6 +264,33 @@ async function getMlxgenBin(): Promise<string> {
   return "mlxgen";
 }
 
+/** Resolve the `dots-tts` executable installed via `uv tool install dots-tts`. */
+async function getDotsTtsBin(): Promise<string> {
+  const candidates = [
+    join(homedir(), ".local", "bin", "dots-tts"),
+    "/opt/homebrew/bin/dots-tts",
+    "/usr/local/bin/dots-tts",
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) return p;
+  }
+  return "dots-tts";
+}
+
+/** Base directory where dots-tts MLX weights live. */
+const DOTS_TTS_WEIGHTS_DIR = join(APP_DATA_DIR, "dots-tts-mlx-weights");
+
+/**
+ * Resolve a dots-tts `--model` value. Accepts `./dots-tts-mlx-weights/mf-int4`,
+ * a bare variant (`mf-int4`), or an explicit path.
+ */
+function resolveDotsTtsModel(model: string): string {
+  if (!model) return join(DOTS_TTS_WEIGHTS_DIR, "mf-int4");
+  if (model.startsWith("./")) return join(APP_DATA_DIR, model.slice(2));
+  if (model.includes("/")) return model;
+  return join(DOTS_TTS_WEIGHTS_DIR, model);
+}
+
 /** True when the `mlxgen` executable is installed (known paths or PATH). */
 function isMlxgenInstalled(): boolean {
   const candidates = [
