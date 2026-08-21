@@ -759,6 +759,22 @@ async function installPythonDependencies(): Promise<boolean> {
       );
       return false;
     }
+
+    // Install mlx-whisper (MLX-powered speech-to-text for transcription) as a
+    // `uv tool` so its `mlx_whisper` CLI lands in ~/.local/bin, mirroring dots-tts.
+    const whisperResult = await runCommand(uvPath, [
+      "tool",
+      "install",
+      "mlx-whisper",
+    ]);
+
+    if (!whisperResult.success) {
+      console.error(
+        "Failed to install mlx-whisper:",
+        whisperResult.error || whisperResult.output,
+      );
+      return false;
+    }
   }
 
   // {

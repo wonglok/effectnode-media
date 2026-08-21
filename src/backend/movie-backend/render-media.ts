@@ -12,7 +12,7 @@ import {
 } from "node:fs";
 import { type Application } from "express";
 import { homedir } from "node:os";
-import { join, sep } from "node:path";
+import { dirname, join, sep } from "node:path";
 import { spawn, type Subprocess, whichSync, mimeType } from "./process.js";
 
 // Track the currently active spawn process so it can be cancelled
@@ -275,6 +275,19 @@ async function getDotsTtsBin(): Promise<string> {
     if (existsSync(p)) return p;
   }
   return "dots-tts";
+}
+
+/** Resolve the `mlx_whisper` executable installed via `uv tool install mlx-whisper`. */
+async function getMlxWhisperBin(): Promise<string> {
+  const candidates = [
+    join(homedir(), ".local", "bin", "mlx_whisper"),
+    "/opt/homebrew/bin/mlx_whisper",
+    "/usr/local/bin/mlx_whisper",
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) return p;
+  }
+  return "mlx_whisper";
 }
 
 /** The cloned dots-tts-mlx project directory. */
@@ -1073,7 +1086,9 @@ export async function generateAudioToVideo(
 
   // Collapse whitespace so the prompt stays a single well-formed CLI argument.
   const cleanPrompt =
-    String(params.prompt || "").replace(/\s+/g, " ").trim() || "scene";
+    String(params.prompt || "")
+      .replace(/\s+/g, " ")
+      .trim() || "scene";
   const stage1Steps = Math.max(1, Math.round(Number(params.stage1Steps)) || 15);
   // 1 second = 24 frames, plus a terminal frame (24n + 1).
   const frames = Math.max(1, Math.round(Number(params.frames)) || 25);
@@ -1145,7 +1160,9 @@ export async function generateAdvancedVoiceClone(
 ): Promise<{ filename: string; url: string } | { error: string }> {
   if (!isValidProjectId(projectId)) return { error: "Invalid project ID" };
 
-  const cleanText = String(params.text || "").replace(/\s+/g, " ").trim();
+  const cleanText = String(params.text || "")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!cleanText) return { error: "Text is required" };
   if (!params.refAudioPath) return { error: "Reference audio is required" };
 
@@ -1157,10 +1174,33 @@ export async function generateAdvancedVoiceClone(
     };
   }
 
+  // dots-tts requires `--ref-text` (the reference audio's transcript). Transcribe
+  // the reference with mlx_whisper to supply it.
+  const whisperBin = await getMlxWhisperBin();
+  const transcribeDir = join(TEMP_DIR, String(projectId));
+  ensureDir(transcribeDir);
+  const whisperResult = await runCommand(
+    [whisperBin, resolvedRef, "--output-dir", transcribeDir],
+    { onLog },
+  );
+  const refTxtPath = join(
+    transcribeDir,
+    (resolvedRef.split(sep).pop() || "ref").replace(/\.[^.]+$/, "") + ".txt",
+  );
+  const refText =
+    whisperResult.success && existsSync(refTxtPath)
+      ? readFileSync(refTxtPath, "utf-8").replace(/\s+/g, " ").trim()
+      : "";
+
+  if (!refText) {
+    return { error: "Failed to transcribe reference audio (mlx_whisper)" };
+  }
+
   const language = String(params.language || "YUE").trim() || "YUE";
   const prefix =
-    String(params.outPrefix || "voice").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64) ||
-    "voice";
+    String(params.outPrefix || "voice")
+      .replace(/[^a-zA-Z0-9_-]/g, "_")
+      .slice(0, 64) || "voice";
   const model = resolveDotsTtsModel(String(params.model || ""));
 
   // dots-tts expects a WAV reference — convert mp3/other formats to 16-bit PCM WAV.
@@ -1196,15 +1236,35 @@ export async function generateAdvancedVoiceClone(
   const outDir = join(OUTPUT_DIR, projectId, "dots-tts");
   ensureDir(outDir);
 
+  console.log([
+    dotsTtsBin,
+    "--model",
+    model,
+    "--text",
+    cleanText || "please provide text",
+    "--ref-audio",
+    refAudio,
+    "--ref-text",
+    refText,
+    "--language",
+    language,
+    "--out-path",
+    outDir,
+    "--out-prefix",
+    prefix,
+  ]);
+
   const result = await runCommand(
     [
       dotsTtsBin,
       "--model",
       model,
       "--text",
-      cleanText,
+      cleanText || "please provide text",
       "--ref-audio",
       refAudio,
+      "--ref-text",
+      refText,
       "--language",
       language,
       "--out-path",
@@ -1212,7 +1272,7 @@ export async function generateAdvancedVoiceClone(
       "--out-prefix",
       prefix,
     ],
-    { onLog },
+    { cwd: dirname(dotsTtsBin), onLog },
   );
 
   if (!result.success) {
