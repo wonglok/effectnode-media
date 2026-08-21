@@ -15,6 +15,7 @@ import SetupAiModelTab from "./EditorTabs/SetupAiModelTab";
 import UpscaleTab from "./EditorTabs/UpscaleTab";
 import VoiceCloneTab from "./EditorTabs/VoiceCloneTab";
 import AudioToVideoTab from "./EditorTabs/AudioToVideoTab";
+import AdvancedVoiceCloneTab from "./EditorTabs/AdvancedVoiceCloneTab";
 
 export default function ProjectEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -309,6 +310,25 @@ export default function ProjectEditorPage() {
     </svg>
   );
 
+  const AdvancedVoiceCloneIcon = (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+      <line x1="12" y1="19" x2="12" y2="23" />
+      <path d="M5 3v4" />
+      <path d="M3 5h4" />
+    </svg>
+  );
+
   // ========== Loading / Not Found ==========
 
   if (!project) {
@@ -494,6 +514,17 @@ export default function ProjectEditorPage() {
               Voice Clone
             </button>
             <button
+              onClick={() => store.setActiveTab("advancedVoiceClone")}
+              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
+                store.activeTab === "advancedVoiceClone"
+                  ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
+                  : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
+              }`}
+            >
+              {AdvancedVoiceCloneIcon}
+              Advanced Voice Clone
+            </button>
+            <button
               onClick={() => store.setActiveTab("audioToVideo")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
                 store.activeTab === "audioToVideo"
@@ -565,6 +596,11 @@ export default function ProjectEditorPage() {
           {/* ========== VOICE CLONE PANEL ========== */}
           {store.activeTab === "voiceClone" && (
             <VoiceCloneTab projectId={id!} />
+          )}
+
+          {/* ========== ADVANCED VOICE CLONE PANEL ========== */}
+          {store.activeTab === "advancedVoiceClone" && (
+            <AdvancedVoiceCloneTab projectId={id!} />
           )}
 
           {/* ========== AUDIO TO VIDEO PANEL ========== */}

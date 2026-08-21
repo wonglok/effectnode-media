@@ -20,6 +20,7 @@ import {
   generateUpscale,
   generateVoiceClone,
   generateAudioToVideo,
+  generateAdvancedVoiceClone,
   cancelActiveRender,
 } from "./render-media.js";
 import { generateMovieStudioBible } from "./agent/agent-backend.js";
@@ -50,7 +51,8 @@ export type QueueTaskType =
   | "image-to-video"
   | "upscale"
   | "voice-clone"
-  | "audio-to-video";
+  | "audio-to-video"
+  | "advanced-voice-clone";
 
 export type QueueTaskStatus =
   | "pending"
@@ -636,6 +638,26 @@ const handlers: Record<QueueTaskType, Handler> = {
       String(text || ""),
       String(refAudioPath || ""),
       String(quality || "high"),
+      ctx.log,
+    );
+    if ("error" in r) throw new Error(r.error);
+    return r;
+  },
+
+  // Clone a reference voice via dots-tts.
+  "advanced-voice-clone": async (ctx) => {
+    const { text, refAudioPath, language, outPrefix, model } =
+      ctx.task.payload || {};
+    ctx.log("Cloning voice (dots-tts)…\n");
+    const r = await generateAdvancedVoiceClone(
+      ctx.projectId,
+      {
+        text: String(text || ""),
+        refAudioPath: String(refAudioPath || ""),
+        language: String(language || "YUE"),
+        outPrefix: String(outPrefix || ""),
+        model: String(model || ""),
+      },
       ctx.log,
     );
     if ("error" in r) throw new Error(r.error);

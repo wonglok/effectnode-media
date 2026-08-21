@@ -1111,6 +1111,80 @@ export async function generateAudioToVideo(
 }
 
 /**
+ * Clone a reference voice via dots-tts. Output is written to
+ * <output>/<projectId>/dots-tts/ as `<prefix>_000.wav`.
+ */
+export async function generateAdvancedVoiceClone(
+  projectId: string,
+  params: {
+    text: string;
+    refAudioPath: string;
+    language: string;
+    outPrefix: string;
+    model: string;
+  },
+  onLog?: (text: string) => void,
+): Promise<{ filename: string; url: string } | { error: string }> {
+  if (!isValidProjectId(projectId)) return { error: "Invalid project ID" };
+
+  const cleanText = String(params.text || "").replace(/\s+/g, " ").trim();
+  if (!cleanText) return { error: "Text is required" };
+  if (!params.refAudioPath) return { error: "Reference audio is required" };
+
+  const resolvedRef = resolveSafePath(params.refAudioPath, projectId);
+  if (!resolvedRef) {
+    return {
+      error:
+        "Invalid reference audio path. Provide a filename previously uploaded to this project.",
+    };
+  }
+
+  const language = String(params.language || "YUE").trim() || "YUE";
+  const prefix =
+    String(params.outPrefix || "voice").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64) ||
+    "voice";
+  const model = resolveDotsTtsModel(String(params.model || ""));
+
+  const dotsTtsBin = await getDotsTtsBin();
+  const outDir = join(OUTPUT_DIR, projectId, "dots-tts");
+  ensureDir(outDir);
+
+  const result = await runCommand(
+    [
+      dotsTtsBin,
+      "--model",
+      model,
+      "--text",
+      cleanText,
+      "--ref-audio",
+      resolvedRef,
+      "--language",
+      language,
+      "--out-path",
+      outDir,
+      "--out-prefix",
+      prefix,
+    ],
+    { onLog },
+  );
+
+  if (!result.success) {
+    return { error: result.output || "Advanced voice clone failed" };
+  }
+
+  const outputFile = `${prefix}_000.wav`;
+  const outputPath = join(outDir, outputFile);
+  if (!existsSync(outputPath)) {
+    return { error: `Expected output ${outputFile} was not produced` };
+  }
+
+  return {
+    filename: outputFile,
+    url: `/api/files?path=${encodeURIComponent(outputPath)}`,
+  };
+}
+
+/**
  * Generate a composite image via fast-image-edit (FLUX.2 Klein). `images` are
  * base64 data URLs that are decoded into temp files and passed to the model as
  * separate `--image` inputs. Used by the generation queue worker.
