@@ -104,6 +104,7 @@ interface TextToImageState {
 interface FastImageEditState {
   prompt: string;
   steps: number;
+  upscale: string;
   referenceImages: ProjectImage[];
   downloading: boolean;
   downloadingLogs: string[];
@@ -177,6 +178,7 @@ interface GenerationStore {
   fastImageEdit: FastImageEditState;
   setFastImageEditPrompt: (v: string) => void;
   setFastImageEditSteps: (v: number) => void;
+  setFastImageEditUpscale: (v: string) => void;
   toggleFastImageEditImage: (img: ProjectImage) => void;
   clearFastImageEditImages: () => void;
   clearFastImageEditResult: () => void;
@@ -376,6 +378,7 @@ async function enqueueFastImageEditTask(
   prompt: string,
   images: string[],
   steps: number,
+  upscale: string,
 ): Promise<{ ok: boolean; error?: string; taskId?: string }> {
   try {
     const res = await fetch(`${API_BASE}/api/queue/enqueue`, {
@@ -385,7 +388,7 @@ async function enqueueFastImageEditTask(
         projectId,
         type: "fast-image-edit",
         label: "Fast image edit",
-        payload: { prompt, images, steps, projectId },
+        payload: { prompt, images, steps, upscale, projectId },
       }),
     });
     if (!res.ok) {
@@ -546,6 +549,7 @@ const initialTextToImage: TextToImageState = {
 const initialFastImageEdit: FastImageEditState = {
   prompt: "",
   steps: 4,
+  upscale: "none",
   referenceImages: [],
   downloading: false,
   downloadingLogs: [],
@@ -1125,6 +1129,9 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       },
     })),
 
+  setFastImageEditUpscale: (upscale) =>
+    set((s) => ({ fastImageEdit: { ...s.fastImageEdit, upscale } })),
+
   toggleFastImageEditImage: (img) =>
     set((s) => {
       const current = s.fastImageEdit.referenceImages;
@@ -1292,6 +1299,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       fastImageEdit.prompt.trim(),
       images,
       fastImageEdit.steps,
+      fastImageEdit.upscale,
     );
     fastImageEditActiveTaskId = r.taskId ?? null;
     if (!r.ok) {

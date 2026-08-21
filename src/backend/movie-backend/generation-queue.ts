@@ -575,13 +575,14 @@ const handlers: Record<QueueTaskType, Handler> = {
 
   // Generate a composite image via fast-image-edit (FLUX.2 Klein).
   "fast-image-edit": async (ctx) => {
-    const { prompt, images, steps } = ctx.task.payload || {};
+    const { prompt, images, steps, upscale } = ctx.task.payload || {};
     ctx.log("Generating composite image (FLUX.2 Klein)…\n");
     const r = await generateFastImageEditImage(
       ctx.projectId,
       String(prompt || ""),
       Array.isArray(images) ? images : [],
       Number(steps),
+      String(upscale || "none"),
       ctx.log,
     );
     if ("error" in r) throw new Error(r.error);

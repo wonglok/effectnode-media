@@ -163,6 +163,7 @@ dots-tts --model ./dots-tts-mlx-weights/mf-int4 \
     --text "Ghost reporting. 今日有d dry. 等我講一個笑話比你聽啦！ 有一日，個阿伯去茶餐廳食飯，嗌咗個「揚州炒飯」。食食吓，阿伯叫住伙計：「哥仔！你呢個揚州炒飯裡面，點解連一隻蝦都冇嘅？」伙計好冷靜咁答佢：「阿伯，咁你食『煲仔飯』嗰陣，裡面又有冇煲仔呀？」 哈哈哈哈" \
     --ref-audio reference.wav --language YUE \
     --out-path out --out-prefix good_mf-int4; \
+
 afplay ./out/good_mf-int4_000.wav
 
 ##

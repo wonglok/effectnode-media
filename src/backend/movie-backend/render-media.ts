@@ -824,7 +824,7 @@ export async function generateUpscale(
     };
   }
 
-  const target = resolution === "2048" ? "2048" : "1x";
+  const target = /^(1x|\d+)$/.test(resolution) ? resolution : "1x";
 
   const mlxgen = await getMlxgenBin();
   const projectOutputDir = join(OUTPUT_DIR, projectId);
@@ -1093,6 +1093,7 @@ export async function generateFastImageEditImage(
   prompt: string,
   images: string[],
   steps?: number,
+  upscaleResolution?: string,
   onLog?: (text: string) => void,
 ): Promise<{ filename: string; url: string } | { error: string }> {
   if (!isValidProjectId(projectId)) return { error: "Invalid project ID" };
@@ -1152,6 +1153,20 @@ export async function generateFastImageEditImage(
     }
 
     backupFile(outputPath, projectId);
+
+    // Optionally upscale the generated result (1x / 1500px / 2000px).
+    if (upscaleResolution && upscaleResolution !== "none") {
+      if (onLog) onLog(`Upscaling result (${upscaleResolution})…\n`);
+      const upscaled = await generateUpscale(
+        projectId,
+        outputFile,
+        upscaleResolution,
+        onLog,
+      );
+      if ("error" in upscaled) return { error: upscaled.error };
+      return upscaled;
+    }
+
     return {
       filename: outputFile,
       url: `/api/files?path=${encodeURIComponent(outputPath)}`,
