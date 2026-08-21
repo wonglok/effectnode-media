@@ -286,19 +286,6 @@ async function getDotsTtsBin(): Promise<string> {
   return "dots-tts";
 }
 
-/** Resolve the `mlx_whisper` executable installed via `uv tool install mlx-whisper`. */
-async function getMlxWhisperBin(): Promise<string> {
-  const candidates = [
-    join(homedir(), ".local", "bin", "mlx_whisper"),
-    "/opt/homebrew/bin/mlx_whisper",
-    "/usr/local/bin/mlx_whisper",
-  ];
-  for (const p of candidates) {
-    if (existsSync(p)) return p;
-  }
-  return "mlx_whisper";
-}
-
 /** The cloned dots-tts-mlx project directory. */
 const DOTS_TTS_FOLDER = join(APP_DATA_DIR, "python-src", "dots-tts-mlx");
 
@@ -1199,8 +1186,7 @@ export async function generateAdvancedVoiceClone(
       .slice(0, 64) || "voice";
   const model = resolveDotsTtsModel(String(params.model || ""));
 
-  // dots-tts and mlx_whisper both expect a WAV reference — convert mp3/other
-  // formats to 16-bit PCM WAV first.
+  // dots-tts expects a WAV reference — convert mp3/other formats to 16-bit PCM WAV.
   let refAudio = resolvedRef;
   if (!resolvedRef.toLowerCase().endsWith(".wav")) {
     const tempDir = join(TEMP_DIR, String(projectId));
@@ -1229,28 +1215,6 @@ export async function generateAdvancedVoiceClone(
     refAudio = convertedRef;
   }
 
-  // dots-tts requires `--ref-text` (the reference audio's transcript). Transcribe
-  // the WAV reference with mlx_whisper to supply it.
-  const whisperBin = await getMlxWhisperBin();
-  const transcribeDir = join(TEMP_DIR, String(projectId));
-  ensureDir(transcribeDir);
-  const whisperResult = await runCommand(
-    [whisperBin, refAudio, "--output-dir", transcribeDir],
-    { onLog },
-  );
-  const refTxtPath = join(
-    transcribeDir,
-    (refAudio.split(sep).pop() || "ref").replace(/\.[^.]+$/, "") + ".txt",
-  );
-  const refText =
-    whisperResult.success && existsSync(refTxtPath)
-      ? readFileSync(refTxtPath, "utf-8").replace(/\s+/g, " ").trim()
-      : "";
-
-  if (!refText) {
-    return { error: "Failed to transcribe reference audio (mlx_whisper)" };
-  }
-
   const dotsTtsBin = await getDotsTtsBin();
   // Mirror the voice-clone tab's timestamped-folder layout so outputs never
   // overwrite each other.
@@ -1266,8 +1230,6 @@ export async function generateAdvancedVoiceClone(
     cleanText || "please provide text",
     "--ref-audio",
     refAudio,
-    "--ref-text",
-    refText,
     "--language",
     language,
     "--out-path",
@@ -1287,8 +1249,6 @@ export async function generateAdvancedVoiceClone(
       cleanText || "please provide text",
       "--ref-audio",
       refAudio,
-      "--ref-text",
-      refText,
       "--language",
       language,
       "--out-path",
@@ -1318,7 +1278,6 @@ export async function generateAdvancedVoiceClone(
   const meta = {
     id: voiceId,
     transcript: cleanText,
-    refText,
     language,
     model,
     refAudioFilename: params.refAudioPath,
