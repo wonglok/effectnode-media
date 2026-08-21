@@ -671,6 +671,93 @@ export async function generateSceneVideo(
   };
 }
 
+/**
+ * Generate a video from a project image via LTX-2.3. `imagePath` must be a bare
+ * filename previously uploaded/generated for this project. Used by the queue
+ * worker for the "Scene Video Generation" tab.
+ */
+export async function generateImageToVideo(
+  uvPath: string,
+  projectId: string,
+  params: {
+    prompt: string;
+    imagePath: string;
+    width?: number;
+    height?: number;
+    frames?: number;
+    frameRate?: number;
+    mode?: string;
+  },
+  onLog?: (text: string) => void,
+): Promise<{ filename: string; url: string } | { error: string }> {
+  const { prompt, imagePath, mode } = params;
+
+  if (!isValidProjectId(projectId)) return { error: "Invalid project ID" };
+  if (!prompt || !prompt.trim()) return { error: "Prompt is required" };
+  if (!imagePath) return { error: "Image path is required" };
+
+  const resolvedImage = resolveSafePath(imagePath, projectId);
+  if (!resolvedImage) {
+    return {
+      error:
+        "Invalid image path. Provide a filename previously uploaded to this project.",
+    };
+  }
+
+  const ltxFolder = join(PYTHON_DIR, "ltx-2-mlx");
+  if (!existsSync(ltxFolder)) {
+    return { error: "ltx-2-mlx not found. Run setup first." };
+  }
+
+  const projectOutputDir = resolveOutputDir(undefined, projectId);
+  if (!projectOutputDir) return { error: "Invalid output directory." };
+
+  const outputFile = `video-${Date.now()}.mp4`;
+  const outputPath = join(projectOutputDir, outputFile);
+
+  const videoWidth = Number(params.width) || 480;
+  const videoHeight = Number(params.height) || 480;
+  const videoFrames = Number(params.frames) || 121;
+  const videoFps = Number(params.frameRate) || 24;
+
+  const result = await runCommand(
+    [
+      uvPath,
+      "run",
+      "ltx-2-mlx",
+      "generate",
+      "--model",
+      "dgrauet/ltx-2.3-mlx-q8",
+      "--prompt",
+      prompt.trim(),
+      stageFlagFor(mode),
+      "--frames",
+      String(videoFrames),
+      "--width",
+      String(videoWidth),
+      "--height",
+      String(videoHeight),
+      "--frame-rate",
+      String(videoFps),
+      "--image",
+      resolvedImage,
+      "--output",
+      outputPath,
+    ],
+    { cwd: ltxFolder, onLog },
+  );
+
+  if (!result.success || !existsSync(outputPath)) {
+    return { error: result.output || "Video generation failed" };
+  }
+
+  backupFile(outputPath, projectId);
+  return {
+    filename: outputFile,
+    url: `/api/files?path=${encodeURIComponent(outputPath)}`,
+  };
+}
+
 /** Normalize a value into a safe filesystem slug. */
 function slugify(v: unknown): string {
   return String(v || "")

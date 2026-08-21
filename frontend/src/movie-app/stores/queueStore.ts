@@ -14,7 +14,8 @@ export type QueueTaskType =
   | "regenerate-asset"
   | "regenerate-video"
   | "regenerate-scene-image"
-  | "fast-image-edit";
+  | "fast-image-edit"
+  | "image-to-video";
 
 export type QueueTaskStatus =
   | "pending"

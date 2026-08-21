@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useGenerationStore } from "../../stores/generationStore";
 import { useProjectStore } from "../../stores/projectStore";
+import { useQueueStore } from "../../stores/queueStore";
+import TaskQueuePanel from "./TaskQueuePanel";
+import TerminalLogPanel from "./TerminalLogPanel";
 
 interface Props {
   projectId: string;
@@ -9,6 +12,7 @@ interface Props {
 export default function GenerateVideoTab({ projectId }: Props) {
   const store = useGenerationStore();
   const { openFolder } = useProjectStore();
+  const queue = useQueueStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
@@ -32,6 +36,19 @@ export default function GenerateVideoTab({ projectId }: Props) {
       clearInterval(ttt);
     };
   }, []);
+
+  // Stream the generation queue so scene video tasks surface here.
+  useEffect(() => {
+    queue.startStreaming(projectId);
+    return () => queue.stopStreaming();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
+  // Reconcile scene video state with the latest queue task state.
+  useEffect(() => {
+    for (const task of queue.tasks) store.applyVideoQueueTask(task);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queue.tasks, projectId]);
 
   const handleGenerateVideo = async () => {
     await store.generateVideo(projectId);
@@ -190,6 +207,9 @@ export default function GenerateVideoTab({ projectId }: Props) {
           Scene Video Generation
         </h2>
       </div>
+
+      <TaskQueuePanel projectId={projectId} />
+      <TerminalLogPanel />
 
       {/* CSV upload for batch generation */}
       <div>
@@ -651,7 +671,7 @@ export default function GenerateVideoTab({ projectId }: Props) {
           </div>
           <button
             onClick={() => {
-              store.cancelBatch();
+              queue.cancelActive(projectId);
               store.cancelGenerate();
             }}
             className="flex items-center justify-center gap-1.5 px-5 py-3 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white text-sm font-semibold rounded-2xl transition-all duration-150 shadow-sm"

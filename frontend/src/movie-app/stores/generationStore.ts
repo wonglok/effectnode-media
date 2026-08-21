@@ -161,6 +161,7 @@ interface GenerationStore {
   setVideoMode: (v: VideoMode) => void;
   clearVideoResult: () => void;
   generateVideo: (projectId: string, imagePath?: string) => Promise<void>;
+  applyVideoQueueTask: (task: QueueTask) => void;
   cancelGenerate: () => void;
 
   // Video extension
@@ -415,6 +416,40 @@ async function enqueueFastImageEditTask(
   }
 }
 
+/** Enqueue a scene video generation task in the backend queue worker. */
+async function enqueueImageToVideoTask(
+  projectId: string,
+  payload: {
+    prompt: string;
+    imagePath: string;
+    width: number;
+    height: number;
+    frames: number;
+    frameRate: number;
+    mode: string;
+  },
+): Promise<{ ok: boolean; error?: string; taskId?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/queue/enqueue`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        projectId,
+        type: "image-to-video",
+        label: "Scene video",
+        payload,
+      }),
+    });
+    if (!res.ok) {
+      return { ok: false, error: await res.text() };
+    }
+    const task = (await res.json()) as { id?: string };
+    return { ok: true, taskId: task.id };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
 // ========== Abort Controllers ==========
 
 let generateAbortController: AbortController | null = null;
@@ -427,6 +462,14 @@ let fastImageEditProjectId: string | null = null;
 
 /** The queue task id enqueued by the current generate action, if any. */
 let fastImageEditActiveTaskId: string | null = null;
+
+// ========== Scene Video Queue ==========
+
+/** Project whose image-to-video task should refresh the video grid on completion. */
+let videoProjectId: string | null = null;
+
+/** The queue task id enqueued by the current generate video action, if any. */
+let videoActiveTaskId: string | null = null;
 
 // ========== Beep ==========
 
@@ -735,10 +778,6 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
     // The backend now only accepts bare filenames — extract just the basename
     resolvedImagePath = resolvedImagePath.split("/").pop() || resolvedImagePath;
 
-    // Create a fresh AbortController for this single generate run
-    generateAbortController = new AbortController();
-    const signal = generateAbortController.signal;
-
     set((s) => ({
       video: {
         ...s.video,
@@ -749,75 +788,60 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       },
     }));
 
-    try {
-      const res = await fetch(`${API_BASE}/api/render/image-to-video`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: video.prompt.trim(),
-          imagePath: resolvedImagePath,
-          projectId,
-          width,
-          height,
-          frames: video.duration * 24 + 1,
-          frameRate: 24,
-          mode: video.mode,
-        }),
-        signal,
-      });
+    videoProjectId = projectId;
+    const r = await enqueueImageToVideoTask(projectId, {
+      prompt: video.prompt.trim(),
+      imagePath: resolvedImagePath,
+      width,
+      height,
+      frames: video.duration * 24 + 1,
+      frameRate: 24,
+      mode: video.mode,
+    });
+    videoActiveTaskId = r.taskId ?? null;
+    if (!r.ok) {
+      set((s) => ({
+        video: {
+          ...s.video,
+          generating: false,
+          error: r.error ?? "Failed to enqueue video",
+        },
+      }));
+    }
+  },
 
-      if (!res.ok) {
-        const err = await res.text();
-        set((s) => ({
-          video: { ...s.video, generating: false, error: err },
-        }));
-        generateAbortController = null;
-        return;
-      }
+  // Reconcile the scene video state with the latest queue task state. Only the
+  // task enqueued by this tab is reflected, so past tasks never surface stale
+  // results.
+  applyVideoQueueTask: (task) => {
+    if (task.type !== "image-to-video") return;
+    if (task.id !== videoActiveTaskId) return;
+    const v = get().video;
 
-      await readSSEStream(res, (event, data) => {
-        switch (event) {
-          case "log":
-            set((s) => ({
-              video: {
-                ...s.video,
-                logs: [...s.video.logs, data.text as string],
-              },
-            }));
-            break;
-          case "complete":
-            set((s) => ({
-              video: {
-                ...s.video,
-                generating: false,
-                result: `http://localhost:${(window as any).PORT}/api/files?path=${encodeURIComponent(data.path)}`,
-              },
-            }));
-            break;
-          case "error":
-            set((s) => ({
-              video: {
-                ...s.video,
-                generating: false,
-                error: data.error || "Video generation failed",
-              },
-            }));
-            break;
-        }
+    if (task.status === "completed") {
+      const url = task.result?.url;
+      set({
+        video: {
+          ...v,
+          generating: false,
+          result: url ? resolveImageUrl(url) : null,
+          error: null,
+        },
       });
-    } catch (e: any) {
-      // If the request was aborted, just stop silently
-      if (e?.name !== "AbortError") {
-        set((s) => ({
-          video: { ...s.video, generating: false, error: String(e) },
-        }));
-      } else {
-        set((s) => ({
-          video: { ...s.video, generating: false },
-        }));
-      }
-    } finally {
-      generateAbortController = null;
+      if (videoProjectId) get().fetchProjectVideos(videoProjectId);
+    } else if (task.status === "failed") {
+      set({
+        video: {
+          ...v,
+          generating: false,
+          error: task.error ?? "Video generation failed",
+        },
+      });
+    } else if (task.status === "cancelled" || task.status === "paused") {
+      set({ video: { ...v, generating: false, error: null } });
+    } else {
+      // pending / running
+      set({ video: { ...v, generating: true, error: null } });
     }
   },
 
@@ -2109,6 +2133,8 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
   resetAll: () => {
     fastImageEditProjectId = null;
     fastImageEditActiveTaskId = null;
+    videoProjectId = null;
+    videoActiveTaskId = null;
     set({
       activeTab: "movieStudio",
       image: { ...initialImage },

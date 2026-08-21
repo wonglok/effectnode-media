@@ -16,6 +16,7 @@ import {
   generateSceneImage,
   generateSceneVideo,
   generateFastImageEditImage,
+  generateImageToVideo,
   cancelActiveRender,
 } from "./render-media.js";
 import { generateMovieStudioBible } from "./agent/agent-backend.js";
@@ -42,7 +43,8 @@ export type QueueTaskType =
   | "regenerate-asset"
   | "regenerate-video"
   | "regenerate-scene-image"
-  | "fast-image-edit";
+  | "fast-image-edit"
+  | "image-to-video";
 
 export type QueueTaskStatus =
   | "pending"
@@ -573,6 +575,29 @@ const handlers: Record<QueueTaskType, Handler> = {
       ctx.projectId,
       String(prompt || ""),
       Array.isArray(images) ? images : [],
+      ctx.log,
+    );
+    if ("error" in r) throw new Error(r.error);
+    return r;
+  },
+
+  // Generate a video from a project image via LTX-2.3 (Scene Video Generation).
+  "image-to-video": async (ctx, getUvPath) => {
+    const { prompt, imagePath, width, height, frames, frameRate, mode } =
+      ctx.task.payload || {};
+    ctx.log("Generating scene video (LTX-2.3)…\n");
+    const r = await generateImageToVideo(
+      await getUvPath(),
+      ctx.projectId,
+      {
+        prompt: String(prompt || ""),
+        imagePath: String(imagePath || ""),
+        width,
+        height,
+        frames,
+        frameRate,
+        mode,
+      },
       ctx.log,
     );
     if ("error" in r) throw new Error(r.error);
