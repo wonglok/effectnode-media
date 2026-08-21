@@ -120,3 +120,59 @@ mlxgen upscale \
 
 
 ```
+
+```bash
+
+# 1. install the quant-aware runtime (>= v0.2.0)
+pip install "git+https://github.com/sb1992/dots-tts-mlx.git@v0.2.0"
+
+# 2. download the variant you want  (use "mf-int4/*" for the faster MeanFlow decoder)
+hf download shraey/dots-tts-mlx --include "int4/*" --local-dir ./dots-tts-mlx-weights
+
+# 2. download the variant you want  (use "mf-int4/*" for the faster MeanFlow decoder)
+hf download shraey/dots-tts-mlx --include "mf-int4/*" --local-dir ./dots-tts-mlx-weights
+
+# 3. run (files land in ./dots-tts-mlx-weights/int4/)
+dots-tts --model ./dots-tts-mlx-weights/int4 \
+    --text "Hello from MLX." --ref-audio reference.wav --language YUE \
+    --out-path out --out-prefix clone
+
+dots-tts --model ./dots-tts-mlx-weights/mf-int4 \
+    --text "我講一個笑話比你聽. 有一日，個阿伯去茶餐廳食飯，嗌咗個「揚州炒飯」。食食吓，阿伯叫住伙計：「哥仔！你呢個揚州炒飯裡面，點解連一隻蝦都冇嘅？」伙計好冷靜咁答佢：「阿伯，咁你食『煲仔飯』嗰陣，裡面又有冇煲仔呀？」" \
+    --ref-audio reference.wav --language YUE \
+    --out-path out --out-prefix cantonese; \
+afplay ./out/cantonese_000.wav
+
+
+dots-tts --model ./dots-tts-mlx-weights/int4 \
+    --text "Ghost reporting. 我講一個笑話比你聽. 有一日，個阿伯去茶餐廳食飯，嗌咗個「揚州炒飯」。食食吓，阿伯叫住伙計：「哥仔！你呢個揚州炒飯裡面，點解連一隻蝦都冇嘅？」伙計好冷靜咁答佢：「阿伯，咁你食『煲仔飯』嗰陣，裡面又有冇煲仔呀？」" \
+    --ref-audio reference.wav --language YUE \
+    --out-path out --out-prefix fast; \
+
+afplay ./out/fast_000.wav
+
+
+dots-tts --model ./dots-tts-mlx-weights/int4 \
+    --text "Ghost reporting. 今日有d dry. 等我講一個笑話比你聽啦！ 有一日，個阿伯去茶餐廳食飯，嗌咗個「揚州炒飯」。食食吓，阿伯叫住伙計：「哥仔！你呢個揚州炒飯裡面，點解連一隻蝦都冇嘅？」伙計好冷靜咁答佢：「阿伯，咁你食『煲仔飯』嗰陣，裡面又有冇煲仔呀？」 哈哈哈哈" \
+    --ref-audio reference.wav --language YUE \
+    --out-path out --out-prefix good_int4; \
+afplay ./out/good_int4_000.wav
+
+
+dots-tts --model ./dots-tts-mlx-weights/mf-int4 \
+    --text "Ghost reporting. 今日有d dry. 等我講一個笑話比你聽啦！ 有一日，個阿伯去茶餐廳食飯，嗌咗個「揚州炒飯」。食食吓，阿伯叫住伙計：「哥仔！你呢個揚州炒飯裡面，點解連一隻蝦都冇嘅？」伙計好冷靜咁答佢：「阿伯，咁你食『煲仔飯』嗰陣，裡面又有冇煲仔呀？」 哈哈哈哈" \
+    --ref-audio reference.wav --language YUE \
+    --out-path out --out-prefix good_mf-int4; \
+afplay ./out/good_mf-int4_000.wav
+
+##
+##
+##
+
+
+
+##
+##
+##
+
+```
