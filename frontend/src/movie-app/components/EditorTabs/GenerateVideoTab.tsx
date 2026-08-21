@@ -593,6 +593,47 @@ export default function GenerateVideoTab({ projectId }: Props) {
         </div>
       </div>
 
+      {/* Stage steps */}
+      <div>
+        <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-2">
+          Steps
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[11px] font-medium text-ink-600 mb-1">
+              Stage 1 Steps
+            </label>
+            <input
+              type="number"
+              min={1}
+              value={store.video.stage1Steps}
+              onChange={(e) =>
+                store.setVideoStage1Steps(Number(e.target.value))
+              }
+              disabled={store.video.generating || store.batchRunning}
+              className="w-full px-4 py-2 bg-ink-50 border border-ink-200 rounded-2xl text-ink-900 text-sm focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/30 transition-all disabled:opacity-50"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-medium text-ink-600 mb-1">
+              Stage 2 Steps
+            </label>
+            <input
+              type="number"
+              min={1}
+              value={store.video.stage2Steps}
+              onChange={(e) =>
+                store.setVideoStage2Steps(Number(e.target.value))
+              }
+              disabled={store.video.generating || store.batchRunning}
+              className="w-full px-4 py-2 bg-ink-50 border border-ink-200 rounded-2xl text-ink-900 text-sm focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/30 transition-all disabled:opacity-50"
+            />
+          </div>
+        </div>
+        <pre className="text-[11px] text-ink-500/70 mt-2 font-mono whitespace-pre-wrap">{`--stage1-steps      Stage 1 steps (default: 30 standard, 15 HQ)
+--stage2-steps      Stage 2 steps (default: 3)`}</pre>
+      </div>
+
       <button
         onClick={handleOpenVideoFolder}
         className="flex items-center justify-center gap-2 w-full px-4 py-2.5 mb-3 bg-ink-50 hover:bg-ink-200 text-ink-700 text-sm font-medium rounded-2xl border border-ink-200 transition-colors"

@@ -77,6 +77,8 @@ interface VideoState {
   aspectRatio: AspectRatio;
   resolution: Resolution;
   mode: VideoMode;
+  stage1Steps: number;
+  stage2Steps: number;
   generating: boolean;
   result: string | null;
   error: string | null;
@@ -151,6 +153,8 @@ interface GenerationStore {
   setVideoAspectRatio: (v: AspectRatio) => void;
   setVideoResolution: (v: Resolution) => void;
   setVideoMode: (v: VideoMode) => void;
+  setVideoStage1Steps: (v: number) => void;
+  setVideoStage2Steps: (v: number) => void;
   clearVideoResult: () => void;
   generateVideo: (projectId: string, imagePath?: string) => Promise<void>;
   applyVideoQueueTask: (task: QueueTask) => void;
@@ -413,6 +417,8 @@ async function enqueueImageToVideoTask(
     frames: number;
     frameRate: number;
     mode: string;
+    stage1Steps: number;
+    stage2Steps: number;
   },
 ): Promise<{ ok: boolean; error?: string; taskId?: string }> {
   try {
@@ -497,6 +503,8 @@ const initialVideo: VideoState = {
   aspectRatio: "1:1",
   resolution: "480p",
   mode: "distilled",
+  stage1Steps: 30,
+  stage2Steps: 3,
   generating: false,
   result: null,
   error: null,
@@ -707,6 +715,20 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
   setVideoResolution: (resolution) =>
     set((s) => ({ video: { ...s.video, resolution } })),
   setVideoMode: (mode) => set((s) => ({ video: { ...s.video, mode } })),
+  setVideoStage1Steps: (stage1Steps) =>
+    set((s) => ({
+      video: {
+        ...s.video,
+        stage1Steps: Math.max(1, Math.round(Number(stage1Steps)) || 1),
+      },
+    })),
+  setVideoStage2Steps: (stage2Steps) =>
+    set((s) => ({
+      video: {
+        ...s.video,
+        stage2Steps: Math.max(1, Math.round(Number(stage2Steps)) || 1),
+      },
+    })),
   clearVideoResult: () =>
     set((s) => ({
       video: { ...s.video, result: null, error: null, logs: [] },
@@ -775,6 +797,8 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       frames: video.duration * 24 + 1,
       frameRate: 24,
       mode: video.mode,
+      stage1Steps: video.stage1Steps,
+      stage2Steps: video.stage2Steps,
     });
     videoActiveTaskId = r.taskId ?? null;
     if (!r.ok) {
@@ -1047,6 +1071,8 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
             frames: video.duration * 24 + 1,
             frameRate: 24,
             mode: video.mode,
+            stage1Steps: video.stage1Steps,
+            stage2Steps: video.stage2Steps,
           }),
           signal,
         });

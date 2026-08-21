@@ -715,6 +715,8 @@ export async function generateImageToVideo(
     frames?: number;
     frameRate?: number;
     mode?: string;
+    stage1Steps?: number;
+    stage2Steps?: number;
   },
   onLog?: (text: string) => void,
 ): Promise<{ filename: string; url: string } | { error: string }> {
@@ -747,6 +749,8 @@ export async function generateImageToVideo(
   const videoHeight = Number(params.height) || 480;
   const videoFrames = Number(params.frames) || 121;
   const videoFps = Number(params.frameRate) || 24;
+  const stage1Steps = Math.max(1, Math.round(Number(params.stage1Steps)) || 30);
+  const stage2Steps = Math.max(1, Math.round(Number(params.stage2Steps)) || 3);
 
   const result = await runCommand(
     [
@@ -759,6 +763,10 @@ export async function generateImageToVideo(
       "--prompt",
       prompt.trim(),
       stageFlagFor(mode),
+      "--stage1-steps",
+      String(stage1Steps),
+      "--stage2-steps",
+      String(stage2Steps),
       "--frames",
       String(videoFrames),
       "--width",
@@ -1956,6 +1964,8 @@ export async function renderMediaRoutes({
       frames = 121,
       frameRate = 24,
       mode = "distilled",
+      stage1Steps,
+      stage2Steps,
     } = req.body || {};
 
     if (!prompt) {
