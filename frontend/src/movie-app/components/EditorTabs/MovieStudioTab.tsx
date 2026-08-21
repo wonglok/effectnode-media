@@ -11,6 +11,217 @@ interface Props {
   projectId: string;
 }
 
+// ========== Module-scope icons & helper components ==========
+// Defined outside the component so their identity stays stable across renders.
+// (Components defined *inside* a component are recreated every render, which
+// remounts their subtree and makes text inputs lose focus on each keystroke.)
+
+const ClapperIcon = (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z" />
+    <path d="m6.2 5.3 3.1 3.9" />
+    <path d="m12.4 3.4 3.1 4" />
+    <path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+  </svg>
+);
+
+const SparkleIcon = (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+
+const SpinnerIcon = (
+  <svg
+    className="animate-spin text-tiffany-600"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
+    <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+    <path d="M12 2a10 10 0 0 1 10 10" strokeOpacity="0.75" />
+  </svg>
+);
+
+const RefreshIcon = (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="23 4 23 10 17 10" />
+    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+  </svg>
+);
+
+const StopIcon = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+    <rect x="5" y="5" width="14" height="14" rx="2" />
+  </svg>
+);
+
+const FolderIcon = (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
+const CloseIcon = (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+function TableHead({
+  columns,
+}: {
+  columns: { key: string; label: string; className?: string }[];
+}) {
+  return (
+    <thead className="bg-ink-50">
+      <tr className="border-b border-ink-200">
+        {columns.map((c) => (
+          <th
+            key={c.key}
+            className={`border border-ink-200 px-2 py-1.5 text-left font-semibold text-ink-700 whitespace-nowrap ${
+              c.className ?? ""
+            }`}
+          >
+            {c.label}
+          </th>
+        ))}
+      </tr>
+    </thead>
+  );
+}
+
+function EditableInput({
+  value,
+  onChange,
+  type = "text",
+  className = "",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  className?: string;
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`w-full rounded-lg border border-ink-200 bg-ink-50 px-2 py-1.5 text-xs text-ink-800 placeholder-ink-400 transition-all focus:border-tiffany-500 focus:outline-none focus:ring-2 focus:ring-tiffany-500/25 ${className}`}
+    />
+  );
+}
+
+function EditableTextarea({
+  value,
+  onChange,
+  rows = 3,
+  mono = false,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  rows?: number;
+  mono?: boolean;
+}) {
+  return (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      rows={rows}
+      className={`w-full min-w-[150px] resize-y rounded-lg border border-ink-200 bg-ink-50 px-2 py-1.5 leading-relaxed text-ink-800 placeholder-ink-400 transition-all focus:border-tiffany-500 focus:outline-none focus:ring-2 focus:ring-tiffany-500/25 ${
+        mono ? "font-mono text-[11px]" : "text-xs"
+      }`}
+    />
+  );
+}
+
+function RegenerateButton({
+  onClick,
+  spinning,
+}: {
+  onClick: () => void;
+  spinning: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={spinning}
+      className="mt-1 flex items-center gap-1 whitespace-nowrap rounded-md border border-ink-200 px-2 py-1 text-[10px] font-medium text-ink-600 transition-colors hover:border-tiffany-400 hover:text-tiffany-600 disabled:opacity-50"
+    >
+      {spinning ? SpinnerIcon : RefreshIcon}
+      Regenerate
+    </button>
+  );
+}
+
+function Thumb({
+  url,
+  filename,
+  onOpen,
+}: {
+  url: string | null;
+  filename?: string;
+  onOpen: (url: string, filename: string) => void;
+}) {
+  return url ? (
+    <img
+      src={url}
+      alt={filename || ""}
+      onClick={() => onOpen(url, filename || "")}
+      className="w-full h-full object-cover rounded-lg border border-ink-200 cursor-zoom-in hover:border-tiffany-500 transition-colors"
+    />
+  ) : (
+    <span className="text-ink-300 text-xs">—</span>
+  );
+}
+
 export default function MovieStudioTab({ projectId }: Props) {
   const store = useMovieStudioStore();
   const gen = useGenerationStore();
@@ -69,128 +280,6 @@ export default function MovieStudioTab({ projectId }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [preview]);
 
-  // ========== SVG Icons ==========
-
-  const ClapperIcon = (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z" />
-      <path d="m6.2 5.3 3.1 3.9" />
-      <path d="m12.4 3.4 3.1 4" />
-      <path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
-    </svg>
-  );
-
-  const SparkleIcon = (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-    </svg>
-  );
-
-  const SpinnerIcon = (
-    <svg
-      className="animate-spin text-tiffany-600"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-    >
-      <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
-      <path d="M12 2a10 10 0 0 1 10 10" strokeOpacity="0.75" />
-    </svg>
-  );
-
-  const RefreshIcon = (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="23 4 23 10 17 10" />
-      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-    </svg>
-  );
-
-  const StopIcon = (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-      <rect x="5" y="5" width="14" height="14" rx="2" />
-    </svg>
-  );
-
-  const FolderIcon = (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-
-  const CloseIcon = (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-
-  const TableHead = ({
-    columns,
-  }: {
-    columns: { key: string; label: string; className?: string }[];
-  }) => (
-    <thead className="bg-ink-50">
-      <tr className="border-b border-ink-200">
-        {columns.map((c) => (
-          <th
-            key={c.key}
-            className={`border border-ink-200 px-2 py-1.5 text-left font-semibold text-ink-700 whitespace-nowrap ${
-              c.className ?? ""
-            }`}
-          >
-            {c.label}
-          </th>
-        ))}
-      </tr>
-    </thead>
-  );
-
   const slugify = (v: string): string =>
     (v || "").trim().replace(/[^a-zA-Z0-9_-]/g, "_");
   const resolveUrl = (url?: string): string | null =>
@@ -211,81 +300,6 @@ export default function MovieStudioTab({ projectId }: Props) {
     filename: string,
     type: "image" | "video",
   ) => setPreview({ url, filename, type });
-
-  const Thumb = ({
-    url,
-    filename,
-  }: {
-    url: string | null;
-    filename?: string;
-  }) =>
-    url ? (
-      <img
-        src={url}
-        alt={filename || ""}
-        onClick={() => openPreview(url, filename || "", "image")}
-        className="w-full h-full object-cover rounded-lg border border-ink-200 cursor-zoom-in hover:border-tiffany-500 transition-colors"
-      />
-    ) : (
-      <span className="text-ink-300 text-xs">—</span>
-    );
-
-  const EditableInput = ({
-    value,
-    onChange,
-    type = "text",
-    className = "",
-  }: {
-    value: string;
-    onChange: (v: string) => void;
-    type?: string;
-    className?: string;
-  }) => (
-    <input
-      type={type}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={`w-full rounded-lg border border-ink-200 bg-ink-50 px-2 py-1.5 text-xs text-ink-800 placeholder-ink-400 transition-all focus:border-tiffany-500 focus:outline-none focus:ring-2 focus:ring-tiffany-500/25 ${className}`}
-    />
-  );
-
-  const EditableTextarea = ({
-    value,
-    onChange,
-    rows = 3,
-    mono = false,
-  }: {
-    value: string;
-    onChange: (v: string) => void;
-    rows?: number;
-    mono?: boolean;
-  }) => (
-    <textarea
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      rows={rows}
-      className={`w-full min-w-[150px] resize-y rounded-lg border border-ink-200 bg-ink-50 px-2 py-1.5 leading-relaxed text-ink-800 placeholder-ink-400 transition-all focus:border-tiffany-500 focus:outline-none focus:ring-2 focus:ring-tiffany-500/25 ${
-        mono ? "font-mono text-[11px]" : "text-xs"
-      }`}
-    />
-  );
-
-  const RegenerateButton = ({
-    onClick,
-    spinning,
-  }: {
-    onClick: () => void;
-    spinning: boolean;
-  }) => (
-    <button
-      onClick={onClick}
-      disabled={spinning}
-      className="mt-1 flex items-center gap-1 whitespace-nowrap rounded-md border border-ink-200 px-2 py-1 text-[10px] font-medium text-ink-600 transition-colors hover:border-tiffany-400 hover:text-tiffany-600 disabled:opacity-50"
-    >
-      {spinning ? SpinnerIcon : RefreshIcon}
-      Regenerate
-    </button>
-  );
 
   return (
     <div className="flex flex-col gap-7">
@@ -424,7 +438,13 @@ export default function MovieStudioTab({ projectId }: Props) {
                                 {url ? (
                                   <div className="flex flex-col items-start">
                                     <div className="h-16 w-16">
-                                      <Thumb url={url} filename={c.slug} />
+                                      <Thumb
+                                        url={url}
+                                        filename={c.slug}
+                                        onOpen={(u, f) =>
+                                          openPreview(u, f, "image")
+                                        }
+                                      />
                                     </div>
                                     <RegenerateButton
                                       spinning={spinning}
@@ -510,7 +530,13 @@ export default function MovieStudioTab({ projectId }: Props) {
                                 {url ? (
                                   <div className="flex flex-col items-start">
                                     <div className="h-16 w-16">
-                                      <Thumb url={url} filename={p.slug} />
+                                      <Thumb
+                                        url={url}
+                                        filename={p.slug}
+                                        onOpen={(u, f) =>
+                                          openPreview(u, f, "image")
+                                        }
+                                      />
                                     </div>
                                     <RegenerateButton
                                       spinning={spinning}
@@ -702,7 +728,13 @@ export default function MovieStudioTab({ projectId }: Props) {
                                 {url ? (
                                   <div className="flex flex-col items-start">
                                     <div className="h-16 w-16">
-                                      <Thumb url={url} filename={s.slug} />
+                                      <Thumb
+                                        url={url}
+                                        filename={s.slug}
+                                        onOpen={(u, f) =>
+                                          openPreview(u, f, "image")
+                                        }
+                                      />
                                     </div>
                                     <RegenerateButton
                                       spinning={spinning}
