@@ -1,37 +1,3 @@
-```bash
-
-mlxgen download --model AbstractFramework/wan2.2-i2v-a14b-diffusers-bf16
-
-mlxgen generate \
-  --model AbstractFramework/wan2.2-i2v-a14b-diffusers-bf16 \
-  --task image-to-video \
-  --image ./input.png \
-  --prompt "put his hand behind his head and dance" \
-  --width 384 \
-  --height 384 \
-  --frames 33 \
-  --steps 12 \
-  --guidance 3.5 \
-  --guidance-2 3.5 \
-  --fps 8 \
-  --seed 4242 \
-  --low-ram \
-  --metadata \
-  --output video.mp4
-
-
-mlxgen download --model bernini-r-1.3b-bf16
-
-mlxgen generate \
-  --model bernini-r-1.3b-bf16 \
-  --reference-image subject.png \
-  --prompt "Bring the subject from image0 to life in a fixed medium shot" \
-  --width 848 --height 480 --frames 81 --fps 16 --steps 40 \
-  --seed 42 --output referenced.mp4
-
-
-```
-
 <!-- high quality -->
 
 ```bash
@@ -74,11 +40,11 @@ uv run mlx_audio.tts.generate \
 mlxgen download --model AbstractFramework/flux.2-klein-4b-8bit
 
 mlxgen generate \
+  --image input.jpeg \
+  --prompt "The person and The ninja standing next to each other, in a studio, taking photo." \
+  --image person.png \
   --output result.png \
   --model AbstractFramework/flux.2-klein-4b-8bit \
-  --image input.jpeg \
-  --image person.png \
-  --prompt "The person and The ninja standing next to each other, in a studio, taking photo." \
   --mlx-cache-limit-gb 20 \
   --steps 5 --seed 42 --width 1024 --height 1024
 
@@ -91,14 +57,47 @@ mlxgen generate \
 # Upscale to 2048
 
 ```bash
+####
 
-mlxgen download --model AbstractFramework/seedvr2-3b-8bit
+mlxgen download --model AbstractFramework/seedvr2-7b-8bit
 
 mlxgen upscale \
-  --model AbstractFramework/seedvr2-3b-8bit \
-  --image-path cafe.png \
+  --model AbstractFramework/seedvr2-7b-8bit \
+  --image-path input.png \
   --resolution 2048 \
-  --mlx-cache-limit-gb 20 \
-  --output upscale_result_2048.png
+  --seed 42 \
+  --mlx-cache-limit-gb 100 \
+  --output input_upscaled_2048.png
+
+
+```
+
+# upscale video
+
+```bash
+
+mlxgen download --model AbstractFramework/seedvr2-7b-8bit
+
+mlxgen upscale \
+  --model AbstractFramework/seedvr2-7b-8bit \
+  --video-path input.mp4 \
+  --resolution 720 \
+  --temporal-chunk-size 29 \
+  --temporal-chunk-overlap 8 \
+  --mlx-cache-limit-gb 64 \
+  --force-unsafe-video-memory \
+  --metadata \
+  --output upscalde_video.mp4
+
+
+
+mlxgen upscale \
+  --model AbstractFramework/seedvr2-7b-8bit \
+  --video-path input.mp4 \
+  --resolution 2x \
+  --mlx-cache-limit-gb 64 \
+  --force-unsafe-video-memory \
+  --output upscalde_video.mp4
+
 
 ```
