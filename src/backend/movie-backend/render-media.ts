@@ -833,6 +833,68 @@ export async function generateSceneImage(
 }
 
 /**
+ * Upscale/refine a project image via mlxgen (SeedVR2). `imagePath` must be a
+ * bare filename previously uploaded/generated for this project. `resolution` is
+ * either "1x" (refine at native resolution) or "2048" (upscale to 2048px).
+ */
+export async function generateUpscale(
+  projectId: string,
+  imagePath: string,
+  resolution: string,
+  onLog?: (text: string) => void,
+): Promise<{ filename: string; url: string } | { error: string }> {
+  if (!isValidProjectId(projectId)) return { error: "Invalid project ID" };
+  if (!imagePath) return { error: "Image path is required" };
+
+  const resolvedImage = resolveSafePath(imagePath, projectId);
+  if (!resolvedImage) {
+    return {
+      error:
+        "Invalid image path. Provide a filename previously uploaded to this project.",
+    };
+  }
+
+  const target = resolution === "2048" ? "2048" : "1x";
+
+  const mlxgen = await getMlxgenBin();
+  const projectOutputDir = join(OUTPUT_DIR, projectId);
+  ensureDir(projectOutputDir);
+
+  const outputFile = `upscale-${target}-${Date.now()}.png`;
+  const outputPath = join(projectOutputDir, outputFile);
+
+  const result = await runCommand(
+    [
+      mlxgen,
+      "upscale",
+      "--model",
+      SEEDVR2_MODEL,
+      "--image-path",
+      resolvedImage,
+      "--resolution",
+      target,
+      "--seed",
+      "42",
+      "--mlx-cache-limit-gb",
+      "100",
+      "--output",
+      outputPath,
+    ],
+    { onLog },
+  );
+
+  if (!result.success || !existsSync(outputPath)) {
+    return { error: result.output || "Upscale failed" };
+  }
+
+  backupFile(outputPath, projectId);
+  return {
+    filename: outputFile,
+    url: `/api/files?path=${encodeURIComponent(outputPath)}`,
+  };
+}
+
+/**
  * Generate a composite image via fast-image-edit (FLUX.2 Klein). `images` are
  * base64 data URLs that are decoded into temp files and passed to the model as
  * separate `--image` inputs. Used by the generation queue worker.

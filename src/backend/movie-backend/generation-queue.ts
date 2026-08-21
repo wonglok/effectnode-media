@@ -17,6 +17,7 @@ import {
   generateSceneVideo,
   generateFastImageEditImage,
   generateImageToVideo,
+  generateUpscale,
   cancelActiveRender,
 } from "./render-media.js";
 import { generateMovieStudioBible } from "./agent/agent-backend.js";
@@ -44,7 +45,8 @@ export type QueueTaskType =
   | "regenerate-video"
   | "regenerate-scene-image"
   | "fast-image-edit"
-  | "image-to-video";
+  | "image-to-video"
+  | "upscale";
 
 export type QueueTaskStatus =
   | "pending"
@@ -599,6 +601,20 @@ const handlers: Record<QueueTaskType, Handler> = {
         frameRate,
         mode,
       },
+      ctx.log,
+    );
+    if ("error" in r) throw new Error(r.error);
+    return r;
+  },
+
+  // Upscale/refine a project image via mlxgen (SeedVR2).
+  "upscale": async (ctx) => {
+    const { imagePath, resolution } = ctx.task.payload || {};
+    ctx.log(`Upscaling image (${resolution || "1x"})…\n`);
+    const r = await generateUpscale(
+      ctx.projectId,
+      String(imagePath || ""),
+      String(resolution || "1x"),
       ctx.log,
     );
     if ("error" in r) throw new Error(r.error);
