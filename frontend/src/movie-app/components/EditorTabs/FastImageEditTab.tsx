@@ -444,8 +444,6 @@ export default function FastImageEditTab({ projectId }: Props) {
               { value: "1500", label: "1500px" },
               { value: "2000", label: "2000px" },
               { value: "2500", label: "2500px" },
-              { value: "3000", label: "3000px" },
-              { value: "3500", label: "3500px" },
             ] as const
           ).map((o) => (
             <button

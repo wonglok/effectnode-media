@@ -267,8 +267,7 @@ export default function UpscaleTab({ projectId }: Props) {
             { value: "1000" as UpscaleMode, label: "Upscale to 1000px" },
             { value: "1500" as UpscaleMode, label: "Upscale to 1500px" },
             { value: "2000" as UpscaleMode, label: "Upscale to 2000px" },
-            { value: "3000" as UpscaleMode, label: "Upscale to 3000px" },
-            { value: "3500" as UpscaleMode, label: "Upscale to 3500px" },
+            { value: "2500" as UpscaleMode, label: "Upscale to 2500px" },
           ].map((m) => (
             <button
               key={m.value}
