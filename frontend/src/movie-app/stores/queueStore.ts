@@ -79,6 +79,45 @@ function upsertTask(tasks: QueueTask[], task: QueueTask): QueueTask[] {
   return next;
 }
 
+/** Task ids already observed as completed, so we only ding once per task. */
+const completedTaskIds = new Set<string>();
+
+/** Play a short "ding" notification tone via the Web Audio API. */
+function playDing() {
+  try {
+    const Ctx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(1046.5, now); // C6
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.3, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.95);
+    osc.onended = () => ctx.close();
+  } catch {
+    // Ignore audio failures (e.g. blocked autoplay).
+  }
+}
+
+/** Ding once when a task first reports `completed`. */
+function maybeDing(task: QueueTask) {
+  if (task.status !== "completed") return;
+  if (completedTaskIds.has(task.id)) return;
+  completedTaskIds.add(task.id);
+  // Bound the set so a very long-lived session never grows it unboundedly.
+  if (completedTaskIds.size > 1000) completedTaskIds.clear();
+  playDing();
+}
+
 export const useQueueStore = create<QueueStore>((set, get) => ({
   tasks: [],
   loading: false,
@@ -147,6 +186,7 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
       try {
         const task = JSON.parse((event as MessageEvent).data) as QueueTask;
         set((s) => ({ tasks: upsertTask(s.tasks, task) }));
+        maybeDing(task);
       } catch {
         // ignore malformed events
       }
@@ -202,6 +242,7 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
         try {
           const task = JSON.parse((event as MessageEvent).data) as QueueTask;
           set((s) => ({ allTasks: upsertTask(s.allTasks, task) }));
+          maybeDing(task);
         } catch {
           // ignore malformed events
         }
