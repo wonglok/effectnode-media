@@ -434,7 +434,7 @@ export default function GenerateVideoTab({ projectId }: Props) {
             <img
               src={store.uploadedImageUrl}
               alt={store.uploadedImageFilename || "Uploaded image"}
-              className="w-full h-32 object-cover"
+              className="max-w-[500px] max-h-[500px]"
             />
             {store.uploadedImageFilename && (
               <p className="px-3 py-1.5 text-xs text-ink-600 truncate">
