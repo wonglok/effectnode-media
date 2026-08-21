@@ -16,7 +16,6 @@ export type GenerationTab =
   | "movieStudio"
   | "fastImageEdit"
   | "video"
-  | "extend"
   | "agent"
   | "storyWriter"
   | "extract"
@@ -77,16 +76,6 @@ interface VideoState {
   aspectRatio: AspectRatio;
   resolution: Resolution;
   mode: VideoMode;
-  generating: boolean;
-  result: string | null;
-  error: string | null;
-  logs: string[];
-}
-
-interface ExtendState {
-  prompt: string;
-  extendDuration: number;
-  extendFrames: number;
   generating: boolean;
   result: string | null;
   error: string | null;
@@ -164,14 +153,6 @@ interface GenerationStore {
   applyVideoQueueTask: (task: QueueTask) => void;
   cancelGenerate: () => void;
 
-  // Video extension
-  extend: ExtendState;
-  setExtendPrompt: (v: string) => void;
-  setExtendDuration: (v: number) => void;
-  setExtendFrames: (v: number) => void;
-  clearExtendResult: () => void;
-  generateExtend: (projectId: string, videoPath: string) => Promise<void>;
-
   // Text-to-image (mlx-gen z-image-turbo)
   textToImage: TextToImageState;
   setTextToImagePrompt: (v: string) => void;
@@ -217,8 +198,6 @@ interface GenerationStore {
   projectVideos: ProjectVideo[];
   projectVideosLoading: boolean;
   fetchProjectVideos: (projectId: string) => Promise<void>;
-  selectedVideo: ProjectVideo | null;
-  selectVideo: (video: ProjectVideo | null) => void;
 
   // Project audio picker
   projectAudios: ProjectAudio[];
@@ -511,16 +490,6 @@ const initialVideo: VideoState = {
   aspectRatio: "1:1",
   resolution: "480p",
   mode: "distilled",
-  generating: false,
-  result: null,
-  error: null,
-  logs: [],
-};
-
-const initialExtend: ExtendState = {
-  prompt: "Continue the scene: the camera holds, motion flows naturally...",
-  extendDuration: 2,
-  extendFrames: 2 * 24 + 1,
   generating: false,
   result: null,
   error: null,
@@ -1133,140 +1102,6 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
 
     if (finished) {
       playBeep();
-    }
-  },
-
-  // ---- Video Extension ----
-  extend: { ...initialExtend },
-
-  setExtendPrompt: (prompt) =>
-    set((s) => ({ extend: { ...s.extend, prompt, error: null } })),
-  setExtendDuration: (extendDuration) =>
-    set((s) => ({
-      extend: {
-        ...s.extend,
-        extendDuration,
-        extendFrames: extendDuration * 24 + 1,
-      },
-    })),
-  setExtendFrames: (extendFrames) =>
-    set((s) => ({
-      extend: {
-        ...s.extend,
-        extendFrames,
-        extendDuration: Math.max(0.5, (extendFrames - 1) / 24),
-      },
-    })),
-  clearExtendResult: () =>
-    set((s) => ({
-      extend: { ...s.extend, result: null, error: null, logs: [] },
-    })),
-
-  generateExtend: async (projectId, videoPath) => {
-    const { extend } = get();
-    if (!extend.prompt.trim() || extend.generating) return;
-
-    // Extract raw file path from HTTP URL (e.g. http://localhost:PORT/api/files?path=...)
-    let resolvedVideoPath = videoPath || "";
-    if (!resolvedVideoPath) {
-      set((s) => ({
-        extend: { ...s.extend, error: "Select a video to extend first." },
-      }));
-      return;
-    }
-    if (resolvedVideoPath.includes("/api/files?path=")) {
-      try {
-        const url = new URL(resolvedVideoPath);
-        resolvedVideoPath = url.searchParams.get("path") || resolvedVideoPath;
-      } catch {
-        // not a valid URL, use as-is
-      }
-    }
-    if (resolvedVideoPath.startsWith("file://")) {
-      resolvedVideoPath = resolvedVideoPath.slice(7);
-    }
-    // The backend only accepts bare filenames — extract just the basename
-    resolvedVideoPath = resolvedVideoPath.split("/").pop() || resolvedVideoPath;
-
-    // Create a fresh AbortController for this extend run
-    generateAbortController = new AbortController();
-    const signal = generateAbortController.signal;
-
-    set((s) => ({
-      extend: {
-        ...s.extend,
-        generating: true,
-        error: null,
-        result: null,
-        logs: [],
-      },
-    }));
-
-    try {
-      const res = await fetch(`${API_BASE}/api/render/extend-video`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: extend.prompt.trim(),
-          videoPath: resolvedVideoPath,
-          projectId,
-          extendFrames: extend.extendDuration * 24 + 1,
-        }),
-        signal,
-      });
-
-      if (!res.ok) {
-        const err = await res.text();
-        set((s) => ({
-          extend: { ...s.extend, generating: false, error: err },
-        }));
-        generateAbortController = null;
-        return;
-      }
-
-      await readSSEStream(res, (event, data) => {
-        switch (event) {
-          case "log":
-            set((s) => ({
-              extend: {
-                ...s.extend,
-                logs: [...s.extend.logs, data.text as string],
-              },
-            }));
-            break;
-          case "complete":
-            set((s) => ({
-              extend: {
-                ...s.extend,
-                generating: false,
-                result: `http://localhost:${(window as any).PORT}/api/files?path=${encodeURIComponent(data.path)}`,
-              },
-            }));
-            // Refresh the video grid so the new extended-*.mp4 appears
-            get().fetchProjectVideos(projectId);
-            break;
-          case "error":
-            set((s) => ({
-              extend: {
-                ...s.extend,
-                generating: false,
-                error: data.error || "Video extension failed",
-              },
-            }));
-            break;
-        }
-      });
-    } catch (e: any) {
-      // If the request was aborted, just stop silently
-      if (e?.name !== "AbortError") {
-        set((s) => ({
-          extend: { ...s.extend, generating: false, error: String(e) },
-        }));
-      } else {
-        set((s) => ({ extend: { ...s.extend, generating: false } }));
-      }
-    } finally {
-      generateAbortController = null;
     }
   },
 
@@ -2030,7 +1865,6 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
   // ---- Project Videos ----
   projectVideos: [],
   projectVideosLoading: false,
-  selectedVideo: null,
 
   fetchProjectVideos: async (projectId) => {
     set({ projectVideosLoading: true });
@@ -2049,17 +1883,6 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
     } catch {
       set({ projectVideosLoading: false });
     }
-  },
-
-  selectVideo: (video) => {
-    if (!video) {
-      set({ selectedVideo: null });
-      return;
-    }
-    const fullUrl = video.url.startsWith("http")
-      ? video.url
-      : `http://localhost:${(window as any).PORT}${video.url}`;
-    set({ selectedVideo: { ...video, url: fullUrl } });
   },
 
   // ---- Project Audio ----
@@ -2092,7 +1915,6 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
     // Immediately reset generating state so UI returns to ready
     set((s) => ({
       video: { ...s.video, generating: false },
-      extend: { ...s.extend, generating: false },
       textToImage: { ...s.textToImage, generating: false },
     }));
     // Also kill the backend spawn process
@@ -2139,7 +1961,6 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       activeTab: "movieStudio",
       image: { ...initialImage },
       video: { ...initialVideo },
-      extend: { ...initialExtend },
       fastImageEdit: { ...initialFastImageEdit },
       textToImage: { ...initialTextToImage },
       textToImageProjectId: null,
@@ -2154,7 +1975,6 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       selectedImage: null,
       projectVideos: [],
       projectVideosLoading: false,
-      selectedVideo: null,
       projectAudios: [],
       projectAudiosLoading: false,
       csvRows: [],
