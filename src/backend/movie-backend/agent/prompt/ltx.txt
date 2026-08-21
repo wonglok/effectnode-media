@@ -1,0 +1,20 @@
+This LTX Prompting Guide outlines the exact structural brief required to control LTX video generation models (including LTX-2.3 and LTX-2.5). LTX is highly prompt-sensitive and requires literal, chronological, and cinematic instructions formatted as a single continuous paragraph under 200 words. 
+
+
+Core Prompt Structure
+To generate professional-grade clips, construct your prompt like a cinematographer's shot list using these six core elements in sequential order: 
+Establish the Shot: Open with the camera framing, lens type, and cinematography terms matching the genre (e.g., Close-up shot, Wide anamorphic lens, Overhead shot). 
+Define the Characters: Detail age, hairstyle, clothing, and posture. Express emotions through concrete physical cues (e.g., trembling hands) rather than abstract emotional labels. 
+Describe the Action: Write the main action as a natural sequence of present-tense verbs flowing chronologically from beginning to end. 
+Set the Scene: Detail the environmental background, surface textures, lighting conditions, and color palette to establish mood. 
+Identify Camera Movements: Specify how the camera moves (e.g., dolly in, jib up, pan left). Describing how the subject looks after the movement helps the model complete the motion accurately. 
+Describe the Audio: LTX models generate synchronized native audio. Describe ambient sounds, music, or speech. Put spoken dialogue inside "quotation marks" and specify languages or accents if needed. 
+
+
+
+Golden Rules for LTX Prompting
+Write a Single Paragraph: Do not use bullet points or line breaks inside your final prompt; merge all elements into one fluid paragraph.
+Keep it Under 200 Words: Excessively long descriptions dilute the model's attention span and compromise prompt adherence.
+Be Literal and Precise: Avoid poetic writing or abstract metaphors. State exactly what should be rendered on screen.
+Use Hierarchical Structuring: If using an LLM to expand your prompt, structure the data strictly by Shot Type ➔ Subject ➔ Action ➔ Camera Movement ➔ Lighting ➔ Mood.
+Leverage Negative Space: Explicitly describe what is absent if you need a clean shot (e.g., "clean composition with minimal background elements, no distracting motion"). 
