@@ -1240,7 +1240,7 @@ export async function generateAdvancedVoiceClone(
   const outDir = join(OUTPUT_DIR, projectId, "dots-tts", voiceId);
   ensureDir(outDir);
 
-  console.log([
+  console.log("debug-info:", [
     dotsTtsBin,
     "--model",
     model,
