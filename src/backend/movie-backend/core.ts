@@ -302,6 +302,7 @@ export async function runSetup({
       "Installing Python dependencies...",
       installPythonDependencies,
     );
+
     if (!setupState.depsInstalled) {
       setupState.error = "Failed to install Python dependencies";
       send("error", { error: setupState.error });
@@ -717,6 +718,45 @@ async function installPythonDependencies(): Promise<boolean> {
     );
     if (!uvSyncResult.success) {
       console.error("Failed to install ltx model:", uvSyncResult.error);
+      return false;
+    }
+  }
+
+  {
+    const pythonAppSrcDir = join(APP_DATA_DIR, "python-src");
+    if (!existsSync(pythonAppSrcDir)) {
+      mkdirSync(pythonAppSrcDir, { recursive: true });
+    }
+
+    const dotsTtsFolder = join(pythonAppSrcDir, "dots-tts-mlx");
+
+    if (!existsSync(dotsTtsFolder)) {
+      const cloneCMD = await runCommand(
+        "git",
+        ["clone", "https://github.com/sb1992/dots-tts-mlx.git", "dots-tts-mlx"],
+        { cwd: pythonAppSrcDir },
+      );
+
+      if (!cloneCMD.success) {
+        console.error("Failed to clone dots-tts-mlx:", cloneCMD.error);
+        return false;
+      }
+    }
+
+    // Install the dots-tts CLI (into ~/.local/bin/dots-tts, which is where
+    // `getDotsTtsBin()` resolves it). `uv tool install` does not require a venv.
+    const uvPath = await getUvPath();
+    const installResult = await runCommand(
+      uvPath,
+      ["tool", "install", "--editable", "."],
+      { cwd: dotsTtsFolder },
+    );
+
+    if (!installResult.success) {
+      console.error(
+        "Failed to install dots-tts:",
+        installResult.error || installResult.output,
+      );
       return false;
     }
   }

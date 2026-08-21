@@ -10,7 +10,8 @@ export type AiModelId =
   | "ltx"
   | "ltx-base"
   | "tts"
-  | "gemma";
+  | "gemma"
+  | "dots-tts";
 
 /** Tools whose "install" step must run before their models can be downloaded. */
 export type AiToolId = "mlxgen" | "mlx-vlm" | "hf-cli";
@@ -28,6 +29,7 @@ interface AiModelStore {
   ltxBaseDownloaded: boolean | null;
   ttsDownloaded: boolean | null;
   gemmaDownloaded: boolean | null;
+  dotsTtsDownloaded: boolean | null;
   // In-flight install/download (a model id or tool id)
   downloading: string | null;
   logs: string[];
@@ -82,6 +84,7 @@ const DOWNLOAD_ENDPOINTS: Record<AiModelId, string> = {
   "ltx-base": "/api/hf/download-ltx-base",
   tts: "/api/hf/download-tts",
   gemma: "/api/hf/download-mlx-vlm",
+  "dots-tts": "/api/dots-tts/download-model",
 };
 
 const TOOL_ENDPOINTS: Record<AiToolId, string> = {
@@ -101,13 +104,14 @@ export const useAiModelStore = create<AiModelStore>((set, get) => ({
   ltxBaseDownloaded: null,
   ttsDownloaded: null,
   gemmaDownloaded: null,
+  dotsTtsDownloaded: null,
   downloading: null,
   logs: [],
   error: null,
 
   checkStatus: async () => {
     try {
-      const [mlxgen, agent, hf] = await Promise.all([
+      const [mlxgen, agent, hf, dotsTts] = await Promise.all([
         fetch(`${API_BASE}/api/mlxgen/status`).then((r) =>
           r.ok ? r.json() : null,
         ),
@@ -115,6 +119,9 @@ export const useAiModelStore = create<AiModelStore>((set, get) => ({
           r.ok ? r.json() : null,
         ),
         fetch(`${API_BASE}/api/hf/status`).then((r) => (r.ok ? r.json() : null)),
+        fetch(`${API_BASE}/api/dots-tts/status`).then((r) =>
+          r.ok ? r.json() : null,
+        ),
       ]);
       set({
         mlxgenInstalled: mlxgen ? Boolean(mlxgen.installed) : null,
@@ -127,6 +134,7 @@ export const useAiModelStore = create<AiModelStore>((set, get) => ({
         ltxBaseDownloaded: hf ? Boolean(hf.ltxBaseDownloaded) : null,
         ttsDownloaded: hf ? Boolean(hf.ttsDownloaded) : null,
         gemmaDownloaded: hf ? Boolean(hf.mlxVlmDownloaded) : null,
+        dotsTtsDownloaded: dotsTts ? Boolean(dotsTts.downloaded) : null,
       });
     } catch {
       // Leave status unknown (null) if the checks fail.

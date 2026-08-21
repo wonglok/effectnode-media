@@ -277,18 +277,27 @@ async function getDotsTtsBin(): Promise<string> {
   return "dots-tts";
 }
 
-/** Base directory where dots-tts MLX weights live. */
-const DOTS_TTS_WEIGHTS_DIR = join(APP_DATA_DIR, "dots-tts-mlx-weights");
+/** The cloned dots-tts-mlx project directory. */
+const DOTS_TTS_FOLDER = join(APP_DATA_DIR, "python-src", "dots-tts-mlx");
+
+/** Base directory where dots-tts MLX weights live (inside the project folder). */
+const DOTS_TTS_WEIGHTS_DIR = join(DOTS_TTS_FOLDER, "dots-tts-mlx-weights");
 
 /**
- * Resolve a dots-tts `--model` value. Accepts `./dots-tts-mlx-weights/mf-int4`,
- * a bare variant (`mf-int4`), or an explicit path.
+ * Resolve a dots-tts `--model` value. Accepts `./dots-tts-mlx-weights/mf-int4`
+ * (relative to the dots-tts-mlx folder), a bare variant (`mf-int4`), or an
+ * explicit path.
  */
 function resolveDotsTtsModel(model: string): string {
   if (!model) return join(DOTS_TTS_WEIGHTS_DIR, "mf-int4");
-  if (model.startsWith("./")) return join(APP_DATA_DIR, model.slice(2));
+  if (model.startsWith("./")) return join(DOTS_TTS_FOLDER, model.slice(2));
   if (model.includes("/")) return model;
   return join(DOTS_TTS_WEIGHTS_DIR, model);
+}
+
+/** True when the dots-tts `mf-int4` weights have been downloaded. */
+function isDotsTtsModelDownloaded(): boolean {
+  return existsSync(join(DOTS_TTS_WEIGHTS_DIR, "mf-int4"));
 }
 
 /** Resolve the ffmpeg binary installed via Homebrew (Apple Silicon then Intel). */
@@ -3088,6 +3097,75 @@ export async function renderMediaRoutes({
       ttsDownloaded: isModelDownloaded("Qwen/Qwen3-TTS-12Hz-1.7B-Base"),
       mlxVlmDownloaded: isModelDownloaded(MLX_VLM_MODEL),
     });
+  });
+
+  // ========== Dots-TTS: Status + Model Download ==========
+
+  app.get("/api/dots-tts/status", (_req, res) => {
+    res.json({ downloaded: isDotsTtsModelDownloaded() });
+  });
+
+  app.post("/api/dots-tts/download-model", async (_req, res) => {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+
+    const send = (event: string, data: object) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      ensureDir(DOTS_TTS_FOLDER);
+      send("progress", {
+        status: "starting",
+        label: "Downloading dots-tts model (mf-int4)...",
+      });
+
+      const proc = spawn(
+        [
+          "hf",
+          "download",
+          "shraey/dots-tts-mlx",
+          "--include",
+          "mf-int4/*",
+          "--local-dir",
+          "./dots-tts-mlx-weights",
+        ],
+        { cwd: DOTS_TTS_FOLDER, stdout: "pipe", stderr: "pipe" },
+      );
+
+      activeProc = proc;
+
+      const stdoutPromise = streamToSSE(
+        proc.stdout as ReadableStream<Uint8Array>,
+        "dots-tts",
+        send,
+      );
+      const stderrText = await streamToSSE(
+        proc.stderr as ReadableStream<Uint8Array>,
+        "dots-tts",
+        send,
+      );
+      await stdoutPromise;
+
+      const exitCode = await proc.exited;
+      if (exitCode === 0) {
+        send("complete", { success: true });
+      } else {
+        send("error", {
+          error: stderrText || `Process exited with code ${exitCode}`,
+          exitCode,
+        });
+      }
+    } catch (e) {
+      send("error", { error: String(e) });
+    } finally {
+      activeProc = null;
+      res.end();
+    }
   });
 
   app.post("/api/hf/install", async (_req, res) => {

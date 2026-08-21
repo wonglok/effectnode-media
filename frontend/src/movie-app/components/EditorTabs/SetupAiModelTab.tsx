@@ -215,6 +215,11 @@ const DOWNLOAD_MODELS: {
     name: "mlx-community/gemma-4-e4b-it-8bit",
     desc: "Story planning & dialogue (LLM)",
   },
+  {
+    id: "dots-tts",
+    name: "shraey/dots-tts-mlx (mf-int4)",
+    desc: "Advanced voice clone (dots-tts)",
+  },
 ];
 
 export default function SetupAiModelTab() {
@@ -319,7 +324,9 @@ export default function SetupAiModelTab() {
                         ? store.ltxBaseDownloaded
                         : m.id === "gemma"
                           ? store.gemmaDownloaded
-                          : store.ttsDownloaded;
+                          : m.id === "dots-tts"
+                            ? store.dotsTtsDownloaded
+                            : store.ttsDownloaded;
             return (
               <ModelRow key={m.id} name={m.name} desc={m.desc}>
                 <StatusBadge value={downloaded} />

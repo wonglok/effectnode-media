@@ -123,6 +123,19 @@ mlxgen upscale \
 
 ```bash
 
+
+##
+##
+##
+
+cd to workspace/python-src/dots-tts-mlx
+
+# 1. install the quant-aware runtime (>= v0.2.0)
+pip install "git+https://github.com/sb1992/dots-tts-mlx.git@v0.2.0"
+
+# 2. download the variant you want  (use "mf-int4/*" for the faster MeanFlow decoder)
+hf download shraey/dots-tts-mlx --include "mf-int4/*" --local-dir ./dots-tts-mlx-weights
+
 # 1. install the quant-aware runtime (>= v0.2.0)
 pip install "git+https://github.com/sb1992/dots-tts-mlx.git@v0.2.0"
 
@@ -166,9 +179,6 @@ dots-tts --model ./dots-tts-mlx-weights/mf-int4 \
 
 afplay ./out/good_mf-int4_000.wav
 
-##
-##
-##
 
 ## not very good.
 
@@ -181,10 +191,14 @@ uv run ltx-2-mlx a2v --image /Users/loklok/coder-workspace/cantonese/food.png --
 
 uv run ltx-2-mlx a2v --image /Users/loklok/coder-workspace/cantonese/food.png --audio /Users/loklok/coder-workspace/cantonese/food-short.wav --frame-rate 24 --output ./out-mp4 --prompt "scene at restarurant" --stage1-steps 30 --stage2-steps 3
 
-#
 
 uv run ltx-2-mlx a2v --image /Users/loklok/coder-workspace/cantonese/food.png --audio /Users/loklok/coder-workspace/cantonese/food-short.wav --frame-rate 24 --frames 481 --output ./out/yo.mp4 --prompt "happy food ondering story at the restarurant" --stage1-steps 8 --stage2-steps 3
 
+
+mkdir dots-tts-mlx
+git clone https://github.com/sb1992/dots-tts-mlx.git
+cd dots-tts-mlx
+uv run pip install -e .
 
 ##
 ##
