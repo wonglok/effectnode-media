@@ -22,6 +22,7 @@ interface AudioToVideoStore {
   uploadingImage: boolean;
   uploadingAudio: boolean;
   steps: number;
+  duration: number;
   frames: number;
   prompt: string;
   generating: boolean;
@@ -31,6 +32,7 @@ interface AudioToVideoStore {
   setImage: (a: AssetFile | null) => void;
   setAudio: (a: AssetFile | null) => void;
   setSteps: (n: number) => void;
+  setDuration: (d: number) => void;
   setFrames: (n: number) => void;
   setPrompt: (p: string) => void;
   clearResult: () => void;
@@ -93,6 +95,7 @@ export const useAudioToVideoStore = create<AudioToVideoStore>((set, get) => ({
   uploadingImage: false,
   uploadingAudio: false,
   steps: 15,
+  duration: 1,
   frames: 25,
   prompt: "",
   generating: false,
@@ -105,6 +108,14 @@ export const useAudioToVideoStore = create<AudioToVideoStore>((set, get) => ({
     set({ steps: Math.max(1, Math.round(Number(steps)) || 1), error: null }),
   setFrames: (frames) =>
     set({ frames: Math.max(1, Math.round(Number(frames)) || 1), error: null }),
+  setDuration: (duration) => {
+    const d = Math.max(0, Number(duration)) || 0;
+    set({
+      duration: d,
+      frames: Math.max(1, Math.round(d * 24) + 1),
+      error: null,
+    });
+  },
   setPrompt: (prompt) => set({ prompt, error: null }),
   clearResult: () => set({ result: null, error: null }),
 
@@ -252,6 +263,7 @@ export const useAudioToVideoStore = create<AudioToVideoStore>((set, get) => ({
       uploadingImage: false,
       uploadingAudio: false,
       steps: 15,
+      duration: 1,
       frames: 25,
       prompt: "",
       generating: false,

@@ -305,6 +305,22 @@ export default function AudioToVideoTab({ projectId }: Props) {
         </div>
       </div>
 
+      {/* ===== Duration ===== */}
+      <div>
+        <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-2">
+          Duration (seconds)
+        </label>
+        <input
+          type="number"
+          min={1}
+          step={1}
+          value={a2v.duration}
+          onChange={(e) => a2v.setDuration(Number(e.target.value))}
+          disabled={a2v.generating}
+          className="w-32 px-4 py-2.5 bg-ink-50 border border-ink-200 rounded-2xl text-ink-900 text-sm placeholder-ink-500/40 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/30 transition-all disabled:opacity-50"
+        />
+      </div>
+
       {/* ===== Frames ===== */}
       <div>
         <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-2">
@@ -320,7 +336,7 @@ export default function AudioToVideoTab({ projectId }: Props) {
           className="w-32 px-4 py-2.5 bg-ink-50 border border-ink-200 rounded-2xl text-ink-900 text-sm placeholder-ink-500/40 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/30 transition-all disabled:opacity-50"
         />
         <p className="text-xs text-ink-600/50 mt-1.5">
-          1 second = 24 frames + 1 (24n+1)
+          Auto-updated from duration: 1 second = 24 frames + 1 (24n+1)
         </p>
       </div>
 
