@@ -628,6 +628,64 @@ export default function GenerateVideoTab({ projectId }: Props) {
         </div>
       </div>
 
+      {/* Model */}
+      <div>
+        <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-2">
+          Model
+        </label>
+        <div className="flex flex-col gap-2">
+          {VIDEO_MODEL_OPTIONS.map((m) => {
+            const downloaded =
+              m.aiId === "ltx" ? ai.ltxDownloaded : ai.ltxBaseDownloaded;
+            const selected = store.video.model === m.value;
+            return (
+              <div
+                key={m.value}
+                className={`flex items-center gap-3 rounded-2xl border p-3 transition-all ${
+                  selected
+                    ? "border-tiffany-500 ring-2 ring-tiffany-500/40 bg-white"
+                    : "border-ink-200 bg-white"
+                }`}
+              >
+                <button
+                  onClick={() => store.setVideoModel(m.value)}
+                  disabled={store.video.generating || store.batchRunning}
+                  className="flex-1 text-left disabled:opacity-50"
+                >
+                  <div className="text-xs font-medium text-ink-800">
+                    {m.value}
+                  </div>
+                  <div className="text-[11px] text-ink-500 mt-0.5">
+                    {m.quality}
+                  </div>
+                </button>
+                {downloaded === null ? (
+                  <span className="whitespace-nowrap text-[11px] text-ink-500">
+                    Checking…
+                  </span>
+                ) : downloaded ? (
+                  <span className="whitespace-nowrap text-[11px] font-medium text-emerald-600">
+                    ✓ downloaded
+                  </span>
+                ) : (
+                  <span className="whitespace-nowrap text-[11px] font-medium text-amber-600">
+                    not downloaded
+                  </span>
+                )}
+                <button
+                  onClick={() => ai.downloadModel(m.aiId)}
+                  disabled={ai.downloading !== null}
+                  className="flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-tiffany-500 px-3 py-1.5 text-xs font-medium text-ink-950 transition-colors hover:bg-tiffany-600 disabled:opacity-50"
+                >
+                  {ai.downloading === m.aiId ? SpinnerIcon : DownloadIcon}
+                  {ai.downloading === m.aiId ? "Downloading…" : "Download"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Stage steps */}
       <div>
         <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-2">
