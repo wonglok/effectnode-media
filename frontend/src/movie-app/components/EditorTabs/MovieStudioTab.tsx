@@ -758,6 +758,7 @@ export default function MovieStudioTab({ projectId }: Props) {
                                     <video
                                       src={`${videoUrl}&t=${video?.updatedAt}`}
                                       controls
+                                      muted
                                       className="w-40 rounded-lg border border-ink-200 cursor-pointer"
                                       onClick={() =>
                                         openPreview(videoUrl, s.slug, "video")
@@ -1133,6 +1134,7 @@ export default function MovieStudioTab({ projectId }: Props) {
                           <video
                             src={vidUrl}
                             controls
+                            muted
                             onClick={() =>
                               openPreview(vidUrl, scene.slug, "video")
                             }

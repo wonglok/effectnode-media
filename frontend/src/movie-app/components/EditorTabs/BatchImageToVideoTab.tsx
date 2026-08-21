@@ -693,6 +693,7 @@ export default function BatchImageToVideoTab({ projectId }: Props) {
                           <video
                             src={row.videoResult}
                             controls
+                            muted
                             className="w-full max-w-[160px] h-auto rounded-xl bg-black"
                           />
                           <button
