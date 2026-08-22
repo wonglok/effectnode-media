@@ -68,7 +68,7 @@ export default function ProjectManager() {
   };
 
   const openProject = (id: string) => {
-    navigate(`/project/${id}`);
+    navigate(`/projects/${id}`);
   };
 
   // ========== SVG Icons ==========

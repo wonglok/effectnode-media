@@ -38,16 +38,16 @@ const TAB_KEYS: GenerationTab[] = [
 ];
 
 export default function ProjectEditorPage() {
-  const { id, tab } = useParams<{ id: string; tab?: string }>();
+  const { projectID: id, tab } = useParams<{ projectID: string; tab?: string }>();
   const navigate = useNavigate();
   const { projects, fetchProjects } = useProjectStore();
   const [project, setProject] = useState<Project | null>(null);
 
-  // The active tab is driven by the URL: /project/:id/:tab.
+  // The active tab is driven by the URL: /projects/:projectID/:tab.
   const activeTab: GenerationTab = TAB_KEYS.includes(tab as GenerationTab)
     ? (tab as GenerationTab)
     : "movieStudio";
-  const goToTab = (next: GenerationTab) => navigate(`/project/${id}/${next}`);
+  const goToTab = (next: GenerationTab) => navigate(`/projects/${id}/${next}`);
 
   // Zustand generation store
   const store = useGenerationStore();
@@ -74,7 +74,7 @@ export default function ProjectEditorPage() {
   // Redirect bare or unknown tab URLs to the default tab.
   useEffect(() => {
     if (!tab || !TAB_KEYS.includes(tab as GenerationTab)) {
-      navigate(`/project/${id}/movieStudio`, { replace: true });
+      navigate(`/projects/${id}/movieStudio`, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, tab]);

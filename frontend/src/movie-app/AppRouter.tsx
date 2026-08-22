@@ -8,8 +8,8 @@ export default function AppRouter({ port = 4000 }) {
     <Routes>
       <Route path="/" element={<SetupPage port={port} />} />
       <Route path="/app" element={<MediaStudio />} />
-      <Route path="/project/:id" element={<ProjectEditorPage />} />
-      <Route path="/project/:id/:tab" element={<ProjectEditorPage />} />
+      <Route path="/projects/:projectID" element={<ProjectEditorPage />} />
+      <Route path="/projects/:projectID/:tab" element={<ProjectEditorPage />} />
     </Routes>
   );
 }
