@@ -250,12 +250,29 @@ export default function MovieStudioTab({ projectId }: Props) {
   // Reconcile the movie studio store with the latest queue task state.
   // Prime once per project so already-finished tasks aren't re-applied.
   const primedProjectRef = useRef<string | null>(null);
+  const completedTaskIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (primedProjectRef.current !== projectId) {
       store.primeAppliedQueue(queue.tasks);
       primedProjectRef.current = projectId;
+      completedTaskIdsRef.current = new Set();
     }
-    for (const task of queue.tasks) store.applyQueueTask(task);
+    let newlyCompleted = false;
+    for (const task of queue.tasks) {
+      store.applyQueueTask(task);
+      if (
+        task.status === "completed" &&
+        !completedTaskIdsRef.current.has(task.id)
+      ) {
+        completedTaskIdsRef.current.add(task.id);
+        newlyCompleted = true;
+      }
+    }
+    if (newlyCompleted) {
+      // A generation just finished — refresh the output-folder listing so
+      // table thumbnails pick up the new files immediately.
+      gen.fetchProjectImages(projectId);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queue.tasks, projectId]);
 
@@ -292,7 +309,16 @@ export default function MovieStudioTab({ projectId }: Props) {
     const img = gen.projectImages.find(
       (i) => i.filename === `${prefix}-${slugify(slug)}.png`,
     );
-    return img ? resolveUrl(img.url) : null;
+    if (!img) return null;
+    const base = resolveUrl(img.url);
+    // Cache-bust with the generated file's timestamp so a regenerated image
+    // (same filename) refreshes in the table without a hard reload.
+    const updatedAt =
+      prefix === "scene"
+        ? store.sceneImages.find((i) => i.slug === slug)?.updatedAt
+        : store.assets.find((a) => a.kind === prefix && a.slug === slug)
+            ?.updatedAt;
+    return updatedAt ? `${base}&t=${updatedAt}` : base;
   };
 
   const openPreview = (
