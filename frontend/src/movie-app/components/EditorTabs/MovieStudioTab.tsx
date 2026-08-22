@@ -564,12 +564,32 @@ export default function MovieStudioTab({ projectId }: Props) {
 
               {/* Characters */}
               <div>
-                <h3 className="text-sm font-semibold text-ink-900 mb-2">
-                  Characters
-                </h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-sm font-semibold text-ink-900">
+                    Characters
+                  </h3>
+                  <div className="ml-auto flex items-center gap-2">
+                    <input
+                      value={newCharacterName}
+                      onChange={(e) => setNewCharacterName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleAddCharacter();
+                      }}
+                      placeholder="New character name"
+                      className="w-44 px-2 py-1.5 text-xs bg-ink-50 border border-ink-200 rounded-lg text-ink-800 placeholder-ink-400 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/25"
+                    />
+                    <button
+                      onClick={handleAddCharacter}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl bg-tiffany-500 hover:bg-tiffany-600 text-ink-950 transition-colors"
+                    >
+                      {SparkleIcon}
+                      Add
+                    </button>
+                  </div>
+                </div>
                 {store.result.characters.length === 0 ? (
                   <p className="text-xs text-ink-500 italic py-3 border border-dashed border-ink-200 rounded-2xl text-center">
-                    No characters found.
+                    No characters found. Add one above or generate from an idea.
                   </p>
                 ) : (
                   <div className="overflow-x-auto rounded-xl border border-ink-200">
@@ -578,6 +598,11 @@ export default function MovieStudioTab({ projectId }: Props) {
                         columns={[
                           { key: "slug", label: "Slug", className: "w-32" },
                           { key: "name", label: "Name", className: "w-40" },
+                          {
+                            key: "description",
+                            label: "Description",
+                            className: "w-44",
+                          },
                           { key: "image", label: "Image", className: "w-16" },
                           { key: "prompt", label: "Image Prompt" },
                         ]}
@@ -604,9 +629,20 @@ export default function MovieStudioTab({ projectId }: Props) {
                                   }
                                 />
                               </td>
+                              <td className="border border-ink-200 px-2 py-1.5 align-top min-w-[150px]">
+                                <EditableTextarea
+                                  value={c.description ?? ""}
+                                  onChange={(v) =>
+                                    store.updateCharacter(c.slug, {
+                                      description: v,
+                                    })
+                                  }
+                                  rows={3}
+                                />
+                              </td>
                               <td className="border border-ink-200 px-2 py-1.5 align-top">
-                                {url ? (
-                                  <div className="flex flex-col items-start">
+                                <div className="flex flex-col items-start gap-1">
+                                  {url ? (
                                     <div className="h-16 w-16">
                                       <Thumb
                                         url={url}
@@ -616,23 +652,45 @@ export default function MovieStudioTab({ projectId }: Props) {
                                         }
                                       />
                                     </div>
-                                    <RegenerateButton
-                                      spinning={spinning}
-                                      onClick={() =>
-                                        store.regenerateAsset(
-                                          projectId,
-                                          "character",
-                                          c.slug,
-                                          c.imagePrompt,
-                                        )
-                                      }
-                                    />
+                                  ) : (
+                                    <span className="text-ink-300 text-xs">
+                                      —
+                                    </span>
+                                  )}
+                                  <div className="flex items-center gap-1">
+                                    {url && (
+                                      <RegenerateButton
+                                        spinning={spinning}
+                                        onClick={() =>
+                                          store.regenerateAsset(
+                                            projectId,
+                                            "character",
+                                            c.slug,
+                                            c.imagePrompt,
+                                          )
+                                        }
+                                      />
+                                    )}
+                                    <label className="mt-1 flex items-center gap-1 whitespace-nowrap rounded-md border border-ink-200 px-2 py-1 text-[10px] font-medium text-ink-600 transition-colors hover:border-tiffany-400 hover:text-tiffany-600 cursor-pointer">
+                                      {RefreshIcon}
+                                      Upload
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          const f = e.target.files?.[0];
+                                          e.target.value = "";
+                                          if (f)
+                                            handleUploadCharacterImage(
+                                              c.slug,
+                                              f,
+                                            );
+                                        }}
+                                      />
+                                    </label>
                                   </div>
-                                ) : (
-                                  <span className="text-ink-300 text-xs">
-                                    —
-                                  </span>
-                                )}
+                                </div>
                               </td>
                               <td className="border border-ink-200 px-2 py-1.5 align-top">
                                 <EditableTextarea
