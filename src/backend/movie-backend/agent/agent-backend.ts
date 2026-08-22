@@ -248,6 +248,7 @@ const SCENE_DETAIL_PROMPT = [
   "- scriptLines is one entry per spoken line, each with the speaking character's slug and the exact spoken line. Include every line of dialogue that belongs to this scene.",
   "- voiceOver is the narration/voiceover for that scene (use an empty string when there is none).",
   "- imagePrompt is ONE coherent shot that combines the referenced characters AND the place together, using the given artStyle.",
+  "- If previously generated scenes are provided, do NOT repeat their description, dialogue, or imagePrompt; write something distinct for this scene.",
   "- Apply the given artStyle to the imagePrompt.",
   "- Write descriptions, prompts and dialogue as natural-language English sentences, never comma-separated keyword tags.",
 ].join("\n");
@@ -422,9 +423,14 @@ export async function generateMovieStudioBible(
   const scenes: any[] = [];
   for (const s of sceneList) {
     advance(`Writing scene: ${s.slug}`);
+    // Pass the scenes already written so the model avoids repeating the same
+    // description, dialogue, or shot as a previously generated scene.
+    const previousScenes = scenes.length
+      ? `\n\nPreviously generated scenes (do NOT repeat their description, dialogue, or image):\n${JSON.stringify(scenes)}`
+      : "";
     const detail = await generateItem(
       SCENE_DETAIL_PROMPT,
-      `Art style: ${artStyle}\n\nIdea: ${idea.trim()}\n\nCharacters:\n${JSON.stringify(characters.map((c) => ({ slug: c.slug, name: c.name })))}\n\nPlaces:\n${JSON.stringify(places.map((p) => ({ slug: p.slug, name: p.name })))}\n\nScene slug: ${s.slug}\nDuration: ${s.duration}s\nCharacter slugs: ${s.characterSlugs.join(", ")}\nPlace slug: ${s.placeSlug}`,
+      `Art style: ${artStyle}\n\nIdea: ${idea.trim()}\n\nCharacters:\n${JSON.stringify(characters.map((c) => ({ slug: c.slug, name: c.name })))}\n\nPlaces:\n${JSON.stringify(places.map((p) => ({ slug: p.slug, name: p.name })))}\n\nScene slug: ${s.slug}\nDuration: ${s.duration}s\nCharacter slugs: ${s.characterSlugs.join(", ")}\nPlace slug: ${s.placeSlug}${previousScenes}`,
       { description: "", scriptLines: [], voiceOver: "", imagePrompt: "" },
     );
     scenes.push({
