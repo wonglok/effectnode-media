@@ -48,8 +48,7 @@ import { createServer } from "node:http";
 // const APP_NAME = "Media Studio by loklok";
 const APP_DATA_DIR = join(homedir(), "media-studio");
 const PYTHON_DIR = join(APP_DATA_DIR, "python-src");
-const OUTPUT_DIR = join(APP_DATA_DIR, "output");
-const UPLOAD_DIR = join(APP_DATA_DIR, "upload");
+const PROJECTS_DIR = join(APP_DATA_DIR, "projects");
 const JSON_DIR = join(APP_DATA_DIR, "json");
 const BACKEND_PORT_START = 4000;
 let BACKEND_PORT = BACKEND_PORT_START;
@@ -94,7 +93,7 @@ export async function runSetup({
 }: {
   port: number;
 }): Promise<any> {
-  [APP_DATA_DIR, PYTHON_DIR, OUTPUT_DIR, JSON_DIR, UPLOAD_DIR].forEach(
+  [APP_DATA_DIR, PYTHON_DIR, PROJECTS_DIR, JSON_DIR].forEach(
     (dir) => {
       if (!existsSync(dir)) {
         mkdirSync(dir, { recursive: true });

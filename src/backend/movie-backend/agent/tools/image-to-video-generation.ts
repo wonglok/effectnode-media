@@ -10,7 +10,7 @@ import {
   isValidProjectId,
   resolveWorkspacePath,
   classifyFile,
-  AGENT_UPLOAD_DIR,
+  projectDir,
   workspaceDir,
 } from "../workspace.js";
 import type { AgentTool } from "./types.js";
@@ -110,7 +110,7 @@ const tool: AgentTool = {
 
     // Copy the image into the project's agent-upload dir so the video endpoint
     // can resolve it by bare filename.
-    const uploadProjectDir = join(AGENT_UPLOAD_DIR, ctx.projectId);
+    const uploadProjectDir = join(projectDir(ctx.projectId), "agent-upload");
     if (!existsSync(uploadProjectDir)) {
       mkdirSync(uploadProjectDir, { recursive: true });
     }

@@ -27,8 +27,14 @@ import { generateMovieStudioBible } from "./agent/agent-backend.js";
 import { movieStudioStateFile } from "./agent/workspace.js";
 
 const APP_DATA_DIR = join(homedir(), "media-studio");
-const TASKS_DIR = join(APP_DATA_DIR, "tasks");
-const LOGS_DIR = join(APP_DATA_DIR, "logs");
+const PROJECTS_DIR = join(APP_DATA_DIR, "projects");
+
+function projectDir(projectId: string): string {
+  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(projectId)) {
+    throw new Error("Invalid project ID");
+  }
+  return join(PROJECTS_DIR, projectId);
+}
 
 const PROJECT_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/;
 
@@ -80,7 +86,7 @@ export interface QueueTask {
 // ========== Queue file persistence ==========
 
 function queueDir(projectId: string): string {
-  return join(TASKS_DIR, projectId);
+  return join(projectDir(projectId), "tasks");
 }
 
 function queueFile(projectId: string): string {
@@ -88,7 +94,7 @@ function queueFile(projectId: string): string {
 }
 
 function logFile(projectId: string): string {
-  return join(LOGS_DIR, projectId, "logs.txt");
+  return join(projectDir(projectId), "logs", "logs.txt");
 }
 
 /** Append a chunk of terminal output to the project's persistent log file. */
@@ -111,14 +117,12 @@ function isValidProjectId(id: string): boolean {
   return PROJECT_ID_RE.test(id);
 }
 
-const OUTPUT_DIR = join(APP_DATA_DIR, "output");
-
 /** Return an existing output file's metadata if already generated, else null. */
 function existingOutput(
   projectId: string,
   filename: string,
 ): { filename: string; url: string; updatedAt: number } | null {
-  const path = join(OUTPUT_DIR, projectId, filename);
+  const path = join(projectDir(projectId), "output", filename);
   if (!existsSync(path)) return null;
   let updatedAt = Date.now();
   try {
@@ -138,7 +142,7 @@ interface QueueState {
 }
 
 // In-memory queues, keyed by project id. Persisted to disk on every mutation so
-// the queue survives app restarts and is visible at tasks/:projectId/queue.json.
+// the queue survives app restarts and is visible at projects/:projectId/tasks/queue.json.
 const queues = new Map<string, QueueState>();
 
 // Global FIFO enqueue order so pending tasks are picked in submission order
@@ -241,7 +245,7 @@ function loadState(projectId: string): QueueState {
 function loadAllStates(): void {
   let entries: string[] = [];
   try {
-    entries = existsSync(TASKS_DIR) ? readdirSync(TASKS_DIR) : [];
+    entries = existsSync(PROJECTS_DIR) ? readdirSync(PROJECTS_DIR) : [];
   } catch {
     entries = [];
   }

@@ -29,13 +29,9 @@ export function getAgentServerPort(): number | null {
 }
 
 const APP_DATA_DIR = join(homedir(), "media-studio");
-const OUTPUT_DIR = join(APP_DATA_DIR, "output");
-const UPLOAD_DIR = join(APP_DATA_DIR, "upload");
-const AGENT_UPLOAD_DIR = join(APP_DATA_DIR, "agent-upload");
-const AGENTS_DIR = join(APP_DATA_DIR, "agents");
+const PROJECTS_DIR = join(APP_DATA_DIR, "projects");
 const JSON_DIR = join(APP_DATA_DIR, "json");
 const PYTHON_DIR = join(APP_DATA_DIR, "python-src");
-const TEMP_DIR = join(APP_DATA_DIR, "temp");
 const PROJECTS_FILE = join(JSON_DIR, "projects.json");
 const CHARACTERS_FILE = join(JSON_DIR, "characters.json");
 
@@ -98,6 +94,14 @@ function ensureDir(dir: string) {
   }
 }
 
+/** Resolve the per-project root directory (projects/<projectId>). */
+function projectDir(projectId: string): string {
+  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(projectId)) {
+    throw new Error("Invalid project ID");
+  }
+  return join(PROJECTS_DIR, projectId);
+}
+
 const PROJECT_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/;
 
 function isValidProjectId(id: string): boolean {
@@ -118,7 +122,7 @@ function resolveOutputDir(
   const base =
     typeof outputDir === "string" && outputDir.trim()
       ? outputDir.trim()
-      : join(OUTPUT_DIR, projectId);
+      : join(projectDir(projectId), "output");
 
   // Defense in depth: reject null bytes and `..` traversal segments.
   if (base.includes("\0") || base.split(/[/\\]/).includes("..")) return null;
@@ -131,7 +135,11 @@ function resolveOutputDir(
     return null;
   }
 
-  for (const root of [OUTPUT_DIR, UPLOAD_DIR, AGENTS_DIR]) {
+  for (const root of [
+    join(projectDir(projectId), "output"),
+    join(projectDir(projectId), "upload"),
+    join(projectDir(projectId), "agents"),
+  ]) {
     ensureDir(root);
     const realRoot = realpathSync(root);
     if (realBase === realRoot || realBase.startsWith(realRoot + sep)) {
@@ -199,23 +207,11 @@ function openInFinder(dirPath: string) {
 
 // ========== SSE Helper ==========
 
-// Allowed directories for file serving and path resolution.
-// Lazily resolved on first use because dirs may not exist at import time.
-let _allowedRealDirs: string[] | null = null;
-function getAllowedRealDirs(): string[] {
-  if (_allowedRealDirs) return _allowedRealDirs;
-  [OUTPUT_DIR, UPLOAD_DIR, AGENT_UPLOAD_DIR].forEach((d) => ensureDir(d));
-  _allowedRealDirs = [
-    realpathSync(OUTPUT_DIR) + sep,
-    realpathSync(UPLOAD_DIR) + sep,
-    realpathSync(AGENT_UPLOAD_DIR) + sep,
-  ];
-  return _allowedRealDirs;
-}
-
-/** Validate that `resolvedPath` is inside an allowed directory. */
+/** Validate that `resolvedPath` is inside the projects root. */
 function isPathAllowed(resolvedPath: string): boolean {
-  return getAllowedRealDirs().some((dir) => resolvedPath.startsWith(dir));
+  ensureDir(PROJECTS_DIR);
+  const realProjects = realpathSync(PROJECTS_DIR);
+  return resolvedPath.startsWith(realProjects + sep);
 }
 
 /** Resolve and validate a user-supplied filename. Looks in both upload and output dirs. */
@@ -227,8 +223,8 @@ function resolveSafePath(candidate: string, projectId: string): string | null {
   }
 
   // Try the agent-upload dir first, then upload and output dirs.
-  for (const dir of [AGENT_UPLOAD_DIR, UPLOAD_DIR, OUTPUT_DIR]) {
-    const candidatePath = join(dir, projectId, base);
+  for (const sub of ["agent-upload", "upload", "output"]) {
+    const candidatePath = join(projectDir(projectId), sub, base);
     if (existsSync(candidatePath)) {
       const resolved = realpathSync(candidatePath);
       if (isPathAllowed(resolved)) return resolved;
@@ -237,7 +233,7 @@ function resolveSafePath(candidate: string, projectId: string): string | null {
 
   // TTS voiceovers are stored under <output>/<projectId>/voices/<id>/. Search
   // each voice folder for the basename so muxing can resolve the audio.
-  const voicesRoot = join(OUTPUT_DIR, projectId, "voices");
+  const voicesRoot = join(projectDir(projectId), "output", "voices");
   let voiceSubdirs: string[] = [];
   try {
     voiceSubdirs = readdirSync(voicesRoot).map((entry) =>
@@ -545,7 +541,7 @@ async function runCommand(
 /** Copy a generated file into the project's backup folder with a timestamped name. */
 function backupFile(sourcePath: string, projectId: string): string | null {
   try {
-    const backupDir = join(OUTPUT_DIR, String(projectId), "backup");
+    const backupDir = join(projectDir(String(projectId)), "output", "backup");
     ensureDir(backupDir);
     const base = sourcePath.split(sep).pop() || "file";
     const dot = base.lastIndexOf(".");
@@ -631,7 +627,7 @@ export async function generateAssetImage(
   onLog?: (text: string) => void,
 ): Promise<{ filename: string; url: string } | { error: string }> {
   const mlxgen = await getMlxgenBin();
-  const outputDir = join(OUTPUT_DIR, projectId);
+  const outputDir = join(projectDir(projectId), "output");
   ensureDir(outputDir);
   const outputFile = `${kind}-${slug}.png`;
   const outputPath = join(outputDir, outputFile);
@@ -705,7 +701,7 @@ export async function generateSceneVideo(
     .replace(/[^a-zA-Z0-9_-]/g, "_");
   if (!s) return { error: "Invalid scene slug" };
 
-  const outputDir = join(OUTPUT_DIR, projectId);
+  const outputDir = join(projectDir(projectId), "output");
   const sceneImagePath = join(outputDir, `scene-${s}.png`);
   if (!existsSync(sceneImagePath)) {
     return {
@@ -882,7 +878,7 @@ export async function generateSceneImage(
   if (!s) return { error: "Invalid scene slug" };
   const stepCount = Math.max(1, Number(steps) || 4);
 
-  const outputDir = join(OUTPUT_DIR, projectId);
+  const outputDir = join(projectDir(projectId), "output");
   const mlxgen = await getMlxgenBin();
 
   const refImages: string[] = [];
@@ -961,7 +957,7 @@ export async function generateUpscale(
   const target = /^(1x|\d+)$/.test(resolution) ? resolution : "1x";
 
   const mlxgen = await getMlxgenBin();
-  const projectOutputDir = join(OUTPUT_DIR, projectId);
+  const projectOutputDir = join(projectDir(projectId), "output");
   ensureDir(projectOutputDir);
 
   const outputFile = `upscale-${target}-${Date.now()}.png`;
@@ -1174,7 +1170,7 @@ export async function generateAudioToVideo(
     return { error: "ltx-2-mlx not found. Run setup first." };
   }
 
-  const outputDir = join(OUTPUT_DIR, projectId, `a2v-${Date.now()}`);
+  const outputDir = join(projectDir(projectId), "output", `a2v-${Date.now()}`);
   ensureDir(outputDir);
 
   const result = await runCommand(
@@ -1260,7 +1256,7 @@ export async function generateAdvancedVoiceClone(
   // dots-tts expects a WAV reference — convert mp3/other formats to 16-bit PCM WAV.
   let refAudio = resolvedRef;
   if (!resolvedRef.toLowerCase().endsWith(".wav")) {
-    const tempDir = join(TEMP_DIR, String(projectId));
+    const tempDir = join(projectDir(String(projectId)), "temp");
     ensureDir(tempDir);
     const convertedRef = join(tempDir, `avc-ref-${Date.now()}.wav`);
     const ffmpegBin = await getFfmpegBin();
@@ -1290,7 +1286,7 @@ export async function generateAdvancedVoiceClone(
   // Mirror the voice-clone tab's timestamped-folder layout so outputs never
   // overwrite each other.
   const voiceId = `voice-${Date.now()}`;
-  const outDir = join(OUTPUT_DIR, projectId, "dots-tts", voiceId);
+  const outDir = join(projectDir(projectId), "output", "dots-tts", voiceId);
   ensureDir(outDir);
 
   console.log("debug-info:", [
@@ -1390,7 +1386,7 @@ export async function generateFastImageEditImage(
 
   // Decode each base64 reference image into a temp workspace file so the
   // FLUX model receives them as separate `--image` inputs.
-  const tempDir = join(TEMP_DIR, String(projectId));
+  const tempDir = join(projectDir(String(projectId)), "temp");
   ensureDir(tempDir);
   const tempImagePaths: string[] = [];
   try {
@@ -1407,7 +1403,7 @@ export async function generateFastImageEditImage(
 
   try {
     const mlxgen = await getMlxgenBin();
-    const projectOutputDir = join(OUTPUT_DIR, projectId);
+    const projectOutputDir = join(projectDir(projectId), "output");
     ensureDir(projectOutputDir);
 
     const outputFile = `flux-edit-${Date.now()}.png`;
@@ -1538,7 +1534,7 @@ export async function renderMediaRoutes({
       const base64 = image.replace(/^data:image\/\w+;base64,/, "");
       const buffer = Buffer.from(base64, "base64");
 
-      const projectUploadDir = join(UPLOAD_DIR, projectId);
+      const projectUploadDir = join(projectDir(projectId), "upload");
       ensureDir(projectUploadDir);
 
       const safeName = (filename || `upload-${Date.now()}.png`).replace(
@@ -1579,7 +1575,7 @@ export async function renderMediaRoutes({
       const base64 = String(video).replace(/^data:[^;]+;base64,/, "");
       const buffer = Buffer.from(base64, "base64");
 
-      const projectUploadDir = join(UPLOAD_DIR, String(projectId));
+      const projectUploadDir = join(projectDir(String(projectId)), "upload");
       ensureDir(projectUploadDir);
 
       const safeName = (filename || `upload-${Date.now()}.mp4`).replace(
@@ -1620,7 +1616,7 @@ export async function renderMediaRoutes({
       const base64 = String(audio).replace(/^data:audio\/\w+;base64,/, "");
       const buffer = Buffer.from(base64, "base64");
 
-      const projectUploadDir = join(UPLOAD_DIR, projectId);
+      const projectUploadDir = join(projectDir(projectId), "upload");
       ensureDir(projectUploadDir);
 
       const safeName = (filename || `upload-${Date.now()}.mp3`).replace(
@@ -1666,15 +1662,15 @@ export async function renderMediaRoutes({
     }[] = [];
 
     for (const [source, dir] of [
-      ["upload", UPLOAD_DIR],
-      ["generated", OUTPUT_DIR],
+      ["upload", "upload"],
+      ["generated", "output"],
     ] as const) {
-      const projectDir = join(dir, id);
-      if (!existsSync(projectDir)) continue;
+      const projRoot = join(projectDir(id), dir);
+      if (!existsSync(projRoot)) continue;
 
       let entries: string[];
       try {
-        entries = readdirSync(projectDir);
+        entries = readdirSync(projRoot);
       } catch {
         continue;
       }
@@ -1683,7 +1679,7 @@ export async function renderMediaRoutes({
         const ext = entry.slice(entry.lastIndexOf(".")).toLowerCase();
         if (!imageExts.has(ext)) continue;
 
-        const fullPath = join(projectDir, entry);
+        const fullPath = join(projRoot, entry);
         try {
           if (!statSync(fullPath).isFile()) continue;
         } catch {
@@ -1715,13 +1711,13 @@ export async function renderMediaRoutes({
     const raw: { filename: string; url: string; birthtime: number }[] = [];
 
     // Videos can live in both the output dir (generated) and the upload dir.
-    for (const dir of [OUTPUT_DIR, UPLOAD_DIR]) {
-      const projectDir = join(dir, id);
-      if (!existsSync(projectDir)) continue;
+    for (const dir of ["output", "upload"]) {
+      const projRoot = join(projectDir(id), dir);
+      if (!existsSync(projRoot)) continue;
 
       let entries: string[];
       try {
-        entries = readdirSync(projectDir);
+        entries = readdirSync(projRoot);
       } catch {
         continue;
       }
@@ -1730,7 +1726,7 @@ export async function renderMediaRoutes({
         const ext = entry.slice(entry.lastIndexOf(".")).toLowerCase();
         if (!videoExts.has(ext)) continue;
 
-        const fullPath = join(projectDir, entry);
+        const fullPath = join(projRoot, entry);
         let stats;
         try {
           stats = statSync(fullPath);
@@ -1772,13 +1768,13 @@ export async function renderMediaRoutes({
 
     const raw: { filename: string; url: string; birthtime: number }[] = [];
 
-    for (const dir of [UPLOAD_DIR, OUTPUT_DIR]) {
-      const projectDir = join(dir, id);
-      if (!existsSync(projectDir)) continue;
+    for (const dir of ["upload", "output"]) {
+      const projRoot = join(projectDir(id), dir);
+      if (!existsSync(projRoot)) continue;
 
       let entries: string[];
       try {
-        entries = readdirSync(projectDir);
+        entries = readdirSync(projRoot);
       } catch {
         continue;
       }
@@ -1787,7 +1783,7 @@ export async function renderMediaRoutes({
         const ext = entry.slice(entry.lastIndexOf(".")).toLowerCase();
         if (!audioExts.has(ext)) continue;
 
-        const fullPath = join(projectDir, entry);
+        const fullPath = join(projRoot, entry);
         let stats;
         try {
           stats = statSync(fullPath);
@@ -1817,7 +1813,7 @@ export async function renderMediaRoutes({
       return;
     }
 
-    const voicesRoot = join(OUTPUT_DIR, id, "voices");
+    const voicesRoot = join(projectDir(id), "output", "voices");
     const results: {
       id: string;
       transcript: string;
@@ -1922,7 +1918,7 @@ export async function renderMediaRoutes({
       }
 
       const uvPath = await getUvPath();
-      const projectOutputDir = join(OUTPUT_DIR, projectId);
+      const projectOutputDir = join(projectDir(projectId), "output");
       ensureDir(projectOutputDir);
 
       const outputFile = `img-${Date.now()}.png`;
@@ -2199,7 +2195,7 @@ export async function renderMediaRoutes({
       res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     };
 
-    const outputDir = join(OUTPUT_DIR, String(projectId));
+    const outputDir = join(projectDir(String(projectId)), "output");
     ensureDir(outputDir);
 
     let stepCount = 0;
@@ -2532,7 +2528,7 @@ export async function renderMediaRoutes({
 
     try {
       const buffer = Buffer.from(base64, "base64");
-      const outputDir = join(OUTPUT_DIR, String(projectId));
+      const outputDir = join(projectDir(String(projectId)), "output");
       ensureDir(outputDir);
       const outputFile = `character-${safeSlug}.png`;
       const outputPath = join(outputDir, outputFile);
@@ -3649,7 +3645,7 @@ export async function renderMediaRoutes({
 
     // Decode each base64 reference image into a temp workspace file so the
     // FLUX model receives them as separate `--image` inputs.
-    const tempDir = join(TEMP_DIR, String(projectId));
+    const tempDir = join(projectDir(String(projectId)), "temp");
     ensureDir(tempDir);
     const tempImagePaths: string[] = [];
     try {
@@ -3678,7 +3674,7 @@ export async function renderMediaRoutes({
 
     try {
       const mlxgen = await getMlxgenBin();
-      const projectOutputDir = join(OUTPUT_DIR, projectId);
+      const projectOutputDir = join(projectDir(projectId), "output");
       ensureDir(projectOutputDir);
 
       const outputFile = `flux-edit-${Date.now()}.png`;
@@ -3801,7 +3797,7 @@ export async function renderMediaRoutes({
 
     try {
       const mlxgen = await getMlxgenBin();
-      const projectOutputDir = join(OUTPUT_DIR, projectId);
+      const projectOutputDir = join(projectDir(projectId), "output");
       ensureDir(projectOutputDir);
 
       const outputFile = `zimage-${Date.now()}.png`;
@@ -4087,7 +4083,7 @@ export async function renderMediaRoutes({
   // List all projects
   app.get("/api/open-output", (_req, res) => {
     try {
-      openInFinder(`${OUTPUT_DIR}`);
+      openInFinder(PROJECTS_DIR);
     } catch {}
 
     res.json({ ok: true });
@@ -4138,8 +4134,8 @@ export async function renderMediaRoutes({
     };
 
     // Create project folders
-    ensureDir(join(UPLOAD_DIR, project.id));
-    ensureDir(join(OUTPUT_DIR, project.id));
+    ensureDir(join(projectDir(project.id), "upload"));
+    ensureDir(join(projectDir(project.id), "output"));
 
     projects.push(project);
     writeProjects(projects);
@@ -4278,13 +4274,13 @@ export async function renderMediaRoutes({
     let targetPath: string;
     switch (type) {
       case "upload":
-        targetPath = join(UPLOAD_DIR, project.id);
+        targetPath = join(projectDir(project.id), "upload");
         break;
       case "output":
-        targetPath = join(OUTPUT_DIR, project.id);
+        targetPath = join(projectDir(project.id), "output");
         break;
       default:
-        targetPath = join(OUTPUT_DIR, project.id);
+        targetPath = join(projectDir(project.id), "output");
     }
 
     ensureDir(targetPath);
@@ -4307,7 +4303,7 @@ export async function renderMediaRoutes({
       return;
     }
 
-    const projectOutputDir = join(OUTPUT_DIR, project.id);
+    const projectOutputDir = join(projectDir(project.id), "output");
     ensureDir(projectOutputDir);
     try {
       openInFinder(projectOutputDir);

@@ -10,32 +10,36 @@ import { join, sep } from "node:path";
 
 const APP_DATA_DIR = join(homedir(), "media-studio");
 const JSON_DIR = join(APP_DATA_DIR, "json");
+export const PROJECTS_DIR = join(APP_DATA_DIR, "projects");
 
-export const AGENTS_DIR = join(APP_DATA_DIR, "agents");
-export const UPLOAD_DIR = join(APP_DATA_DIR, "upload");
-export const AGENT_UPLOAD_DIR = join(APP_DATA_DIR, "agent-upload");
 export const MEMORIES_DIR_NAME = "memories";
 export const PROJECTS_FILE = join(JSON_DIR, "projects.json");
-export const STUDIO_DIR = join(APP_DATA_DIR, "studio");
+
+export function projectDir(projectId: string): string {
+  if (!/^[a-zA-Z0-9_-]{1,64}$/.test(projectId)) {
+    throw new Error("Invalid project ID");
+  }
+  return join(PROJECTS_DIR, projectId);
+}
 
 export function ensureDir(dir: string): void {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 }
 
 export function workspaceDir(projectId: string): string {
-  return join(AGENTS_DIR, projectId);
+  return join(projectDir(projectId), "agents");
 }
 
 export function movieStudioDataDir(projectId: string): string {
-  return join(STUDIO_DIR, projectId, "data");
+  return join(projectDir(projectId), "studio", "data");
 }
 
 export function movieStudioStateFile(projectId: string): string {
-  return join(STUDIO_DIR, projectId, "state.json");
+  return join(projectDir(projectId), "studio", "state.json");
 }
 
 export function memoriesDir(projectId: string): string {
-  return join(AGENTS_DIR, projectId, MEMORIES_DIR_NAME);
+  return join(projectDir(projectId), "agents", MEMORIES_DIR_NAME);
 }
 
 const PROJECT_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/;
@@ -63,8 +67,8 @@ export function resolveWorkspacePath(
   if (existsSync(resolved)) {
     try {
       const realResolved = realpathSync(resolved);
-      const realAgents = realpathSync(AGENTS_DIR);
-      if (!realResolved.startsWith(realAgents + sep)) return null;
+      const realBase = realpathSync(base);
+      if (!realResolved.startsWith(realBase + sep)) return null;
     } catch {
       return null;
     }
