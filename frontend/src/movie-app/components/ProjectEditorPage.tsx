@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProjectStore, type Project } from "../stores/projectStore";
-import { useGenerationStore } from "../stores/generationStore";
+import {
+  useGenerationStore,
+  type GenerationTab,
+} from "../stores/generationStore";
 import FastImageEditTab from "./EditorTabs/FastImageEditTab";
 import MovieStudioTab from "./EditorTabs/MovieStudioTab";
 import GenerateVideoTab from "./EditorTabs/GenerateVideoTab";
@@ -17,11 +20,34 @@ import VoiceCloneTab from "./EditorTabs/VoiceCloneTab";
 import AudioToVideoTab from "./EditorTabs/AudioToVideoTab";
 import AdvancedVoiceCloneTab from "./EditorTabs/AdvancedVoiceCloneTab";
 
+const TAB_KEYS: GenerationTab[] = [
+  "movieStudio",
+  "video",
+  "fastImageEdit",
+  "agent",
+  "storyWriter",
+  "textToImage",
+  "batchVideo",
+  "batchImageToVideo",
+  "llmServer",
+  "aiModels",
+  "upscale",
+  "voiceClone",
+  "advancedVoiceClone",
+  "audioToVideo",
+];
+
 export default function ProjectEditorPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id, tab } = useParams<{ id: string; tab?: string }>();
   const navigate = useNavigate();
   const { projects, fetchProjects } = useProjectStore();
   const [project, setProject] = useState<Project | null>(null);
+
+  // The active tab is driven by the URL: /project/:id/:tab.
+  const activeTab: GenerationTab = TAB_KEYS.includes(tab as GenerationTab)
+    ? (tab as GenerationTab)
+    : "movieStudio";
+  const goToTab = (next: GenerationTab) => navigate(`/project/${id}/${next}`);
 
   // Zustand generation store
   const store = useGenerationStore();
@@ -44,6 +70,14 @@ export default function ProjectEditorPage() {
       store.fetchProjectVideos(id);
     }
   }, [id]);
+
+  // Redirect bare or unknown tab URLs to the default tab.
+  useEffect(() => {
+    if (!tab || !TAB_KEYS.includes(tab as GenerationTab)) {
+      navigate(`/project/${id}/movieStudio`, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, tab]);
 
   // Poll the LLM server status so the tab label light stays accurate
   // regardless of which tab is active.
@@ -392,9 +426,9 @@ export default function ProjectEditorPage() {
           {/* ========== TAB BAR ========== */}
           <div className="flex items-center gap-1.5 border-b border-ink-200 pb-5 mb-4 flex-wrap">
             <button
-              onClick={() => store.setActiveTab("movieStudio")}
+              onClick={() => goToTab("movieStudio")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "movieStudio"
+                activeTab === "movieStudio"
                   ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
                   : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
               }`}
@@ -403,9 +437,9 @@ export default function ProjectEditorPage() {
               Movie Studio
             </button>
             <button
-              onClick={() => store.setActiveTab("video")}
+              onClick={() => goToTab("video")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "video"
+                activeTab === "video"
                   ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
                   : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
               }`}
@@ -414,9 +448,9 @@ export default function ProjectEditorPage() {
               Scene Video Generation
             </button>
             <button
-              onClick={() => store.setActiveTab("fastImageEdit")}
+              onClick={() => goToTab("fastImageEdit")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "fastImageEdit"
+                activeTab === "fastImageEdit"
                   ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
                   : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
               }`}
@@ -425,9 +459,9 @@ export default function ProjectEditorPage() {
               Fast Image Edit
             </button>
             <button
-              onClick={() => store.setActiveTab("agent")}
+              onClick={() => goToTab("agent")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "agent"
+                activeTab === "agent"
                   ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
                   : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
               }`}
@@ -436,9 +470,9 @@ export default function ProjectEditorPage() {
               Agent
             </button>
             <button
-              onClick={() => store.setActiveTab("storyWriter")}
+              onClick={() => goToTab("storyWriter")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "storyWriter"
+                activeTab === "storyWriter"
                   ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
                   : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
               }`}
@@ -447,9 +481,9 @@ export default function ProjectEditorPage() {
               Story Writer
             </button>
             <button
-              onClick={() => store.setActiveTab("textToImage")}
+              onClick={() => goToTab("textToImage")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "textToImage"
+                activeTab === "textToImage"
                   ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
                   : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
               }`}
@@ -458,9 +492,9 @@ export default function ProjectEditorPage() {
               Text-to-Image
             </button>
             <button
-              onClick={() => store.setActiveTab("batchVideo")}
+              onClick={() => goToTab("batchVideo")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "batchVideo"
+                activeTab === "batchVideo"
                   ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
                   : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
               }`}
@@ -469,9 +503,9 @@ export default function ProjectEditorPage() {
               Batch Video
             </button>
             <button
-              onClick={() => store.setActiveTab("batchImageToVideo")}
+              onClick={() => goToTab("batchImageToVideo")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "batchImageToVideo"
+                activeTab === "batchImageToVideo"
                   ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
                   : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
               }`}
@@ -480,9 +514,9 @@ export default function ProjectEditorPage() {
               Batch Image to Video
             </button>
             <button
-              onClick={() => store.setActiveTab("llmServer")}
+              onClick={() => goToTab("llmServer")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "llmServer"
+                activeTab === "llmServer"
                   ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
                   : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
               }`}
@@ -492,9 +526,9 @@ export default function ProjectEditorPage() {
               <ServerStatusLight />
             </button>
             <button
-              onClick={() => store.setActiveTab("upscale")}
+              onClick={() => goToTab("upscale")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "upscale"
+                activeTab === "upscale"
                   ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
                   : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
               }`}
@@ -503,9 +537,9 @@ export default function ProjectEditorPage() {
               Upscale Media
             </button>
             <button
-              onClick={() => store.setActiveTab("voiceClone")}
+              onClick={() => goToTab("voiceClone")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "voiceClone"
+                activeTab === "voiceClone"
                   ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
                   : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
               }`}
@@ -514,9 +548,9 @@ export default function ProjectEditorPage() {
               Voice Clone
             </button>
             <button
-              onClick={() => store.setActiveTab("advancedVoiceClone")}
+              onClick={() => goToTab("advancedVoiceClone")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "advancedVoiceClone"
+                activeTab === "advancedVoiceClone"
                   ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
                   : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
               }`}
@@ -525,9 +559,9 @@ export default function ProjectEditorPage() {
               Advanced Voice Clone
             </button>
             <button
-              onClick={() => store.setActiveTab("audioToVideo")}
+              onClick={() => goToTab("audioToVideo")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "audioToVideo"
+                activeTab === "audioToVideo"
                   ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
                   : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
               }`}
@@ -536,9 +570,9 @@ export default function ProjectEditorPage() {
               Audio to Video
             </button>
             <button
-              onClick={() => store.setActiveTab("aiModels")}
+              onClick={() => goToTab("aiModels")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
-                store.activeTab === "aiModels"
+                activeTab === "aiModels"
                   ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
                   : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
               }`}
@@ -549,62 +583,62 @@ export default function ProjectEditorPage() {
           </div>
 
           {/* ========== MOVIE STUDIO PANEL ========== */}
-          {store.activeTab === "movieStudio" && (
+          {activeTab === "movieStudio" && (
             <MovieStudioTab projectId={id!} />
           )}
 
           {/* ========== FAST IMAGE EDIT PANEL ========== */}
-          {store.activeTab === "fastImageEdit" && (
+          {activeTab === "fastImageEdit" && (
             <FastImageEditTab projectId={id!} />
           )}
 
           {/* ========== VIDEO GENERATION PANEL ========== */}
-          {store.activeTab === "video" && <GenerateVideoTab projectId={id!} />}
+          {activeTab === "video" && <GenerateVideoTab projectId={id!} />}
 
           {/* ========== AGENT PANEL ========== */}
-          {store.activeTab === "agent" && <AgentTab projectId={id!} />}
+          {activeTab === "agent" && <AgentTab projectId={id!} />}
 
           {/* ========== STORY WRITER PANEL ========== */}
-          {store.activeTab === "storyWriter" && (
+          {activeTab === "storyWriter" && (
             <StoryWriterTab projectId={id!} />
           )}
 
           {/* ========== TEXT-TO-IMAGE PANEL ========== */}
-          {store.activeTab === "textToImage" && (
+          {activeTab === "textToImage" && (
             <TextToImageTab projectId={id!} />
           )}
 
           {/* ========== BATCH VIDEO PANEL ========== */}
-          {store.activeTab === "batchVideo" && (
+          {activeTab === "batchVideo" && (
             <BatchVideoTab projectId={id!} />
           )}
 
           {/* ========== BATCH IMAGE TO VIDEO PANEL ========== */}
-          {store.activeTab === "batchImageToVideo" && (
+          {activeTab === "batchImageToVideo" && (
             <BatchImageToVideoTab projectId={id!} />
           )}
 
           {/* ========== LLM SERVER PANEL ========== */}
-          {store.activeTab === "llmServer" && <LlmServerTab />}
+          {activeTab === "llmServer" && <LlmServerTab />}
 
           {/* ========== SETUP AI MODELS PANEL ========== */}
-          {store.activeTab === "aiModels" && <SetupAiModelTab />}
+          {activeTab === "aiModels" && <SetupAiModelTab />}
 
           {/* ========== UPSCALE MEDIA PANEL ========== */}
-          {store.activeTab === "upscale" && <UpscaleTab projectId={id!} />}
+          {activeTab === "upscale" && <UpscaleTab projectId={id!} />}
 
           {/* ========== VOICE CLONE PANEL ========== */}
-          {store.activeTab === "voiceClone" && (
+          {activeTab === "voiceClone" && (
             <VoiceCloneTab projectId={id!} />
           )}
 
           {/* ========== ADVANCED VOICE CLONE PANEL ========== */}
-          {store.activeTab === "advancedVoiceClone" && (
+          {activeTab === "advancedVoiceClone" && (
             <AdvancedVoiceCloneTab projectId={id!} />
           )}
 
           {/* ========== AUDIO TO VIDEO PANEL ========== */}
-          {store.activeTab === "audioToVideo" && (
+          {activeTab === "audioToVideo" && (
             <AudioToVideoTab projectId={id!} />
           )}
         </div>
