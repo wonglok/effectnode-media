@@ -498,7 +498,7 @@ async function runRenderVideos(
       ctx.log(`Already generated: scene-${slug}.mp4 — skipping\n`);
       entry = { slug, ...existing };
     } else {
-      const r = await generateSceneVideo(uvPath, ctx.projectId, sc, chars, ctx.log);
+      const r = await generateSceneVideo(uvPath, ctx.projectId, sc, chars, undefined, ctx.log);
       throwIfAborted(ctx.signal);
       if ("error" in r) throw new Error(r.error);
       entry = {
@@ -775,7 +775,7 @@ const handlers: Record<QueueTaskType, Handler> = {
 
   // Generate a single scene video, skipping if it already exists.
   "render-video": async (ctx, getUvPath) => {
-    const { scene, characters } = ctx.task.payload || {};
+    const { scene, characters, video } = ctx.task.payload || {};
     if (!scene || typeof scene !== "object") throw new Error("scene is required");
     const s = slugify(scene?.slug);
     if (!s) throw new Error("Invalid scene slug");
@@ -791,6 +791,7 @@ const handlers: Record<QueueTaskType, Handler> = {
       ctx.projectId,
       scene,
       Array.isArray(characters) ? characters : [],
+      video,
       ctx.log,
     );
     if ("error" in r) throw new Error(r.error);
@@ -822,13 +823,14 @@ const handlers: Record<QueueTaskType, Handler> = {
   },
 
   "regenerate-video": async (ctx, getUvPath) => {
-    const { scene, characters } = ctx.task.payload || {};
+    const { scene, characters, video } = ctx.task.payload || {};
     if (!scene || typeof scene !== "object") throw new Error("scene is required");
     const r = await generateSceneVideo(
       await getUvPath(),
       ctx.projectId,
       scene,
       Array.isArray(characters) ? characters : [],
+      video,
       ctx.log,
     );
     if ("error" in r) throw new Error(r.error);
@@ -1268,6 +1270,23 @@ export function generationQueueSetup({
           t.status === "running" ||
           t.status === "paused",
       );
+      persist(String(projectId));
+    }
+    res.json({ ok: true });
+  });
+
+  // Remove every non-running task (pending/finished/paused) from the queue,
+  // leaving only the currently running task (if any).
+  app.post("/api/queue/clear-all", (req, res) => {
+    if (!assertLocalRequest(req, res)) return;
+    const { projectId } = req.body || {};
+    if (!projectId || !isValidProjectId(String(projectId))) {
+      res.status(400).json({ error: "Invalid project ID" });
+      return;
+    }
+    const state = queues.get(String(projectId));
+    if (state) {
+      state.tasks = state.tasks.filter((t) => t.status === "running");
       persist(String(projectId));
     }
     res.json({ ok: true });

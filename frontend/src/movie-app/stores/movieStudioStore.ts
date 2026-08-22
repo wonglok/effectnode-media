@@ -242,6 +242,57 @@ async function enqueueTask(
   }
 }
 
+export type VideoAspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
+export type VideoResolution = "320p" | "480p" | "512p" | "640p" | "720p" | "1080p";
+export type VideoQuality = "distilled" | "one-stage" | "two-stage";
+
+/** Resolve pixel dimensions for a video aspect ratio + resolution. */
+function videoDimensions(
+  aspect: VideoAspectRatio,
+  resolution: VideoResolution,
+): { width: number; height: number } {
+  const size = parseInt(resolution, 10);
+  switch (aspect) {
+    case "1:1":
+      return { width: size, height: size };
+    case "16:9":
+      return { width: Math.round((size * 16) / 9), height: size };
+    case "9:16":
+      return { width: size, height: Math.round((size * 16) / 9) };
+    case "4:3":
+      return { width: Math.round((size * 4) / 3), height: size };
+    case "3:4":
+      return { width: size, height: Math.round((size * 4) / 3) };
+  }
+}
+
+/** Build the queue payload's `video` settings from the current store state. */
+function videoSettingsFor(
+  s: Pick<
+    MovieStudioStore,
+    | "videoAspectRatio"
+    | "videoResolution"
+    | "videoQuality"
+    | "videoStage1Steps"
+    | "videoStage2Steps"
+  >,
+): {
+  width: number;
+  height: number;
+  mode: string;
+  stage1Steps: number;
+  stage2Steps: number;
+} {
+  const { width, height } = videoDimensions(s.videoAspectRatio, s.videoResolution);
+  return {
+    width,
+    height,
+    mode: s.videoQuality,
+    stage1Steps: s.videoStage1Steps,
+    stage2Steps: s.videoStage2Steps,
+  };
+}
+
 interface MovieStudioStore {
   idea: string;
   projectId: string | null;
@@ -275,8 +326,18 @@ interface MovieStudioStore {
   sceneImageProgress: { current: number; total: number } | null;
   regeneratingSceneImages: string[];
   sceneImageSteps: number;
+  videoAspectRatio: VideoAspectRatio;
+  videoResolution: VideoResolution;
+  videoQuality: VideoQuality;
+  videoStage1Steps: number;
+  videoStage2Steps: number;
   setIdea: (v: string) => void;
   setSceneImageSteps: (v: number) => void;
+  setVideoAspectRatio: (v: VideoAspectRatio) => void;
+  setVideoResolution: (v: VideoResolution) => void;
+  setVideoQuality: (v: VideoQuality) => void;
+  setVideoStage1Steps: (v: number) => void;
+  setVideoStage2Steps: (v: number) => void;
   hydrate: (projectId: string) => Promise<void>;
   generate: (projectId: string, model: string) => Promise<void>;
   render: (projectId: string) => Promise<void>;
@@ -333,6 +394,11 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
   sceneImageProgress: null,
   regeneratingSceneImages: [],
   sceneImageSteps: 4,
+  videoAspectRatio: "9:16",
+  videoResolution: "320p",
+  videoQuality: "distilled",
+  videoStage1Steps: 30,
+  videoStage2Steps: 3,
 
   setIdea: (idea) => {
     set({ idea, error: null });
@@ -341,6 +407,14 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
 
   setSceneImageSteps: (steps) =>
     set({ sceneImageSteps: Math.max(1, Math.round(Number(steps)) || 1) }),
+
+  setVideoAspectRatio: (videoAspectRatio) => set({ videoAspectRatio }),
+  setVideoResolution: (videoResolution) => set({ videoResolution }),
+  setVideoQuality: (videoQuality) => set({ videoQuality }),
+  setVideoStage1Steps: (v) =>
+    set({ videoStage1Steps: Math.max(1, Math.round(Number(v)) || 1) }),
+  setVideoStage2Steps: (v) =>
+    set({ videoStage2Steps: Math.max(1, Math.round(Number(v)) || 1) }),
 
   hydrate: async (projectId) => {
     // Switching projects: reset to defaults so the previous project's idea
@@ -453,7 +527,7 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
         projectId,
         "render-video",
         `Render video: ${scene.slug}`,
-        { scene, characters: result.characters, batchId },
+        { scene, characters: result.characters, batchId, video: videoSettingsFor(get()) },
       );
       if (!r.ok) {
         const b = batches.get(batchId);
@@ -555,7 +629,7 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
         projectId,
         "render-video",
         `Render video: ${scene.slug}`,
-        { scene, characters: result.characters, batchId },
+        { scene, characters: result.characters, batchId, video: videoSettingsFor(get()) },
       );
       if (!r.ok) {
         const b = batches.get(batchId);
@@ -581,7 +655,7 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
       projectId,
       "regenerate-video",
       `Regenerate video: ${slug}`,
-      { slug, scene, characters: result.characters },
+      { slug, scene, characters: result.characters, video: videoSettingsFor(get()) },
     );
     if (!r.ok) {
       set((s) => ({

@@ -247,6 +247,7 @@ const SCENE_DETAIL_PROMPT = [
   "- description is a short description of the scene's action.",
   "- scriptLines is one entry per spoken line, each with the speaking character's slug and the exact spoken line. Include every line of dialogue that belongs to this scene.",
   "- voiceOver is the narration/voiceover for that scene (use an empty string when there is none).",
+  "- Every scene must have at least one of: a non-empty voiceOver, or at least one scriptLine. A scene may have both, but never neither.",
   "- imagePrompt is ONE coherent shot that combines the referenced characters AND the place together, using the given artStyle.",
   "- If previously generated scenes are provided, do NOT repeat their description, dialogue, or imagePrompt; write something distinct for this scene.",
   "- Apply the given artStyle to the imagePrompt.",

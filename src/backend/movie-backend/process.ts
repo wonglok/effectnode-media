@@ -48,6 +48,9 @@ export function spawn(args: string[], options: SpawnOptions = {}): Subprocess {
     env: options.env,
     stdio: ["ignore", options.stdout ?? "pipe", options.stderr ?? "pipe"],
     shell: false,
+    // Spawn in its own process group so `kill()` can terminate the whole tree
+    // (e.g. `uv run` → python), not just the direct child.
+    detached: true,
   });
 
   let killed = false;
@@ -60,7 +63,23 @@ export function spawn(args: string[], options: SpawnOptions = {}): Subprocess {
     },
     kill() {
       killed = true;
-      child.kill();
+      const pid = child.pid;
+      if (pid == null) {
+        child.kill();
+        return;
+      }
+      try {
+        // Negative pid targets the whole process group so grandchildren
+        // (e.g. `uv run` → python) die with the direct child.
+        process.kill(-pid, "SIGTERM");
+      } catch {
+        // Group already gone (process exited) — fall back to the direct child.
+        try {
+          child.kill("SIGTERM");
+        } catch {
+          // already dead
+        }
+      }
     },
     exited: new Promise<number>((resolve) => {
       child.once("error", (err) => {

@@ -192,7 +192,7 @@ export default function TaskQueuePanel({ projectId }: Props) {
   const cancel = useQueueStore((s) => s.cancel);
   const pause = useQueueStore((s) => s.pause);
   const resume = useQueueStore((s) => s.resume);
-  const clearFinished = useQueueStore((s) => s.clearFinished);
+  const clearQueue = useQueueStore((s) => s.clearQueue);
   const setShowAll = useQueueStore((s) => s.setShowAll);
 
   const displayTasks = showAll ? allTasks : tasks;
@@ -202,10 +202,7 @@ export default function TaskQueuePanel({ projectId }: Props) {
   const hasActive = displayTasks.some(
     (t) => t.status === "pending" || t.status === "running",
   );
-  const hasFinished = displayTasks.some(
-    (t) =>
-      t.status !== "pending" && t.status !== "running" && t.status !== "paused",
-  );
+  const hasClearable = displayTasks.some((t) => t.status !== "running");
 
   return (
     <div className="flex flex-col gap-2">
@@ -247,13 +244,13 @@ export default function TaskQueuePanel({ projectId }: Props) {
               </button>
             )
           )}
-          {!showAll && hasFinished && (
+          {!showAll && hasClearable && (
             <button
-              onClick={() => clearFinished(projectId)}
+              onClick={() => clearQueue(projectId)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-xl border border-ink-200 text-ink-600 hover:border-ink-300 hover:text-ink-900 transition-colors"
             >
               {ClearIcon}
-              Clear finished
+              Clear queue
             </button>
           )}
         </div>

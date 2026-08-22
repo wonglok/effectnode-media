@@ -63,6 +63,7 @@ interface QueueStore {
   cancel: (projectId: string, taskId: string) => Promise<void>;
   cancelActive: (projectId: string) => Promise<void>;
   clearFinished: (projectId: string) => Promise<void>;
+  clearQueue: (projectId: string) => Promise<void>;
   pause: (projectId: string) => Promise<void>;
   resume: (projectId: string) => Promise<void>;
 }
@@ -288,6 +289,19 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
   clearFinished: async (projectId) => {
     try {
       await fetch(`${API_BASE}/api/queue/clear`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId }),
+      });
+    } catch {
+      // ignore clear failures
+    }
+    void get().refresh(projectId);
+  },
+
+  clearQueue: async (projectId) => {
+    try {
+      await fetch(`${API_BASE}/api/queue/clear-all`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId }),

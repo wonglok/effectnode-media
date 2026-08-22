@@ -631,12 +631,22 @@ function buildVideoPrompt(scene: any, characters: any[]): string {
   return `${scene.description || ""} ${lines}${vo}`.trim();
 }
 
+/** Configurable settings for a scene video generation. */
+export interface SceneVideoSettings {
+  width?: number;
+  height?: number;
+  mode?: string;
+  stage1Steps?: number;
+  stage2Steps?: number;
+}
+
 /** Generate a single scene video (LTX-2.3) from its scene image, and back it up. */
 export async function generateSceneVideo(
   uvPath: string,
   projectId: string,
   scene: any,
   characters: any[],
+  settings?: SceneVideoSettings,
   onLog?: (text: string) => void,
 ): Promise<{ filename: string; url: string } | { error: string }> {
   const s = String(scene?.slug || "")
@@ -657,6 +667,11 @@ export async function generateSceneVideo(
   const videoPath = join(outputDir, videoFile);
   const frames = Math.max(1, Math.round((Number(scene?.duration) + 3) * 24));
 
+  const videoWidth = Math.max(1, Math.round(Number(settings?.width)) || 320);
+  const videoHeight = Math.max(1, Math.round(Number(settings?.height)) || 569);
+  const stage1Steps = Math.max(1, Math.round(Number(settings?.stage1Steps)) || 30);
+  const stage2Steps = Math.max(1, Math.round(Number(settings?.stage2Steps)) || 3);
+
   const result = await runCommand(
     [
       uvPath,
@@ -667,13 +682,17 @@ export async function generateSceneVideo(
       "dgrauet/ltx-2.3-mlx-q8",
       "--prompt",
       buildVideoPrompt(scene, characters),
-      "--distilled",
+      stageFlagFor(settings?.mode),
+      "--stage1-steps",
+      String(stage1Steps),
+      "--stage2-steps",
+      String(stage2Steps),
       "--frames",
       String(frames),
       "--width",
-      "320",
+      String(videoWidth),
       "--height",
-      "569",
+      String(videoHeight),
       "--frame-rate",
       "24",
       "--image",
