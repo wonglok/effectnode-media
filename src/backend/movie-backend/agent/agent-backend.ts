@@ -179,16 +179,17 @@ function sanitizeTrace(messages: ChatMessage[]): any[] {
 // ========== Movie Studio ==========
 
 const MOVIE_STUDIO_CHARACTERS_PLAN_PROMPT = [
-  "You are a movie pre-production planner. Given a movie or story idea, identify the characters.",
+  "You are a movie pre-production planner. Given a movie or story idea, identify the characters and the places/locations.",
   "",
   "Return ONLY valid JSON (no markdown fences, no commentary) matching this exact shape:",
   "",
-  '{"artStyle":"string","characters":[{"slug":"string","name":"string"}]}',
+  '{"artStyle":"string","characters":[{"slug":"string","name":"string"}],"places":[{"slug":"string","name":"string"}]}',
   "",
   "Rules:",
-  '- "slug" is a short lowercase hyphenated identifier (e.g. "the-lamb").',
+  '- "slug" is a short lowercase hyphenated identifier (e.g. "the-lamb" for a character, "sunny-meadow" for a place).',
   '- "artStyle" is ONE consistent art style for the entire film (e.g. cinematic photorealistic, 3D animation, hand-painted watercolor, anime).',
   '- If the idea does not mention an art style, set "artStyle" to "photo realistic render".',
+  '- Identify every place/location the story uses, each with its own slug and name.',
 ].join("\n");
 
 const CHARACTER_IMAGE_PROMPT = [
@@ -205,17 +206,6 @@ const CHARACTER_IMAGE_PROMPT = [
   "- Mention clothing only as far as the collar or neckline is visible in a head-and-shoulders crop; do not describe the full outfit, body build, pose, or action.",
   "- Apply the given artStyle.",
   "- Write the prompt as natural-language English sentences, never comma-separated keyword tags.",
-].join("\n");
-
-const MOVIE_STUDIO_PLACES_PLAN_PROMPT = [
-  "You are a movie pre-production planner. Given a movie idea, its art style, and its characters, identify the places/locations.",
-  "",
-  "Return ONLY valid JSON (no markdown fences, no commentary) matching this exact shape:",
-  "",
-  '{"places":[{"slug":"string","name":"string"}]}',
-  "",
-  "Rules:",
-  '- "slug" is a short lowercase hyphenated identifier (e.g. "sunny-meadow").',
 ].join("\n");
 
 const PLACE_IMAGE_PROMPT = [
@@ -358,8 +348,8 @@ export async function generateMovieStudioBible(
     onProgress?.(statusText, current, total);
   };
 
-  // 1. Character plan — a compact list of slugs/names + the film's art style.
-  note("Identifying characters…");
+  // 1. Character + place plan — compact slugs/names for both + the film's art style.
+  note("Identifying characters and places…");
   const charPlan = await ask(MOVIE_STUDIO_CHARACTERS_PLAN_PROMPT, idea.trim());
   const artStyle = toStr(charPlan?.artStyle) || "photo realistic render";
   const charList: { slug: string; name: string }[] = (
@@ -367,7 +357,12 @@ export async function generateMovieStudioBible(
   )
     .map((c: any) => ({ slug: toStr(c?.slug), name: toStr(c?.name) }))
     .filter((c: any) => c.slug);
-  addTotal(charList.length);
+  const placeList: { slug: string; name: string }[] = (
+    Array.isArray(charPlan.places) ? charPlan.places : []
+  )
+    .map((p: any) => ({ slug: toStr(p?.slug), name: toStr(p?.name) }))
+    .filter((p: any) => p.slug);
+  addTotal(charList.length + placeList.length);
 
   // 2. Character details — one image prompt per character (agentic loop).
   const characters: any[] = [];
@@ -385,19 +380,7 @@ export async function generateMovieStudioBible(
     });
   }
 
-  // 3. Place plan + details.
-  note("Identifying places…");
-  const placePlan = await ask(
-    MOVIE_STUDIO_PLACES_PLAN_PROMPT,
-    `Art style: ${artStyle}\n\nIdea: ${idea.trim()}\n\nCharacters:\n${JSON.stringify(characters.map((c) => ({ slug: c.slug, name: c.name })))}`,
-  );
-  const placeList: { slug: string; name: string }[] = (
-    Array.isArray(placePlan.places) ? placePlan.places : []
-  )
-    .map((p: any) => ({ slug: toStr(p?.slug), name: toStr(p?.name) }))
-    .filter((p: any) => p.slug);
-  addTotal(placeList.length);
-
+  // 3. Place details — one image prompt per place (agentic loop).
   const places: any[] = [];
   for (const p of placeList) {
     advance(`Generating place image: ${p.name || p.slug}`);

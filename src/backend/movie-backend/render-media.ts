@@ -597,7 +597,7 @@ export async function generateAssetImage(
       "--output",
       outputPath,
       "--steps",
-      "6",
+      "4",
       "--width",
       "1024",
       "--height",
@@ -810,7 +810,7 @@ export async function generateSceneImage(
 ): Promise<{ filename: string; url: string } | { error: string }> {
   const s = slugify(scene?.slug);
   if (!s) return { error: "Invalid scene slug" };
-  const stepCount = Math.max(1, Number(steps) || 6);
+  const stepCount = Math.max(1, Number(steps) || 4);
 
   const outputDir = join(OUTPUT_DIR, projectId);
   const mlxgen = await getMlxgenBin();
@@ -2196,7 +2196,7 @@ export async function renderMediaRoutes({
             "--output",
             outputPath,
             "--steps",
-            "6",
+            "4",
             "--width",
             "1024",
             "--height",
@@ -2235,7 +2235,7 @@ export async function renderMediaRoutes({
             "--output",
             outputPath,
             "--steps",
-            "6",
+            "4",
             "--width",
             "1024",
             "--height",

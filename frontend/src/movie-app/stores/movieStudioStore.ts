@@ -332,7 +332,7 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
   sceneImagesError: null,
   sceneImageProgress: null,
   regeneratingSceneImages: [],
-  sceneImageSteps: 6,
+  sceneImageSteps: 4,
 
   setIdea: (idea) => {
     set({ idea, error: null });
@@ -1065,7 +1065,7 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
       sceneImagesError: null,
       sceneImageProgress: null,
       regeneratingSceneImages: [],
-      sceneImageSteps: 6,
+      sceneImageSteps: 4,
     });
   },
 }));
