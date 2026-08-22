@@ -125,6 +125,7 @@ function handleBatchTerminal(task: QueueTask, set: (patch: any) => void): void {
 export interface MovieCharacter {
   slug: string;
   name: string;
+  description: string;
   imagePrompt: string;
 }
 
@@ -243,7 +244,7 @@ async function enqueueTask(
 }
 
 export type VideoAspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
-export type VideoResolution = "320p" | "480p" | "512p" | "640p" | "720p" | "1080p";
+export type VideoResolution = "320p" | "480p" | "512p" | "576p" | "640p" | "720p" | "1080p";
 export type VideoQuality = "distilled" | "one-stage" | "two-stage";
 
 /** Resolve pixel dimensions for a video aspect ratio + resolution. */
@@ -353,6 +354,12 @@ interface MovieStudioStore {
   renderSceneImages: (projectId: string) => Promise<void>;
   regenerateSceneImage: (projectId: string, slug: string) => Promise<void>;
   updateCharacter: (slug: string, patch: Partial<MovieCharacter>) => void;
+  addCharacter: (char?: Partial<MovieCharacter>) => void;
+  uploadCharacterImage: (
+    projectId: string,
+    slug: string,
+    base64: string,
+  ) => Promise<boolean>;
   updatePlace: (slug: string, patch: Partial<MoviePlace>) => void;
   updateScene: (slug: string, patch: Partial<MovieScene>) => void;
   applyQueueTask: (task: QueueTask) => void;
@@ -395,9 +402,9 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
   regeneratingSceneImages: [],
   sceneImageSteps: 4,
   videoAspectRatio: "9:16",
-  videoResolution: "320p",
+  videoResolution: "576p",
   videoQuality: "distilled",
-  videoStage1Steps: 30,
+  videoStage1Steps: 15,
   videoStage2Steps: 3,
 
   setIdea: (idea) => {
@@ -741,6 +748,56 @@ export const useMovieStudioStore = create<MovieStudioStore>((set, get) => ({
       },
     });
     scheduleMovieStudioPersist();
+  },
+
+  addCharacter: (char = {}) => {
+    const result = get().result;
+    if (!result) return;
+    const base =
+      (typeof char.slug === "string" && char.slug.trim()) ||
+      `character-${Date.now().toString(36)}`;
+    let slug = base;
+    let i = 2;
+    while (result.characters.some((c) => c.slug === slug)) {
+      slug = `${base}-${i++}`;
+    }
+    set({
+      result: {
+        ...result,
+        characters: [
+          ...result.characters,
+          {
+            slug,
+            name: char.name ?? "",
+            description: char.description ?? "",
+            imagePrompt: char.imagePrompt ?? "",
+          },
+        ],
+      },
+    });
+    scheduleMovieStudioPersist();
+  },
+
+  uploadCharacterImage: async (projectId, slug, base64) => {
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/movie-studio/upload-character-image`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectId, slug, image: base64 }),
+        },
+      );
+      if (!res.ok) {
+        set({ assetsError: await res.text() });
+        return false;
+      }
+      set({ assetsError: null });
+      return true;
+    } catch (e) {
+      set({ assetsError: String(e) });
+      return false;
+    }
   },
 
   updatePlace: (slug, patch) => {

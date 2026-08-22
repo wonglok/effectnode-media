@@ -227,6 +227,33 @@ function Thumb({
   );
 }
 
+/** Read an image file and re-encode it as a PNG data URL (max 1024px). */
+function fileToPngDataUrl(file: File): Promise<string | null> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1024;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(null);
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = () => resolve(null);
+      img.src = reader.result as string;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function MovieStudioTab({ projectId }: Props) {
   const store = useMovieStudioStore();
   const gen = useGenerationStore();
@@ -238,6 +265,7 @@ export default function MovieStudioTab({ projectId }: Props) {
     filename: string;
     type: "image" | "video";
   } | null>(null);
+  const [newCharacterName, setNewCharacterName] = useState("");
 
   // Hydrate the persisted idea for this project.
   useEffect(() => {
@@ -331,6 +359,20 @@ export default function MovieStudioTab({ projectId }: Props) {
     filename: string,
     type: "image" | "video",
   ) => setPreview({ url, filename, type });
+
+  const handleAddCharacter = () => {
+    const name = newCharacterName.trim();
+    const slug = name ? slugify(name).toLowerCase() : undefined;
+    store.addCharacter(slug ? { slug, name } : { name });
+    setNewCharacterName("");
+  };
+
+  const handleUploadCharacterImage = async (slug: string, file: File) => {
+    const dataUrl = await fileToPngDataUrl(file);
+    if (!dataUrl) return;
+    const ok = await store.uploadCharacterImage(projectId, slug, dataUrl);
+    if (ok) gen.fetchProjectImages(projectId);
+  };
 
   return (
     <div className="flex flex-col gap-7">
@@ -744,6 +786,7 @@ export default function MovieStudioTab({ projectId }: Props) {
                       <option value="320p">320p</option>
                       <option value="480p">480p</option>
                       <option value="512p">512p</option>
+                      <option value="576p">576p</option>
                       <option value="640p">640p</option>
                       <option value="720p">720p</option>
                       <option value="1080p">1080p</option>

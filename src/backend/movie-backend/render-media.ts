@@ -720,7 +720,7 @@ export async function generateSceneVideo(
 
   const videoWidth = Math.max(1, Math.round(Number(settings?.width)) || 320);
   const videoHeight = Math.max(1, Math.round(Number(settings?.height)) || 569);
-  const stage1Steps = Math.max(1, Math.round(Number(settings?.stage1Steps)) || 30);
+  const stage1Steps = Math.max(1, Math.round(Number(settings?.stage1Steps)) || 15);
   const stage2Steps = Math.max(1, Math.round(Number(settings?.stage2Steps)) || 3);
 
   const result = await runCommand(
@@ -2505,6 +2505,45 @@ export async function renderMediaRoutes({
       res.status(500).json({ error: String(e) });
     } finally {
       activeProc = null;
+    }
+  });
+
+  // Upload a character reference image (saved as character-<slug>.png so it is
+  // picked up by scene-image generation).
+  app.post("/api/movie-studio/upload-character-image", async (req, res) => {
+    const { projectId, slug, image } = req.body || {};
+
+    if (!projectId || !isValidProjectId(String(projectId))) {
+      res.status(400).json({ error: "Invalid project ID" });
+      return;
+    }
+    const safeSlug = String(slug || "")
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, "_");
+    if (!safeSlug) {
+      res.status(400).json({ error: "slug is required" });
+      return;
+    }
+    const base64 = String(image || "").replace(/^data:image\/\w+;base64,/, "");
+    if (!base64) {
+      res.status(400).json({ error: "Image data is required (base64)" });
+      return;
+    }
+
+    try {
+      const buffer = Buffer.from(base64, "base64");
+      const outputDir = join(OUTPUT_DIR, String(projectId));
+      ensureDir(outputDir);
+      const outputFile = `character-${safeSlug}.png`;
+      const outputPath = join(outputDir, outputFile);
+      writeFileSync(outputPath, buffer);
+      backupFile(outputPath, String(projectId));
+      res.json({
+        filename: outputFile,
+        url: `/api/files?path=${encodeURIComponent(outputPath)}`,
+      });
+    } catch (e) {
+      res.status(500).json({ error: String(e) });
     }
   });
 
