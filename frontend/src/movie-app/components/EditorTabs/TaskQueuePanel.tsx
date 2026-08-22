@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   useQueueStore,
   type QueueTask,
@@ -197,6 +198,29 @@ export default function TaskQueuePanel({ projectId }: Props) {
 
   const displayTasks = showAll ? allTasks : tasks;
 
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  const handleConfirmClear = () => {
+    setConfirmClear(false);
+    void clearQueue(projectId);
+  };
+
+  // Enter confirms, Esc cancels the clear-queue confirmation modal.
+  useEffect(() => {
+    if (!confirmClear) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleConfirmClear();
+      } else if (e.key === "Escape") {
+        setConfirmClear(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [confirmClear]);
+
   if (!showAll && tasks.length === 0 && !paused) return null;
 
   const hasActive = displayTasks.some(
@@ -205,7 +229,8 @@ export default function TaskQueuePanel({ projectId }: Props) {
   const hasClearable = displayTasks.some((t) => t.status !== "running");
 
   return (
-    <div className="flex flex-col gap-2">
+    <>
+      <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <span className="text-tiffany-600">{QueueIcon}</span>
         <h3 className="text-sm font-semibold text-ink-900">Generation Queue</h3>
@@ -246,7 +271,7 @@ export default function TaskQueuePanel({ projectId }: Props) {
           )}
           {!showAll && hasClearable && (
             <button
-              onClick={() => clearQueue(projectId)}
+              onClick={() => setConfirmClear(true)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-xl border border-ink-200 text-ink-600 hover:border-ink-300 hover:text-ink-900 transition-colors"
             >
               {ClearIcon}
@@ -266,6 +291,41 @@ export default function TaskQueuePanel({ projectId }: Props) {
           />
         ))}
       </ul>
-    </div>
+      </div>
+
+      {confirmClear && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-8"
+          onClick={() => setConfirmClear(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold text-ink-900 mb-2">
+              Clear queue?
+            </h3>
+            <p className="text-sm text-ink-600 mb-5">
+              Remove all queued and finished tasks for this project. The
+              currently running task is left alone.
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setConfirmClear(false)}
+                className="px-3 py-1.5 text-xs font-medium rounded-xl border border-ink-200 text-ink-600 hover:border-ink-300 hover:text-ink-900 transition-colors"
+              >
+                Cancel (Esc)
+              </button>
+              <button
+                onClick={handleConfirmClear}
+                className="px-3 py-1.5 text-xs font-medium rounded-xl bg-red-500 hover:bg-red-600 text-white transition-colors"
+              >
+                Clear (Enter)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
