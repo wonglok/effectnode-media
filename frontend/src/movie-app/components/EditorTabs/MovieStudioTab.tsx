@@ -520,120 +520,6 @@ export default function MovieStudioTab({ projectId }: Props) {
                 </div>
               )}
 
-              {/* ===== Scene Images ===== */}
-              {store.result && (
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-semibold text-ink-900">
-                      Scene Images
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <label
-                        htmlFor="scene-image-steps"
-                        className="text-xs font-medium text-ink-600"
-                      >
-                        Steps
-                      </label>
-                      <input
-                        id="scene-image-steps"
-                        type="number"
-                        min={1}
-                        step={1}
-                        value={store.sceneImageSteps}
-                        onChange={(e) =>
-                          store.setSceneImageSteps(Number(e.target.value))
-                        }
-                        disabled={store.sceneImagesRendering}
-                        className="w-20 px-2 py-1.5 text-xs bg-ink-50 border border-ink-200 rounded-lg text-ink-800 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/25 disabled:opacity-50"
-                      />
-                      {store.sceneImagesRendering ? (
-                        <span className="flex items-center gap-1.5 text-xs text-tiffany-600">
-                          {SpinnerIcon}
-                          {store.sceneImageStatus ?? "Rendering..."}
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => store.renderSceneImages(projectId)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl bg-tiffany-500 hover:bg-tiffany-600 text-ink-950 transition-colors"
-                        >
-                          {SparkleIcon}
-                          Render Scene Images
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {store.sceneImagesRendering &&
-                    store.sceneImageProgress &&
-                    store.sceneImageProgress.total > 0 && (
-                      <div className="flex items-center gap-3 px-1">
-                        <div className="flex-1 h-2 bg-ink-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-tiffany-500 rounded-full transition-all duration-300"
-                            style={{
-                              width: `${(store.sceneImageProgress.current / store.sceneImageProgress.total) * 100}%`,
-                            }}
-                          />
-                        </div>
-                        <span className="text-xs font-semibold text-ink-700 tabular-nums whitespace-nowrap">
-                          {store.sceneImageProgress.current}/
-                          {store.sceneImageProgress.total}
-                        </span>
-                      </div>
-                    )}
-
-                  {store.sceneImagesError && (
-                    <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-xs">
-                      {store.sceneImagesError}
-                    </div>
-                  )}
-
-                  {store.sceneImages.length > 0 && (
-                    <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-                      {store.sceneImages.map((img) => {
-                        const isRegenerating =
-                          store.regeneratingSceneImages.includes(img.slug);
-                        const fullUrl = img.url.startsWith("http")
-                          ? img.url
-                          : `http://localhost:${(window as any).PORT}${img.url}`;
-                        return (
-                          <div key={img.slug} className="flex flex-col gap-1.5">
-                            <div className="relative rounded-xl border border-ink-200 overflow-hidden">
-                              <img
-                                src={`${fullUrl}&t=${img.updatedAt}`}
-                                alt={img.slug}
-                                onClick={() =>
-                                  openPreview(fullUrl, img.slug, "image")
-                                }
-                                className="aspect-square object-cover object-center w-full cursor-zoom-in"
-                              />
-                            </div>
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="text-[11px] font-mono text-ink-600 truncate">
-                                {img.slug}
-                              </span>
-                              <button
-                                onClick={() =>
-                                  store.regenerateSceneImage(
-                                    projectId,
-                                    img.slug,
-                                  )
-                                }
-                                disabled={isRegenerating}
-                                className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-lg border border-ink-200 text-ink-600 hover:border-tiffany-400 hover:text-tiffany-600 transition-colors disabled:opacity-50"
-                              >
-                                {isRegenerating ? SpinnerIcon : RefreshIcon}
-                                Regenerate
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* Characters */}
               <div>
                 <h3 className="text-sm font-semibold text-ink-900 mb-2">
@@ -908,6 +794,120 @@ export default function MovieStudioTab({ projectId }: Props) {
                   </label>
                 </div>
               </div>
+
+              {/* ===== Scene Images ===== */}
+              {store.result && (
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-semibold text-ink-900">
+                      Scene Images
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <label
+                        htmlFor="scene-image-steps"
+                        className="text-xs font-medium text-ink-600"
+                      >
+                        Steps
+                      </label>
+                      <input
+                        id="scene-image-steps"
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={store.sceneImageSteps}
+                        onChange={(e) =>
+                          store.setSceneImageSteps(Number(e.target.value))
+                        }
+                        disabled={store.sceneImagesRendering}
+                        className="w-20 px-2 py-1.5 text-xs bg-ink-50 border border-ink-200 rounded-lg text-ink-800 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/25 disabled:opacity-50"
+                      />
+                      {store.sceneImagesRendering ? (
+                        <span className="flex items-center gap-1.5 text-xs text-tiffany-600">
+                          {SpinnerIcon}
+                          {store.sceneImageStatus ?? "Rendering..."}
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => store.renderSceneImages(projectId)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl bg-tiffany-500 hover:bg-tiffany-600 text-ink-950 transition-colors"
+                        >
+                          {SparkleIcon}
+                          Render Scene Images
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {store.sceneImagesRendering &&
+                    store.sceneImageProgress &&
+                    store.sceneImageProgress.total > 0 && (
+                      <div className="flex items-center gap-3 px-1">
+                        <div className="flex-1 h-2 bg-ink-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-tiffany-500 rounded-full transition-all duration-300"
+                            style={{
+                              width: `${(store.sceneImageProgress.current / store.sceneImageProgress.total) * 100}%`,
+                            }}
+                          />
+                        </div>
+                        <span className="text-xs font-semibold text-ink-700 tabular-nums whitespace-nowrap">
+                          {store.sceneImageProgress.current}/
+                          {store.sceneImageProgress.total}
+                        </span>
+                      </div>
+                    )}
+
+                  {store.sceneImagesError && (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-xs">
+                      {store.sceneImagesError}
+                    </div>
+                  )}
+
+                  {store.sceneImages.length > 0 && (
+                    <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                      {store.sceneImages.map((img) => {
+                        const isRegenerating =
+                          store.regeneratingSceneImages.includes(img.slug);
+                        const fullUrl = img.url.startsWith("http")
+                          ? img.url
+                          : `http://localhost:${(window as any).PORT}${img.url}`;
+                        return (
+                          <div key={img.slug} className="flex flex-col gap-1.5">
+                            <div className="relative rounded-xl border border-ink-200 overflow-hidden">
+                              <img
+                                src={`${fullUrl}&t=${img.updatedAt}`}
+                                alt={img.slug}
+                                onClick={() =>
+                                  openPreview(fullUrl, img.slug, "image")
+                                }
+                                className="aspect-square object-cover object-center w-full cursor-zoom-in"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-[11px] font-mono text-ink-600 truncate">
+                                {img.slug}
+                              </span>
+                              <button
+                                onClick={() =>
+                                  store.regenerateSceneImage(
+                                    projectId,
+                                    img.slug,
+                                  )
+                                }
+                                disabled={isRegenerating}
+                                className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-lg border border-ink-200 text-ink-600 hover:border-tiffany-400 hover:text-tiffany-600 transition-colors disabled:opacity-50"
+                              >
+                                {isRegenerating ? SpinnerIcon : RefreshIcon}
+                                Regenerate
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Scenes */}
               <div>
