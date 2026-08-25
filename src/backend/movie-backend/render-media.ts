@@ -1133,6 +1133,8 @@ export async function generateAudioToVideo(
     prompt: string;
     stage1Steps: number;
     frames: number;
+    width?: number;
+    height?: number;
   },
   onLog?: (text: string) => void,
 ): Promise<{ filename: string; url: string } | { error: string }> {
@@ -1164,6 +1166,9 @@ export async function generateAudioToVideo(
   const stage1Steps = Math.max(1, Math.round(Number(params.stage1Steps)) || 15);
   // 1 second = 24 frames, plus a terminal frame (24n + 1).
   const frames = Math.max(1, Math.round(Number(params.frames)) || 25);
+  // Output dimensions, falling back to the ltx-2-mlx a2v CLI defaults.
+  const width = Math.max(64, Math.round(Number(params.width)) || 704);
+  const height = Math.max(64, Math.round(Number(params.height)) || 480);
 
   const ltxFolder = join(PYTHON_DIR, "ltx-2-mlx");
   if (!existsSync(ltxFolder)) {
@@ -1187,6 +1192,10 @@ export async function generateAudioToVideo(
       "24",
       "--frames",
       String(frames),
+      "--width",
+      String(width),
+      "--height",
+      String(height),
       "--output",
       outputDir,
       "--prompt",

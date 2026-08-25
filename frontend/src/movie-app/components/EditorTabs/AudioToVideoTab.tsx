@@ -340,6 +340,52 @@ export default function AudioToVideoTab({ projectId }: Props) {
         </p>
       </div>
 
+      {/* ===== Aspect Ratio ===== */}
+      <div>
+        <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-2">
+          Aspect Ratio
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {(["1:1", "16:9", "9:16", "4:3", "3:4"] as const).map((ratio) => (
+            <button
+              key={ratio}
+              onClick={() => a2v.setAspectRatio(ratio)}
+              disabled={a2v.generating}
+              className={`px-3 py-1 text-xs font-medium rounded-xl border transition-all ${
+                a2v.aspectRatio === ratio
+                  ? "bg-ink-100 border-ink-300 text-ink-800"
+                  : "bg-white border-ink-200 text-ink-600 hover:border-ink-300"
+              } disabled:opacity-50`}
+            >
+              {ratio}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ===== Resolution ===== */}
+      <div>
+        <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-2">
+          Resolution
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {(["320p", "480p", "512p", "640p", "720p", "1080p"] as const).map((res) => (
+            <button
+              key={res}
+              onClick={() => a2v.setResolution(res)}
+              disabled={a2v.generating}
+              className={`px-3 py-1 text-xs font-medium rounded-xl border transition-all ${
+                a2v.resolution === res
+                  ? "bg-ink-100 border-ink-300 text-ink-800"
+                  : "bg-white border-ink-200 text-ink-600 hover:border-ink-300"
+              } disabled:opacity-50`}
+            >
+              {res}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* ===== Prompt ===== */}
       <div>
         <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-2">

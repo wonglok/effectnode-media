@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { QueueTask } from "./queueStore";
+import type { AspectRatio, Resolution } from "./generationStore";
 
 const API_BASE = `http://localhost:${(window as any).PORT}`;
 
@@ -24,6 +25,8 @@ interface AudioToVideoStore {
   steps: number;
   duration: number;
   frames: number;
+  aspectRatio: AspectRatio;
+  resolution: Resolution;
   prompt: string;
   generating: boolean;
   result: string | null;
@@ -34,6 +37,8 @@ interface AudioToVideoStore {
   setSteps: (n: number) => void;
   setDuration: (d: number) => void;
   setFrames: (n: number) => void;
+  setAspectRatio: (a: AspectRatio) => void;
+  setResolution: (r: Resolution) => void;
   setPrompt: (p: string) => void;
   clearResult: () => void;
   fetchImages: (projectId: string) => Promise<void>;
@@ -56,6 +61,26 @@ interface AudioToVideoStore {
 /** The queue task id enqueued by the current generate action, if any. */
 let audioToVideoActiveTaskId: string | null = null;
 
+/** Convert an aspect ratio + resolution label into pixel dimensions. */
+function dimensionsFor(
+  aspect: AspectRatio,
+  resolution: Resolution,
+): { width: number; height: number } {
+  const size = parseInt(resolution);
+  switch (aspect) {
+    case "1:1":
+      return { width: size, height: size };
+    case "16:9":
+      return { width: Math.round((size * 16) / 9), height: size };
+    case "9:16":
+      return { width: size, height: Math.round((size * 16) / 9) };
+    case "4:3":
+      return { width: Math.round((size * 4) / 3), height: size };
+    case "3:4":
+      return { width: size, height: Math.round((size * 4) / 3) };
+  }
+}
+
 async function enqueueAudioToVideoTask(
   projectId: string,
   imagePath: string,
@@ -63,6 +88,8 @@ async function enqueueAudioToVideoTask(
   prompt: string,
   stage1Steps: number,
   frames: number,
+  width: number,
+  height: number,
 ): Promise<{ ok: boolean; error?: string; taskId?: string }> {
   try {
     const res = await fetch(`${API_BASE}/api/queue/enqueue`, {
@@ -72,7 +99,7 @@ async function enqueueAudioToVideoTask(
         projectId,
         type: "audio-to-video",
         label: "Audio to video",
-        payload: { imagePath, audioPath, prompt, stage1Steps, frames },
+        payload: { imagePath, audioPath, prompt, stage1Steps, frames, width, height },
       }),
     });
     if (!res.ok) {
@@ -97,6 +124,8 @@ export const useAudioToVideoStore = create<AudioToVideoStore>((set, get) => ({
   steps: 15,
   duration: 1,
   frames: 25,
+  aspectRatio: "16:9",
+  resolution: "720p",
   prompt: "",
   generating: false,
   result: null,
@@ -108,6 +137,8 @@ export const useAudioToVideoStore = create<AudioToVideoStore>((set, get) => ({
     set({ steps: Math.max(1, Math.round(Number(steps)) || 1), error: null }),
   setFrames: (frames) =>
     set({ frames: Math.max(1, Math.round(Number(frames)) || 1), error: null }),
+  setAspectRatio: (aspectRatio) => set({ aspectRatio, error: null }),
+  setResolution: (resolution) => set({ resolution, error: null }),
   setDuration: (duration) => {
     const d = Math.max(0, Number(duration)) || 0;
     set({
@@ -206,11 +237,13 @@ export const useAudioToVideoStore = create<AudioToVideoStore>((set, get) => ({
   },
 
   generate: async (projectId) => {
-    const { image, audio, prompt, steps, frames, generating } = get();
+    const { image, audio, prompt, steps, frames, aspectRatio, resolution, generating } =
+      get();
     if (generating || !image || !audio) return;
 
     set({ generating: true, error: null, result: null });
 
+    const { width, height } = dimensionsFor(aspectRatio, resolution);
     const r = await enqueueAudioToVideoTask(
       projectId,
       image.filename,
@@ -218,6 +251,8 @@ export const useAudioToVideoStore = create<AudioToVideoStore>((set, get) => ({
       prompt.trim(),
       steps,
       frames,
+      width,
+      height,
     );
     audioToVideoActiveTaskId = r.taskId ?? null;
     if (!r.ok) {
@@ -265,6 +300,8 @@ export const useAudioToVideoStore = create<AudioToVideoStore>((set, get) => ({
       steps: 15,
       duration: 1,
       frames: 25,
+      aspectRatio: "16:9",
+      resolution: "720p",
       prompt: "",
       generating: false,
       result: null,
