@@ -59,13 +59,14 @@ program
             target: `ws://localhost:${backendPort}`,
             ws: true,
           },
-          "/p8881": {
-            target: `http://localhost:${backendPort}`,
+          "/p8881/v1": {
+            target: `http://localhost:8881/v1`,
             changeOrigin: true,
           },
         },
       },
     });
+
     await vite.listen();
 
     const url = `http://${host}:${frontendPort}`;

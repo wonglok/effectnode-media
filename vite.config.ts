@@ -23,8 +23,8 @@ export default defineConfig({
         target: "ws://localhost:4000",
         ws: true,
       },
-      "/p8881": {
-        target: "http://localhost:4000",
+      "/p8881/v1": {
+        target: "http://localhost:8881/v1",
         changeOrigin: true,
       },
     },
