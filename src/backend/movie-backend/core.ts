@@ -9,6 +9,7 @@ import {
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer as createNetServer } from "node:net";
+import { Readable } from "node:stream";
 import { spawn, type Subprocess } from "./process.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -51,6 +52,8 @@ const PYTHON_DIR = join(APP_DATA_DIR, "python-src");
 const PROJECTS_DIR = join(APP_DATA_DIR, "projects");
 const JSON_DIR = join(APP_DATA_DIR, "json");
 const BACKEND_PORT_START = 4000;
+// Local OpenAI-compatible model server (mlx-vlm) that /p8881 proxies to.
+const AI_API_PORT = 8881;
 let BACKEND_PORT = BACKEND_PORT_START;
 
 //
@@ -105,6 +108,49 @@ export async function runSetup({
 
   const app = express();
   app.use(cors());
+  // Proxy /p8881/* → http://localhost:8881/* so the local AI API (mlx-vlm,
+  // OpenAI-compatible) is reachable from other devices on the network. Mounted
+  // before the JSON body parser so the raw request body is streamed through
+  // unchanged (chat completions / SSE streaming).
+  app.use("/p8881", async (req, res) => {
+    const upstreamPath = req.originalUrl.slice("/p8881".length) || "/";
+    try {
+      const headers: Record<string, string> = {};
+      for (const name of ["content-type", "authorization", "accept"]) {
+        const value = req.headers[name];
+        if (typeof value === "string") headers[name] = value;
+      }
+
+      const upstream = await fetch(
+        `http://localhost:${AI_API_PORT}${upstreamPath}`,
+        {
+          method: req.method,
+          headers,
+          body:
+            req.method === "GET" || req.method === "HEAD"
+              ? undefined
+              : (Readable.toWeb(req) as any),
+          duplex: "half",
+        } as any,
+      );
+
+      res.status(upstream.status);
+      const contentType = upstream.headers.get("content-type");
+      if (contentType) res.setHeader("content-type", contentType);
+
+      if (upstream.body) {
+        Readable.fromWeb(upstream.body as any).pipe(res);
+      } else {
+        res.end();
+      }
+    } catch (e) {
+      if (!res.headersSent) {
+        res.status(502).json({ error: `AI proxy error: ${String(e)}` });
+      } else {
+        res.end();
+      }
+    }
+  });
   app.use(express.json({ limit: "100gb" }));
   app.get("/api/hi", (req, res) => {
     res.json({ hi: "hi" });

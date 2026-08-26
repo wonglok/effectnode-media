@@ -59,6 +59,10 @@ program
             target: `ws://localhost:${backendPort}`,
             ws: true,
           },
+          "/p8881": {
+            target: `http://localhost:${backendPort}`,
+            changeOrigin: true,
+          },
         },
       },
     });

@@ -7,6 +7,7 @@ import {
   saveTextToImageState,
   type PersistedTextToImageState,
 } from "../lib/textToImageStorage";
+import { createLocalOpenAI } from "../lib/openaiClient";
 
 const API_BASE = "";
 
@@ -1739,16 +1740,12 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
   },
 
   checkServerOnline: async () => {
-    const { port } = get().agent;
     try {
-      // Any response (even 4xx/5xx) means the port is listening.
-      await fetch(`http://localhost:${port}/v1/models`, {
-        method: "GET",
-      }).then((r) => {
-        if (!r.ok) {
-          throw new Error("server is offline");
-        }
-      });
+      // Hit the model server through the OpenAI SDK + backend `/p8881` proxy, so
+      // the online status reads correctly from other devices (not just the host
+      // where `localhost:8881` resolves).
+      const client = createLocalOpenAI();
+      await client.models.list();
       set((s) => ({ agent: { ...s.agent, serverOnline: true } }));
     } catch {
       set((s) => ({ agent: { ...s.agent, serverOnline: false } }));
