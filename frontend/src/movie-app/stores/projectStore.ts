@@ -21,7 +21,7 @@ interface ProjectStore {
   openFolder: (id: string, type: "upload" | "output") => Promise<boolean>;
 }
 
-const API_BASE = `http://localhost:${(window as any).PORT}`;
+const API_BASE = "";
 
 export const useProjectStore = create<ProjectStore>((set, get) => ({
   projects: [],

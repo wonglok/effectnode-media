@@ -45,6 +45,7 @@ program
         PORT: backendPort,
       },
       server: {
+        allowedHosts: true,
         host,
         port: frontendPort,
         strictPort: true,

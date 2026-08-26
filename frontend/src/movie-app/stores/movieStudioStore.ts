@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { QueueTask } from "./queueStore";
 
-const API_BASE = `http://localhost:${(window as any).PORT}`;
+const API_BASE = "";
 
 /** Play three short "ding" sounds to signal a finished generation task. */
 function playDing3x() {

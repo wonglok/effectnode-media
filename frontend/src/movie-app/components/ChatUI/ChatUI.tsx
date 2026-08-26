@@ -3,7 +3,7 @@ import { useGenerationStore } from "../../stores/generationStore";
 import { useChatStore } from "../../stores/chatStore";
 import { MarkdownMessage } from "./MarkdownMessage";
 
-const API_BASE = `http://localhost:${(window as any).PORT}`;
+const API_BASE = "";
 
 /** Extract a readable summary of a tool call's JSON arguments. */
 function summarizeArgs(args?: string): string {

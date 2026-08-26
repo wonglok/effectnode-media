@@ -467,7 +467,7 @@ export default function GenerateVideoTab({ projectId }: Props) {
 
               const fullUrl = img.url.startsWith("http")
                 ? img.url
-                : `http://localhost:${(window as any).PORT}${img.url}`;
+                : `${img.url}`;
 
               return (
                 <button

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-const API_BASE = `http://localhost:${(window as any).PORT}`;
+const API_BASE = "";
 
 interface VoiceChatStore {
   // Reference voice (voice clone source)
@@ -105,7 +105,7 @@ export const useVoiceChatStore = create<VoiceChatStore>((set, get) => ({
       const data = await res.json();
       set({
         refAudioPath: data.path,
-        refAudioUrl: `http://localhost:${(window as any).PORT}/api/files?path=${encodeURIComponent(data.path)}`,
+        refAudioUrl: `/api/files?path=${encodeURIComponent(data.path)}`,
         refAudioFilename: data.filename,
       });
       return data.path as string;
@@ -152,7 +152,7 @@ export const useVoiceChatStore = create<VoiceChatStore>((set, get) => ({
           case "complete":
             set({
               generating: false,
-              resultUrl: `http://localhost:${(window as any).PORT}/api/files?path=${encodeURIComponent(data.path)}`,
+              resultUrl: `/api/files?path=${encodeURIComponent(data.path)}`,
             });
             break;
           case "error":

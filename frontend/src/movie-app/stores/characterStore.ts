@@ -29,7 +29,7 @@ interface CharacterStore {
   deleteCharacter: (id: string, projectId: string) => Promise<boolean>;
 }
 
-const API_BASE = `http://localhost:${(window as any).PORT}`;
+const API_BASE = "";
 
 export const useCharacterStore = create<CharacterStore>((set, get) => ({
   characters: [],

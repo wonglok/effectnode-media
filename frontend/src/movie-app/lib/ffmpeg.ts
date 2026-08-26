@@ -1,8 +1,6 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { toBlobURL } from "@ffmpeg/util";
 
-const API_BASE = `http://localhost:${(window as any).PORT}`;
-
 let ffmpeg: FFmpeg | null = null;
 let loading: Promise<FFmpeg> | null = null;
 
@@ -16,7 +14,7 @@ export async function loadFFmpeg(): Promise<FFmpeg> {
   if (loading) return loading;
 
   loading = (async () => {
-    const base = `${API_BASE}/ffmpeg`;
+    const base = `/ffmpeg`;
     const coreURL = await toBlobURL(
       `${base}/ffmpeg-core.js`,
       "text/javascript",

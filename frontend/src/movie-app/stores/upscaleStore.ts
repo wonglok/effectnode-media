@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { QueueTask } from "./queueStore";
 
-const API_BASE = `http://localhost:${(window as any).PORT}`;
+const API_BASE = "";
 
 export type UpscaleMode = "1x" | "2048";
 

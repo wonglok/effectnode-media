@@ -12,7 +12,7 @@ import {
   type PersistedBatchImageToVideoState,
 } from "../lib/batchImageToVideoStorage";
 
-const API_BASE = `http://localhost:${(window as any).PORT}`;
+const API_BASE = "";
 
 export type BatchI2VRowStatus = "idle" | "generating" | "done" | "error";
 
@@ -104,7 +104,7 @@ function normalizeImagePath(path: string): string {
   let p = path;
   if (p.includes("/api/files?path=")) {
     try {
-      const url = new URL(p);
+      const url = new URL(p, window.location.origin);
       p = url.searchParams.get("path") || p;
     } catch {
       // not a valid URL, use as-is
@@ -308,7 +308,7 @@ async function runImageGeneration(
                   ...r,
                   imageStatus: "done",
                   imagePath: data.path,
-                  imageUrl: `http://localhost:${(window as any).PORT}/api/files?path=${encodeURIComponent(data.path)}`,
+                  imageUrl: `/api/files?path=${encodeURIComponent(data.path)}`,
                   imageFilename: data.filename,
                 }
               : r,
@@ -395,7 +395,7 @@ async function runVideoGeneration(
               ? {
                   ...r,
                   videoStatus: "done",
-                  videoResult: `http://localhost:${(window as any).PORT}/api/files?path=${encodeURIComponent(data.path)}`,
+                  videoResult: `/api/files?path=${encodeURIComponent(data.path)}`,
                 }
               : r,
           ),

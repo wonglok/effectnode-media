@@ -6,7 +6,7 @@ import {
   type PersistedReferencesToVideoState,
 } from "../lib/referencesToVideoStorage";
 
-const API_BASE = `http://localhost:${(window as any).PORT}`;
+const API_BASE = "";
 
 // Abort controller for the in-flight generation request, so it can be cancelled.
 let generateAbortController: AbortController | null = null;
@@ -413,7 +413,7 @@ export const useReferencesToVideoStore = create<ReferencesToVideoStore>(
             case "complete":
               set({
                 generating: false,
-                result: `http://localhost:${(window as any).PORT}/api/files?path=${encodeURIComponent(data.path)}`,
+                result: `/api/files?path=${encodeURIComponent(data.path)}`,
               });
               break;
             case "error":

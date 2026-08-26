@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-const API_BASE = `http://localhost:${(window as any).PORT}`;
+const API_BASE = "";
 
 export type FileKind = "image" | "video" | "text" | "other";
 

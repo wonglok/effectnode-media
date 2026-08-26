@@ -93,13 +93,11 @@ export async function runSetup({
 }: {
   port: number;
 }): Promise<any> {
-  [APP_DATA_DIR, PYTHON_DIR, PROJECTS_DIR, JSON_DIR].forEach(
-    (dir) => {
-      if (!existsSync(dir)) {
-        mkdirSync(dir, { recursive: true });
-      }
-    },
-  );
+  [APP_DATA_DIR, PYTHON_DIR, PROJECTS_DIR, JSON_DIR].forEach((dir) => {
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+  });
 
   BACKEND_PORT = await findFreePort(port);
 

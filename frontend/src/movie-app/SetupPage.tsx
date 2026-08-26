@@ -20,7 +20,7 @@ function SetupPage({ port = 8765 }) {
   const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const eventSource = new EventSource(`http://localhost:${port}/api/setup`);
+    const eventSource = new EventSource(`/api/setup`);
 
     eventSource.addEventListener("progress", (e: MessageEvent) => {
       const data = JSON.parse(e.data);

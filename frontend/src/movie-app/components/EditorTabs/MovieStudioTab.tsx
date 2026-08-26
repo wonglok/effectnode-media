@@ -336,7 +336,7 @@ export default function MovieStudioTab({ projectId }: Props) {
     url
       ? url.startsWith("http")
         ? url
-        : `http://localhost:${(window as any).PORT}${url}`
+        : `${url}`
       : null;
   const imageUrlFor = (prefix: string, slug: string): string | null => {
     const img = gen.projectImages.find(
@@ -510,7 +510,7 @@ export default function MovieStudioTab({ projectId }: Props) {
                         const isRegenerating = store.regenerating.includes(key);
                         const fullUrl = asset.url.startsWith("http")
                           ? asset.url
-                          : `http://localhost:${(window as any).PORT}${asset.url}`;
+                          : `${asset.url}`;
                         const prompt =
                           asset.kind === "character"
                             ? (store.result?.characters.find(
@@ -971,7 +971,7 @@ export default function MovieStudioTab({ projectId }: Props) {
                           store.regeneratingSceneImages.includes(img.slug);
                         const fullUrl = img.url.startsWith("http")
                           ? img.url
-                          : `http://localhost:${(window as any).PORT}${img.url}`;
+                          : `${img.url}`;
                         return (
                           <div key={img.slug} className="flex flex-col gap-1.5">
                             <div className="relative rounded-xl border border-ink-200 overflow-hidden">
@@ -1339,12 +1339,12 @@ export default function MovieStudioTab({ projectId }: Props) {
                     const imgUrl = scene.imageUrl
                       ? scene.imageUrl.startsWith("http")
                         ? scene.imageUrl
-                        : `http://localhost:${(window as any).PORT}${scene.imageUrl}`
+                        : `${scene.imageUrl}`
                       : null;
                     const vidUrl = scene.videoUrl
                       ? scene.videoUrl.startsWith("http")
                         ? scene.videoUrl
-                        : `http://localhost:${(window as any).PORT}${scene.videoUrl}`
+                        : `${scene.videoUrl}`
                       : null;
                     return (
                       <div

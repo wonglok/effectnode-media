@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-const API_BASE = `http://localhost:${(window as any).PORT}`;
+const API_BASE = "";
 
 /** Models that have a dedicated download endpoint in the backend. */
 export type AiModelId =

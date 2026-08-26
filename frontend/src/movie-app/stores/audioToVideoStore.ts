@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { QueueTask } from "./queueStore";
 import type { AspectRatio, Resolution } from "./generationStore";
 
-const API_BASE = `http://localhost:${(window as any).PORT}`;
+const API_BASE = "";
 
 export interface AssetFile {
   filename: string;

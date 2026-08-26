@@ -8,7 +8,7 @@ import {
   type PersistedTextToImageState,
 } from "../lib/textToImageStorage";
 
-const API_BASE = `http://localhost:${(window as any).PORT}`;
+const API_BASE = "";
 
 // ========== Types ==========
 
@@ -329,7 +329,7 @@ function parseCsv(text: string): {
 
 function resolveImageUrl(url: string): string {
   if (url.startsWith("http")) return url;
-  return `http://localhost:${(window as any).PORT}${url}`;
+  return `${url}`;
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -685,7 +685,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
               image: {
                 ...s.image,
                 generating: false,
-                result: `http://localhost:${(window as any).PORT}/api/files?path=${encodeURIComponent(data.path)}`,
+                result: `/api/files?path=${encodeURIComponent(data.path)}`,
               },
             }));
             break;
@@ -768,7 +768,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
     // Extract raw file path from HTTP URL (e.g. http://localhost:PORT/api/files?path=...)
     if (resolvedImagePath.includes("/api/files?path=")) {
       try {
-        const url = new URL(resolvedImagePath);
+        const url = new URL(resolvedImagePath, window.location.origin);
         resolvedImagePath = url.searchParams.get("path") || resolvedImagePath;
       } catch {
         // not a valid URL, use as-is
@@ -880,7 +880,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       }
 
       const data = await res.json();
-      const url = `http://localhost:${(window as any).PORT}/api/files?path=${encodeURIComponent(data.path)}`;
+      const url = `/api/files?path=${encodeURIComponent(data.path)}`;
       set({
         uploading: false,
         uploadedImageUrl: url,
@@ -910,7 +910,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
         ...img,
         url: img.url.startsWith("http")
           ? img.url
-          : `http://localhost:${(window as any).PORT}${img.url}`,
+          : `${img.url}`,
       }));
       set({ projectImages: resolved, projectImagesLoading: false });
     } catch {
@@ -1042,7 +1042,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
 
       if (resolvedImagePath.includes("/api/files?path=")) {
         try {
-          const url = new URL(resolvedImagePath);
+          const url = new URL(resolvedImagePath, window.location.origin);
           resolvedImagePath = url.searchParams.get("path") || resolvedImagePath;
         } catch {
           // not a valid URL, use as-is
@@ -1110,7 +1110,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
                 video: {
                   ...s.video,
                   generating: false,
-                  result: `http://localhost:${(window as any).PORT}/api/files?path=${encodeURIComponent(data.path)}`,
+                  result: `/api/files?path=${encodeURIComponent(data.path)}`,
                 },
               }));
               break;
@@ -1679,7 +1679,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
               textToImage: {
                 ...s.textToImage,
                 generating: false,
-                result: `http://localhost:${(window as any).PORT}/api/files?path=${encodeURIComponent(data.path)}`,
+                result: `/api/files?path=${encodeURIComponent(data.path)}`,
               },
             }));
             get().fetchProjectImages(projectId);
@@ -1932,7 +1932,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
         ...v,
         url: v.url.startsWith("http")
           ? v.url
-          : `http://localhost:${(window as any).PORT}${v.url}`,
+          : `${v.url}`,
       }));
       set({ projectVideos: resolved, projectVideosLoading: false });
     } catch {
@@ -1954,7 +1954,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
         ...a,
         url: a.url.startsWith("http")
           ? a.url
-          : `http://localhost:${(window as any).PORT}${a.url}`,
+          : `${a.url}`,
       }));
       set({ projectAudios: resolved, projectAudiosLoading: false });
     } catch {
@@ -1998,7 +1998,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
     }
     const fullUrl = img.url.startsWith("http")
       ? img.url
-      : `http://localhost:${(window as any).PORT}${img.url}`;
+      : `${img.url}`;
     set({
       selectedImage: { ...img, url: fullUrl },
       uploadedImageUrl: fullUrl,

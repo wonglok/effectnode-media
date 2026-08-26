@@ -14,7 +14,7 @@ import {
   type PersistedBatchVideoState,
 } from "../lib/batchVideoStorage";
 
-const API_BASE = `http://localhost:${(window as any).PORT}`;
+const API_BASE = "";
 
 export type BatchRowStatus =
   | "idle"
@@ -105,7 +105,7 @@ let batchRowIds: string[] = [];
 function resolveMediaUrl(url: string): string {
   return url.startsWith("http")
     ? url
-    : `http://localhost:${(window as any).PORT}${url}`;
+    : `${url}`;
 }
 
 /** Enqueue a single batch-video task in the backend queue. */
@@ -169,7 +169,7 @@ function normalizeImagePath(path: string): string {
   let p = path;
   if (p.includes("/api/files?path=")) {
     try {
-      const url = new URL(p);
+      const url = new URL(p, window.location.origin);
       p = url.searchParams.get("path") || p;
     } catch {
       // not a valid URL, use as-is
@@ -376,7 +376,7 @@ export const useBatchVideoStore = create<BatchVideoStore>((set, get) => ({
       }
 
       const data = await res.json();
-      const url = `http://localhost:${(window as any).PORT}/api/files?path=${encodeURIComponent(data.path)}`;
+      const url = `/api/files?path=${encodeURIComponent(data.path)}`;
       set((s) => ({
         rows: s.rows.map((r) =>
           r.id === id
