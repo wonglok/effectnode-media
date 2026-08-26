@@ -216,7 +216,7 @@ mlxgen generate \
   --task image-to-image \
   --i2i-mode "edit" \
   --prompt "make the character stand naturally and have a victory pose with his hand with a happy smile." \
-  --steps 20 \
+  --steps 4 \
   --seed 42 \
   --mlx-cache-limit-gb 20 \
   --output edited.png \
