@@ -32,7 +32,9 @@ export interface ChatSession {
 let msgCounter = 0;
 function nextMsgId(): string {
   msgCounter += 1;
-  return `msg-${msgCounter}`;
+  // Include a timestamp so fresh IDs never collide with messages restored from
+  // a previous session's persisted history (whose IDs were `msg-1`, `msg-2`, …).
+  return `msg-${Date.now().toString(36)}-${msgCounter}`;
 }
 
 let sessionCounter = 0;
