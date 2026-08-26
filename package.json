@@ -1,6 +1,6 @@
 {
   "name": "@effectnode/media",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "description": "Start a full-stack media app: Vite + React + TypeScript frontend, Express backend with REST + WebSocket API",
   "license": "MIT",
   "author": "",
