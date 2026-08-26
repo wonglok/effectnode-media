@@ -36,7 +36,7 @@ const PROJECTS_FILE = join(JSON_DIR, "projects.json");
 const CHARACTERS_FILE = join(JSON_DIR, "characters.json");
 
 const Z_IMAGE_MODEL = "AbstractFramework/z-image-turbo-8bit";
-const FLUX_KLEIN_MODEL = "AbstractFramework/flux.2-klein-4b-8bit";
+const FLUX_KLEIN_MODEL = "AbstractFramework/flux.2-klein-4b-8bit"; // AbstractFramework/flux.2-klein-base-4b-8bit // AbstractFramework/flux.2-klein-4b-8bit
 const SEEDVR2_MODEL = "AbstractFramework/seedvr2-7b-8bit";
 const QWEN_IMAGE_EDIT_MODEL = "AbstractFramework/qwen-image-edit-2511-8bit";
 const MLX_VLM_MODEL = "mlx-community/gemma-4-e4b-it-8bit";
@@ -1890,8 +1890,13 @@ export async function renderMediaRoutes({
   // ========== Render: Text-to-Image ==========
 
   app.post("/api/render/text-to-image", async (req, res) => {
-    const { prompt, projectId, width = 512, height = 512, steps } =
-      req.body || {};
+    const {
+      prompt,
+      projectId,
+      width = 512,
+      height = 512,
+      steps,
+    } = req.body || {};
 
     if (!prompt) {
       res.status(400).json({ error: "Prompt is required" });
