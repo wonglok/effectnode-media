@@ -716,8 +716,14 @@ export async function generateSceneVideo(
 
   const videoWidth = Math.max(1, Math.round(Number(settings?.width)) || 320);
   const videoHeight = Math.max(1, Math.round(Number(settings?.height)) || 569);
-  const stage1Steps = Math.max(1, Math.round(Number(settings?.stage1Steps)) || 15);
-  const stage2Steps = Math.max(1, Math.round(Number(settings?.stage2Steps)) || 3);
+  const stage1Steps = Math.max(
+    1,
+    Math.round(Number(settings?.stage1Steps)) || 15,
+  );
+  const stage2Steps = Math.max(
+    1,
+    Math.round(Number(settings?.stage2Steps)) || 3,
+  );
 
   const result = await runCommand(
     [
@@ -1197,7 +1203,7 @@ export async function generateAudioToVideo(
       "--height",
       String(height),
       "--output",
-      outputDir,
+      join(outputDir, "./vid.mp4"),
       "--prompt",
       cleanPrompt,
       "--stage1-steps",
