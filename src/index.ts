@@ -60,9 +60,8 @@ program
             ws: true,
           },
           "/p8881": {
-            target: `http://localhost:8881`,
+            target: `http://localhost:${backendPort}`,
             changeOrigin: true,
-            rewrite: (path) => path.replace(/^\/p8881/, ""),
           },
         },
       },
