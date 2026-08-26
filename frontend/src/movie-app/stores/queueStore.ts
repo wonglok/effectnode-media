@@ -15,6 +15,7 @@ export type QueueTaskType =
   | "regenerate-video"
   | "regenerate-scene-image"
   | "fast-image-edit"
+  | "advanced-image-edit"
   | "image-to-video"
   | "upscale"
   | "voice-clone"

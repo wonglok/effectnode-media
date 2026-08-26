@@ -1,11 +1,14 @@
 import { useEffect, useRef } from "react";
 import { useGenerationStore } from "../../stores/generationStore";
 import { useProjectStore } from "../../stores/projectStore";
+import { useQueueStore } from "../../stores/queueStore";
 import {
   useAdvancedImageEditStore,
   RESOLUTIONS,
   STEPS_OPTIONS,
 } from "../../stores/advancedImageEditStore";
+import TaskQueuePanel from "./TaskQueuePanel";
+import TerminalLogPanel from "./TerminalLogPanel";
 
 interface Props {
   projectId: string;
@@ -15,12 +18,26 @@ export default function AdvancedImageEditTab({ projectId }: Props) {
   const gen = useGenerationStore();
   const adv = useAdvancedImageEditStore();
   const { openFolder } = useProjectStore();
+  const queue = useQueueStore();
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     gen.fetchProjectImages(projectId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
+
+  // Stream the generation queue so advanced-image-edit tasks surface here.
+  useEffect(() => {
+    queue.startStreaming(projectId);
+    return () => queue.stopStreaming();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
+  // Reconcile advanced-image-edit state with the latest queue task state.
+  useEffect(() => {
+    for (const task of queue.tasks) adv.applyQueueTask(task);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queue.tasks, projectId]);
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -90,6 +107,9 @@ export default function AdvancedImageEditTab({ projectId }: Props) {
           Advanced Image Edit
         </h2>
       </div>
+
+      <TaskQueuePanel projectId={projectId} />
+      <TerminalLogPanel />
 
       {/* ===== Input image picker ===== */}
       <div>
@@ -318,18 +338,6 @@ export default function AdvancedImageEditTab({ projectId }: Props) {
       {adv.error && (
         <div className="p-5 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm">
           {adv.error}
-        </div>
-      )}
-
-      {/* ===== Logs ===== */}
-      {adv.logs.length > 0 && (
-        <div className="p-5 bg-ink-50 border border-ink-200 rounded-2xl max-h-40 overflow-y-auto">
-          <p className="text-xs font-semibold text-ink-700 uppercase tracking-wider mb-2">
-            Logs
-          </p>
-          <pre className="text-xs text-ink-600 font-mono whitespace-pre-wrap">
-            {adv.logs.join("")}
-          </pre>
         </div>
       )}
 

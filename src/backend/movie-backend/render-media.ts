@@ -1484,6 +1484,92 @@ export async function generateFastImageEditImage(
   }
 }
 
+/**
+ * Edit a project image via mlxgen (Qwen Image Edit). `imagePath` must be a
+ * bare filename previously uploaded/generated into the project. Used by the
+ * generation queue worker.
+ */
+export async function generateAdvancedImageEditImage(
+  projectId: string,
+  prompt: string,
+  imagePath: string,
+  width: number,
+  height: number,
+  steps: number,
+  seed: number,
+  lowRam: boolean,
+  onLog?: (text: string) => void,
+): Promise<{ filename: string; url: string } | { error: string }> {
+  if (!isValidProjectId(projectId)) return { error: "Invalid project ID" };
+  if (!prompt || !prompt.trim()) return { error: "Prompt is required" };
+  if (!imagePath) return { error: "An input image is required" };
+
+  const resolvedImage = resolveSafePath(imagePath, projectId);
+  if (!resolvedImage || !existsSync(resolvedImage)) {
+    return { error: "Input image not found" };
+  }
+
+  const resolvedSteps = Math.max(1, Number(steps) || 8);
+  const resolvedSeed = Number.isFinite(Number(seed)) ? Number(seed) : 42;
+
+  const mlxgen = await getMlxgenBin();
+  const projectOutputDir = join(projectDir(projectId), "output");
+  ensureDir(projectOutputDir);
+
+  const outputFile = `qwen-edit-${Date.now()}.png`;
+  const outputPath = join(projectOutputDir, outputFile);
+
+  const args: string[] = [
+    mlxgen,
+    "generate",
+    "--model",
+    QWEN_IMAGE_EDIT_MODEL,
+    "--task",
+    "image-to-image",
+    "--i2i-mode",
+    "edit",
+    "--image",
+    resolvedImage,
+    "--output",
+    outputPath,
+    "--prompt",
+    prompt.trim(),
+    "--steps",
+    String(resolvedSteps),
+    "--seed",
+    String(resolvedSeed),
+    "--mlx-cache-limit-gb",
+    "20",
+  ];
+
+  const outWidth = Number(width);
+  const outHeight = Number(height);
+  if (
+    Number.isInteger(outWidth) &&
+    outWidth > 0 &&
+    Number.isInteger(outHeight) &&
+    outHeight > 0
+  ) {
+    args.push("--width", String(outWidth), "--height", String(outHeight));
+  }
+
+  if (lowRam === true) {
+    args.push("--low-ram");
+  }
+
+  const result = await runCommand(args, { onLog });
+  if (!result.success || !existsSync(outputPath)) {
+    return { error: result.output || "Advanced image edit failed" };
+  }
+
+  backupFile(outputPath, projectId);
+
+  return {
+    filename: outputFile,
+    url: `/api/files?path=${encodeURIComponent(outputPath)}`,
+  };
+}
+
 // ========== Routes ==========
 
 export async function renderMediaRoutes({

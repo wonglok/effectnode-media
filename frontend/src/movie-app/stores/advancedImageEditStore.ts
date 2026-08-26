@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { AspectRatio } from "./generationStore";
+import type { QueueTask } from "./queueStore";
 
 const API_BASE = "";
 
@@ -30,40 +31,6 @@ function getDimensions(
   }
 }
 
-async function readSSEStream(
-  response: Response,
-  onEvent: (event: string, data: any) => void,
-): Promise<void> {
-  const reader = response.body?.getReader();
-  if (!reader) return;
-  const decoder = new TextDecoder();
-  let buffer = "";
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-      let eventType = "message";
-      for (const line of lines) {
-        if (line.startsWith("event: ")) {
-          eventType = line.slice(7).trim();
-        } else if (line.startsWith("data: ")) {
-          try {
-            onEvent(eventType, JSON.parse(line.slice(6)));
-          } catch {
-            // skip malformed lines
-          }
-          eventType = "message";
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
-
 interface AdvancedImageEditStore {
   prompt: string;
   aspectRatio: AspectRatio;
@@ -86,7 +53,42 @@ interface AdvancedImageEditStore {
   setImage: (img: AdvancedImage | null) => void;
   clearResult: () => void;
   generate: (projectId: string) => Promise<void>;
+  applyQueueTask: (task: QueueTask) => void;
   reset: () => void;
+}
+
+/** The queue task id enqueued by the current generate action, if any. */
+let advancedImageEditActiveTaskId: string | null = null;
+
+async function enqueueAdvancedImageEditTask(
+  projectId: string,
+  prompt: string,
+  imagePath: string,
+  width: number,
+  height: number,
+  steps: number,
+  seed: number,
+  lowRam: boolean,
+): Promise<{ ok: boolean; error?: string; taskId?: string }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/queue/enqueue`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        projectId,
+        type: "advanced-image-edit",
+        label: "Advanced image edit",
+        payload: { prompt, imagePath, width, height, steps, seed, lowRam, projectId },
+      }),
+    });
+    if (!res.ok) {
+      return { ok: false, error: await res.text() };
+    }
+    const task = (await res.json()) as { id?: string };
+    return { ok: true, taskId: task.id };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
 }
 
 const initialState = {
@@ -131,52 +133,53 @@ export const useAdvancedImageEditStore = create<AdvancedImageEditStore>(
 
       set({ generating: true, error: null, result: null, logs: [] });
 
-      try {
-        const res = await fetch(`${API_BASE}/api/mlxgen/advanced-image-edit`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            prompt: prompt.trim(),
-            imagePath: image.filename,
-            projectId,
-            width,
-            height,
-            steps,
-            seed,
-            lowRam,
-          }),
+      const r = await enqueueAdvancedImageEditTask(
+        projectId,
+        prompt.trim(),
+        image.filename,
+        width,
+        height,
+        steps,
+        seed,
+        lowRam,
+      );
+      advancedImageEditActiveTaskId = r.taskId ?? null;
+      if (!r.ok) {
+        set({
+          generating: false,
+          error: r.error ?? "Failed to enqueue image edit",
         });
-
-        if (!res.ok) {
-          const err = await res.text();
-          set({ generating: false, error: err });
-          return;
-        }
-
-        await readSSEStream(res, (event, data) => {
-          switch (event) {
-            case "log":
-              set((s) => ({ logs: [...s.logs, data.text as string] }));
-              break;
-            case "complete":
-              set({
-                generating: false,
-                result: `/api/files?path=${encodeURIComponent(data.path)}`,
-              });
-              break;
-            case "error":
-              set({
-                generating: false,
-                error: data.error || "Image edit failed",
-              });
-              break;
-          }
-        });
-      } catch (e) {
-        set({ generating: false, error: String(e) });
       }
     },
 
-    reset: () => set({ ...initialState }),
+    // Reconcile state with the latest queue task (only the task this tab
+    // enqueued is reflected).
+    applyQueueTask: (task) => {
+      if (task.type !== "advanced-image-edit") return;
+      if (task.id !== advancedImageEditActiveTaskId) return;
+
+      if (task.status === "completed") {
+        const url = task.result?.url;
+        set({
+          generating: false,
+          result: url ? String(url) : null,
+          error: null,
+        });
+      } else if (
+        task.status === "failed" ||
+        task.status === "cancelled" ||
+        task.status === "paused"
+      ) {
+        set({ generating: false, error: task.error ?? "Image edit failed" });
+      } else {
+        // pending / running
+        set({ generating: true, error: null });
+      }
+    },
+
+    reset: () => {
+      advancedImageEditActiveTaskId = null;
+      set({ ...initialState });
+    },
   }),
 );

@@ -16,6 +16,7 @@ import {
   generateSceneImage,
   generateSceneVideo,
   generateFastImageEditImage,
+  generateAdvancedImageEditImage,
   generateImageToVideo,
   generateUpscale,
   generateVoiceClone,
@@ -54,6 +55,7 @@ export type QueueTaskType =
   | "regenerate-video"
   | "regenerate-scene-image"
   | "fast-image-edit"
+  | "advanced-image-edit"
   | "image-to-video"
   | "upscale"
   | "voice-clone"
@@ -589,6 +591,26 @@ const handlers: Record<QueueTaskType, Handler> = {
       Array.isArray(images) ? images : [],
       Number(steps),
       String(upscale || "none"),
+      ctx.log,
+    );
+    if ("error" in r) throw new Error(r.error);
+    return r;
+  },
+
+  // Edit a project image via Qwen Image Edit (Advanced Image Edit).
+  "advanced-image-edit": async (ctx) => {
+    const { prompt, imagePath, width, height, steps, seed, lowRam } =
+      ctx.task.payload || {};
+    ctx.log("Editing image (Qwen Image Edit)…\n");
+    const r = await generateAdvancedImageEditImage(
+      ctx.projectId,
+      String(prompt || ""),
+      String(imagePath || ""),
+      Number(width),
+      Number(height),
+      Number(steps),
+      Number(seed),
+      Boolean(lowRam),
       ctx.log,
     );
     if ("error" in r) throw new Error(r.error);
