@@ -1889,13 +1889,8 @@ export async function renderMediaRoutes({
   // ========== Render: Text-to-Image ==========
 
   app.post("/api/render/text-to-image", async (req, res) => {
-    const {
-      prompt,
-      projectId,
-      width = 512,
-      height = 512,
-      device = "mps",
-    } = req.body || {};
+    const { prompt, projectId, width = 512, height = 512, steps } =
+      req.body || {};
 
     if (!prompt) {
       res.status(400).json({ error: "Prompt is required" });
@@ -1905,12 +1900,6 @@ export async function renderMediaRoutes({
       res.status(400).json({ error: "Project ID is required" });
       return;
     }
-
-    // z-image-mps requires width/height to be multiples of 16. Snap any
-    // client-provided size (e.g. an aspect-ratio-derived height) to the
-    // nearest valid multiple so generation does not fail.
-    const imageWidth = Math.max(16, Math.round(Number(width) / 16) * 16);
-    const imageHeight = Math.max(16, Math.round(Number(height) / 16) * 16);
 
     // SSE headers
     res.writeHead(200, {
@@ -1925,14 +1914,7 @@ export async function renderMediaRoutes({
     };
 
     try {
-      const zImageFolder = join(PYTHON_DIR, "z-image-mps");
-      if (!existsSync(zImageFolder)) {
-        send("error", { error: "z-image-mps not found. Run setup first." });
-        res.end();
-        return;
-      }
-
-      const uvPath = await getUvPath();
+      const mlxgen = await getMlxgenBin();
       const projectOutputDir = join(projectDir(projectId), "output");
       ensureDir(projectOutputDir);
 
@@ -1945,40 +1927,49 @@ export async function renderMediaRoutes({
         outputFile,
       });
 
-      const proc = spawn(
-        [
-          uvPath,
-          "run",
-          "z-image-mps.py",
-          "-p",
-          prompt,
-          "--height",
-          String(imageHeight),
-          "--width",
-          String(imageWidth),
-          "--output",
-          outputPath,
-          "--device",
-          device,
-        ],
-        {
-          cwd: zImageFolder,
-          stdout: "pipe",
-          stderr: "pipe",
-        },
-      );
+      // z-image-turbo is a few-step distillation model; default to 4 steps.
+      const resolvedSteps = Number(steps) > 0 ? Number(steps) : 4;
+
+      const args: string[] = [
+        mlxgen,
+        "generate",
+        "--model",
+        Z_IMAGE_MODEL,
+        "--prompt",
+        prompt,
+        "--output",
+        outputPath,
+        "--steps",
+        String(resolvedSteps),
+      ];
+
+      const outWidth = Number(width);
+      const outHeight = Number(height);
+      if (
+        Number.isInteger(outWidth) &&
+        outWidth > 0 &&
+        Number.isInteger(outHeight) &&
+        outHeight > 0
+      ) {
+        args.push("--width", String(outWidth), "--height", String(outHeight));
+      }
+
+      const proc = spawn(args, {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
 
       activeProc = proc;
 
       // Stream stdout/stderr concurrently
       const stdoutPromise = streamToSSE(
         proc.stdout as ReadableStream<Uint8Array>,
-        "Image",
+        "MLXGen",
         send,
       );
       const stderrText = await streamToSSE(
         proc.stderr as ReadableStream<Uint8Array>,
-        "Image",
+        "MLXGen",
         send,
       );
       await stdoutPromise;
