@@ -509,7 +509,7 @@ const initialVideo: VideoState = {
   resolution: "480p",
   mode: "distilled",
   model: "dgrauet/ltx-2.3-mlx-q8",
-  stage1Steps: 30,
+  stage1Steps: 10,
   stage2Steps: 3,
   generating: false,
   result: null,
