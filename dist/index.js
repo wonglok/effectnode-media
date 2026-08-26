@@ -18,7 +18,7 @@ program
     .description("Start the effectnode-media services — a Vite + React + TypeScript frontend " +
     "and an Express backend (REST + WebSocket) — then open the browser.")
     .version("0.1.0")
-    .option("--host <host>", "Host to bind", "localhost")
+    .option("--host <host>", "Host to bind", "0.0.0.0")
     .option("--frontend-port <port>", "Frontend (Vite) port", "5177")
     .option("--backend-port <port>", "Backend (Express) port", "4000")
     .option("--no-open", "Do not open the browser")
