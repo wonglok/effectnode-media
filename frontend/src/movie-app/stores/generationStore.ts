@@ -910,9 +910,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       // Resolve relative URLs to absolute so they work regardless of page origin
       const resolved = images.map((img) => ({
         ...img,
-        url: img.url.startsWith("http")
-          ? img.url
-          : `${img.url}`,
+        url: img.url.startsWith("http") ? img.url : `${img.url}`,
       }));
       set({ projectImages: resolved, projectImagesLoading: false });
     } catch {
@@ -1928,9 +1926,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       // Resolve relative URLs to absolute so they work regardless of page origin
       const resolved = videos.map((v) => ({
         ...v,
-        url: v.url.startsWith("http")
-          ? v.url
-          : `${v.url}`,
+        url: v.url.startsWith("http") ? v.url : `${v.url}`,
       }));
       set({ projectVideos: resolved, projectVideosLoading: false });
     } catch {
@@ -1950,9 +1946,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       const audios: ProjectAudio[] = await res.json();
       const resolved = audios.map((a) => ({
         ...a,
-        url: a.url.startsWith("http")
-          ? a.url
-          : `${a.url}`,
+        url: a.url.startsWith("http") ? a.url : `${a.url}`,
       }));
       set({ projectAudios: resolved, projectAudiosLoading: false });
     } catch {
@@ -1994,9 +1988,7 @@ export const useGenerationStore = create<GenerationStore>((set, get) => ({
       set({ selectedImage: null });
       return;
     }
-    const fullUrl = img.url.startsWith("http")
-      ? img.url
-      : `${img.url}`;
+    const fullUrl = img.url.startsWith("http") ? img.url : `${img.url}`;
     set({
       selectedImage: { ...img, url: fullUrl },
       uploadedImageUrl: fullUrl,
