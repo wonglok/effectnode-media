@@ -1030,19 +1030,6 @@ function syncToMovieStudioState(
 
 // ========== Routes ==========
 
-/**
- * CSRF guard for the local server. Rejects mutating requests whose Origin
- * points at another site (a malicious page in the user's browser). Same-origin
- * and custom-protocol (views://) clients send no Origin or an Origin of
- * "null", so they pass through. Any other Origin is rejected.
- */
-function assertLocalRequest(req: Request, res: Response): boolean {
-  const origin = req.headers.origin;
-  if (!origin || origin === "null") return true;
-  res.status(403).json({ error: "Forbidden" });
-  return false;
-}
-
 export function generationQueueSetup({
   app,
   getUvPath,
@@ -1126,7 +1113,6 @@ export function generationQueueSetup({
 
   // Enqueue a new generation task.
   app.post("/api/queue/enqueue", (req, res) => {
-    if (!assertLocalRequest(req, res)) return;
     const { projectId, type, label, payload } = req.body || {};
     if (!projectId || !isValidProjectId(String(projectId))) {
       res.status(400).json({ error: "Invalid project ID" });
@@ -1149,7 +1135,6 @@ export function generationQueueSetup({
 
   // Pause a project's queue: kill its running task but remember it as "paused".
   app.post("/api/queue/pause", (req, res) => {
-    if (!assertLocalRequest(req, res)) return;
     const { projectId } = req.body || {};
     if (!projectId || !isValidProjectId(String(projectId))) {
       res.status(400).json({ error: "Invalid project ID" });
@@ -1172,7 +1157,6 @@ export function generationQueueSetup({
 
   // Resume a project's queue and re-queue any of its paused tasks.
   app.post("/api/queue/resume", (req, res) => {
-    if (!assertLocalRequest(req, res)) return;
     const { projectId } = req.body || {};
     if (!projectId || !isValidProjectId(String(projectId))) {
       res.status(400).json({ error: "Invalid project ID" });
@@ -1196,7 +1180,6 @@ export function generationQueueSetup({
 
   // Cancel a single task (pending or running).
   app.post("/api/queue/cancel", (req, res) => {
-    if (!assertLocalRequest(req, res)) return;
     const { projectId, taskId } = req.body || {};
     if (!projectId || !isValidProjectId(String(projectId))) {
       res.status(400).json({ error: "Invalid project ID" });
@@ -1225,7 +1208,6 @@ export function generationQueueSetup({
 
   // Cancel every queued/running task for a project (the "Stop" button).
   app.post("/api/queue/cancel-active", (req, res) => {
-    if (!assertLocalRequest(req, res)) return;
     const { projectId } = req.body || {};
     if (!projectId || !isValidProjectId(String(projectId))) {
       res.status(400).json({ error: "Invalid project ID" });
@@ -1254,7 +1236,6 @@ export function generationQueueSetup({
 
   // Remove finished tasks (completed/failed/cancelled) from the queue.
   app.post("/api/queue/clear", (req, res) => {
-    if (!assertLocalRequest(req, res)) return;
     const { projectId } = req.body || {};
     if (!projectId || !isValidProjectId(String(projectId))) {
       res.status(400).json({ error: "Invalid project ID" });
@@ -1276,7 +1257,6 @@ export function generationQueueSetup({
   // Remove every non-running task (pending/finished/paused) from the queue,
   // leaving only the currently running task (if any).
   app.post("/api/queue/clear-all", (req, res) => {
-    if (!assertLocalRequest(req, res)) return;
     const { projectId } = req.body || {};
     if (!projectId || !isValidProjectId(String(projectId))) {
       res.status(400).json({ error: "Invalid project ID" });
