@@ -213,16 +213,17 @@ uv run pip install -e .
 
 mlxgen generate \
   --model AbstractFramework/qwen-image-edit-2511-8bit \
-  --image kick.png \
   --task image-to-image \
   --i2i-mode "edit" \
+  --image input.png \
+  --output output.png \
   --prompt "make the character stand naturally and have a victory pose with his hand with a happy smile. white background" \
   --steps 8 \
   --seed 42 \
   --mlx-cache-limit-gb 20 \
-  --output edited.png \
   --width 1024 \
   --height 1024
+
 
 
 ```
