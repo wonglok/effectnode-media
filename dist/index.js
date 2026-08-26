@@ -50,9 +50,10 @@ program
                     target: `ws://localhost:${backendPort}`,
                     ws: true,
                 },
-                "/p8881/v1": {
-                    target: `http://localhost:8881/v1`,
+                "/p8881": {
+                    target: `http://localhost:8881`,
                     changeOrigin: true,
+                    rewrite: (path) => path.replace(/^\/p8881/, ""),
                 },
             },
         },
