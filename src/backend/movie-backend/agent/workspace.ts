@@ -48,22 +48,17 @@ export function isValidProjectId(id: string): boolean {
   return PROJECT_ID_RE.test(id);
 }
 
-/** Resolve a workspace-relative path safely (no traversal / absolute paths). */
-export function resolveWorkspacePath(
-  projectId: string,
-  relativePath: string,
-): string | null {
-  if (!isValidProjectId(projectId)) return null;
+/** Resolve a relative path against `base`, blocking traversal / absolute paths. */
+function resolveWithin(base: string, relativePath: string): string | null {
   if (typeof relativePath !== "string" || !relativePath) return null;
   if (relativePath.includes("..") || relativePath.includes("\0")) return null;
   const normalized = relativePath.replace(/\\/g, "/");
   if (normalized.startsWith("/")) return null;
-  const base = workspaceDir(projectId);
   const resolved = join(base, normalized);
   if (resolved !== base && !resolved.startsWith(base + sep)) return null;
 
   // Defense in depth: if the target exists, ensure its real path (symlinks
-  // resolved) is still inside the real agent workspace.
+  // resolved) is still inside the real base directory.
   if (existsSync(resolved)) {
     try {
       const realResolved = realpathSync(resolved);
@@ -74,6 +69,43 @@ export function resolveWorkspacePath(
     }
   }
   return resolved;
+}
+
+/** Which directory tree the file manager browses: the agent workspace or the whole project. */
+export type FileScope = "agents" | "project";
+
+/** Root directory for a file-manager scope. */
+export function fileScopeDir(projectId: string, scope: FileScope): string {
+  return scope === "project" ? projectDir(projectId) : workspaceDir(projectId);
+}
+
+/** Resolve a workspace-relative path safely (no traversal / absolute paths). */
+export function resolveWorkspacePath(
+  projectId: string,
+  relativePath: string,
+): string | null {
+  if (!isValidProjectId(projectId)) return null;
+  return resolveWithin(workspaceDir(projectId), relativePath);
+}
+
+/** Resolve a project-root-relative path safely (no traversal / absolute paths). */
+export function resolveProjectPath(
+  projectId: string,
+  relativePath: string,
+): string | null {
+  if (!isValidProjectId(projectId)) return null;
+  return resolveWithin(projectDir(projectId), relativePath);
+}
+
+/** Resolve a path within the given file-manager scope. */
+export function resolveScopedPath(
+  projectId: string,
+  relativePath: string,
+  scope: FileScope,
+): string | null {
+  return scope === "project"
+    ? resolveProjectPath(projectId, relativePath)
+    : resolveWorkspacePath(projectId, relativePath);
 }
 
 export type FileKind = "image" | "video" | "text" | "other";

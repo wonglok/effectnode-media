@@ -12,12 +12,14 @@ import OpenAI from "openai";
 import { getAgentServerPort } from "../render-media.js";
 import {
   workspaceDir,
-  resolveWorkspacePath,
+  resolveScopedPath,
+  fileScopeDir,
   walkFiles,
   classifyFile,
   ensureDir,
   movieStudioDataDir,
   movieStudioStateFile,
+  type FileScope,
 } from "./workspace.js";
 import { TOOLS, toolDefinitions, runTool } from "./tools/index.js";
 
@@ -149,6 +151,11 @@ function buildSystemPrompt(): string {
 function safeAgent(value: unknown): string {
   const s = typeof value === "string" ? value : "";
   return /^[a-zA-Z0-9_-]{1,32}$/.test(s) ? s : "default";
+}
+
+/** Normalize a client-supplied file scope ("project" → whole project, else agents). */
+function parseScope(value: unknown): FileScope {
+  return value === "project" ? "project" : "agents";
 }
 
 /** Load the Story Writer system prompt from the bundled `prompt/` file. */
@@ -494,7 +501,7 @@ export async function agentBackend({
       res.status(400).json({ error: "Invalid project ID" });
       return;
     }
-    const base = workspaceDir(projectId);
+    const base = fileScopeDir(projectId, parseScope(req.query.scope));
     if (!existsSync(base)) {
       res.json({ files: [] });
       return;
@@ -505,7 +512,7 @@ export async function agentBackend({
   app.get("/api/agent/file/content", (req, res) => {
     const projectId = String(req.query.projectId ?? "");
     const path = String(req.query.path ?? "");
-    const abs = resolveWorkspacePath(projectId, path);
+    const abs = resolveScopedPath(projectId, path, parseScope(req.query.scope));
     if (!abs || !existsSync(abs)) {
       res.status(404).json({ error: "File not found" });
       return;
@@ -514,8 +521,8 @@ export async function agentBackend({
   });
 
   app.post("/api/agent/file/content", (req, res) => {
-    const { projectId, path, content } = req.body || {};
-    const abs = resolveWorkspacePath(projectId, path);
+    const { projectId, path, content, scope } = req.body || {};
+    const abs = resolveScopedPath(projectId, path, parseScope(scope));
     if (!abs) {
       res.status(400).json({ error: "Invalid path" });
       return;
@@ -526,9 +533,9 @@ export async function agentBackend({
   });
 
   app.post("/api/agent/rename", (req, res) => {
-    const { projectId, path, newName } = req.body || {};
-    const abs = resolveWorkspacePath(projectId, path);
-    const newAbs = resolveWorkspacePath(projectId, newName);
+    const { projectId, path, newName, scope } = req.body || {};
+    const abs = resolveScopedPath(projectId, path, parseScope(scope));
+    const newAbs = resolveScopedPath(projectId, newName, parseScope(scope));
     if (!abs || !newAbs) {
       res.status(400).json({ error: "Invalid path" });
       return;
@@ -543,8 +550,8 @@ export async function agentBackend({
   });
 
   app.post("/api/agent/delete", (req, res) => {
-    const { projectId, path } = req.body || {};
-    const abs = resolveWorkspacePath(projectId, path);
+    const { projectId, path, scope } = req.body || {};
+    const abs = resolveScopedPath(projectId, path, parseScope(scope));
     if (!abs) {
       res.status(400).json({ error: "Invalid path" });
       return;
@@ -560,7 +567,7 @@ export async function agentBackend({
   app.get("/api/agent/file/preview", (req, res) => {
     const projectId = String(req.query.projectId ?? "");
     const path = String(req.query.path ?? "");
-    const abs = resolveWorkspacePath(projectId, path);
+    const abs = resolveScopedPath(projectId, path, parseScope(req.query.scope));
     if (!abs || !existsSync(abs)) {
       res.status(404).json({ error: "File not found" });
       return;
@@ -581,7 +588,7 @@ export async function agentBackend({
 
   // Save user-uploaded images/videos into the agent's workspace.
   app.post("/api/agent/upload", async (req, res) => {
-    const { image, filename, projectId } = req.body || {};
+    const { image, filename, projectId, scope } = req.body || {};
 
     if (!image) {
       res.status(400).json({ error: "File data is required (base64)" });
@@ -595,7 +602,7 @@ export async function agentBackend({
     try {
       const base64 = String(image).replace(/^data:[^;]+;base64,/, "");
       const buffer = Buffer.from(base64, "base64");
-      const dir = workspaceDir(String(projectId));
+      const dir = fileScopeDir(String(projectId), parseScope(scope));
       ensureDir(dir);
       const safeName = (filename || `upload-${Date.now()}`).replace(
         /[^a-zA-Z0-9._-]/g,
@@ -617,12 +624,12 @@ export async function agentBackend({
   });
 
   app.post("/api/agent/open-workspace", (req, res) => {
-    const { projectId } = req.body || {};
+    const { projectId, scope } = req.body || {};
     if (!projectId || !/^[a-zA-Z0-9_-]{1,64}$/.test(String(projectId))) {
       res.status(400).json({ error: "Invalid project ID" });
       return;
     }
-    const dir = workspaceDir(String(projectId));
+    const dir = fileScopeDir(String(projectId), parseScope(scope));
     ensureDir(dir);
     spawn(["open", dir], { stdout: "ignore", stderr: "ignore" });
     res.json({ ok: true });

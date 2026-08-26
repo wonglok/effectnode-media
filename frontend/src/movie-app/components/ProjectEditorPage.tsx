@@ -19,6 +19,7 @@ import UpscaleTab from "./EditorTabs/UpscaleTab";
 import VoiceCloneTab from "./EditorTabs/VoiceCloneTab";
 import AudioToVideoTab from "./EditorTabs/AudioToVideoTab";
 import AdvancedVoiceCloneTab from "./EditorTabs/AdvancedVoiceCloneTab";
+import FileManagerTab from "./EditorTabs/FileManagerTab";
 
 const TAB_KEYS: GenerationTab[] = [
   "movieStudio",
@@ -35,6 +36,7 @@ const TAB_KEYS: GenerationTab[] = [
   "voiceClone",
   "advancedVoiceClone",
   "audioToVideo",
+  "fileManager",
 ];
 
 export default function ProjectEditorPage() {
@@ -363,6 +365,21 @@ export default function ProjectEditorPage() {
     </svg>
   );
 
+  const FileManagerIcon = (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+
   // ========== Loading / Not Found ==========
 
   if (!project) {
@@ -580,6 +597,17 @@ export default function ProjectEditorPage() {
               {AiModelIcon}
               Setup AI Models
             </button>
+            <button
+              onClick={() => goToTab("fileManager")}
+              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
+                activeTab === "fileManager"
+                  ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
+                  : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
+              }`}
+            >
+              {FileManagerIcon}
+              File Manager
+            </button>
           </div>
 
           {/* ========== MOVIE STUDIO PANEL ========== */}
@@ -640,6 +668,11 @@ export default function ProjectEditorPage() {
           {/* ========== AUDIO TO VIDEO PANEL ========== */}
           {activeTab === "audioToVideo" && (
             <AudioToVideoTab projectId={id!} />
+          )}
+
+          {/* ========== FILE MANAGER PANEL ========== */}
+          {activeTab === "fileManager" && (
+            <FileManagerTab projectId={id!} />
           )}
         </div>
       </div>

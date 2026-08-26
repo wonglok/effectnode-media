@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import {
   useWorkspaceStore,
   workspacePreviewUrl,
+  type FileScope,
   type WorkspaceFile,
 } from "../stores/workspaceStore";
 
 interface Props {
   projectId: string;
+  title?: string;
+  scope?: FileScope;
 }
 
 function formatSize(bytes: number): string {
@@ -15,7 +18,7 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function AgentWorkspace({ projectId }: Props) {
+export default function AgentWorkspace({ projectId, title, scope = "agents" }: Props) {
   const ws = useWorkspaceStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -29,9 +32,9 @@ export default function AgentWorkspace({ projectId }: Props) {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   useEffect(() => {
-    ws.fetchFiles(projectId);
+    ws.fetchFiles(projectId, scope);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
+  }, [projectId, scope]);
 
   useEffect(() => {
     if (!preview || !listRef.current) return;
@@ -49,7 +52,7 @@ export default function AgentWorkspace({ projectId }: Props) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      ws.uploadFile(projectId, reader.result as string, file.name);
+      ws.uploadFile(projectId, reader.result as string, file.name, scope);
     };
     reader.readAsDataURL(file);
     e.target.value = "";
@@ -59,7 +62,7 @@ export default function AgentWorkspace({ projectId }: Props) {
     setEditing(null);
     setPreview(f);
     if (f.kind === "text") {
-      const content = await ws.readFileContent(projectId, f.path);
+      const content = await ws.readFileContent(projectId, f.path, scope);
       setPreviewContent(content ?? "");
     } else {
       setPreviewContent(null);
@@ -85,14 +88,14 @@ export default function AgentWorkspace({ projectId }: Props) {
 
   const handleEdit = async (f: WorkspaceFile) => {
     setPreview(null);
-    const content = await ws.readFileContent(projectId, f.path);
+    const content = await ws.readFileContent(projectId, f.path, scope);
     setEditing(f);
     setEditContent(content ?? "");
   };
 
   const handleSave = async () => {
     if (!editing) return;
-    await ws.writeFileContent(projectId, editing.path, editContent);
+    await ws.writeFileContent(projectId, editing.path, editContent, scope);
     setEditing(null);
   };
 
@@ -109,7 +112,7 @@ export default function AgentWorkspace({ projectId }: Props) {
       return;
     }
     const dir = f.path.slice(0, f.path.lastIndexOf("/") + 1);
-    await ws.renameFile(projectId, f.path, dir + name);
+    await ws.renameFile(projectId, f.path, dir + name, scope);
     setRenaming(null);
   };
 
@@ -120,7 +123,7 @@ export default function AgentWorkspace({ projectId }: Props) {
   const confirmDeleteAction = async () => {
     if (!confirmDelete) return;
     const path = confirmDelete;
-    await ws.removeFile(projectId, path);
+    await ws.removeFile(projectId, path, scope);
     setConfirmDelete(null);
     if (preview?.path === path) {
       setPreview(null);
@@ -307,18 +310,18 @@ export default function AgentWorkspace({ projectId }: Props) {
       {/* Header + upload */}
       <div className="flex items-center justify-between">
         <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider">
-          Agent Workspace
+          {title ?? "Agent Workspace"}
         </label>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => ws.fetchFiles(projectId)}
+            onClick={() => ws.fetchFiles(projectId, scope)}
             title="Refresh"
             className="flex items-center justify-center w-8 h-8 rounded-xl border transition-all bg-white border-ink-200 text-ink-600 hover:border-ink-300"
           >
             {RefreshIcon}
           </button>
           <button
-            onClick={() => ws.openWorkspace(projectId)}
+            onClick={() => ws.openWorkspace(projectId, scope)}
             title="Open workspace folder"
             className="flex items-center justify-center w-8 h-8 rounded-xl border transition-all bg-white border-ink-200 text-ink-600 hover:border-ink-300"
           >
@@ -517,13 +520,13 @@ export default function AgentWorkspace({ projectId }: Props) {
                 </p>
               ) : preview.kind === "image" ? (
                 <img
-                  src={workspacePreviewUrl(projectId, preview.path)}
+                  src={workspacePreviewUrl(projectId, preview.path, scope)}
                   alt={preview.name}
                   className="max-h-72 max-w-full object-contain"
                 />
               ) : preview.kind === "video" ? (
                 <video
-                  src={workspacePreviewUrl(projectId, preview.path)}
+                  src={workspacePreviewUrl(projectId, preview.path, scope)}
                   controls
                   className="max-h-72 max-w-full"
                 />
