@@ -599,7 +599,7 @@ const handlers: Record<QueueTaskType, Handler> = {
 
   // Edit a project image via Qwen Image Edit (Advanced Image Edit).
   "advanced-image-edit": async (ctx) => {
-    const { prompt, imagePath, width, height, steps, seed, lowRam } =
+    const { prompt, imagePath, width, height, steps, seed, lowRam, upscale } =
       ctx.task.payload || {};
     ctx.log("Editing image (Qwen Image Edit)…\n");
     const r = await generateAdvancedImageEditImage(
@@ -611,6 +611,7 @@ const handlers: Record<QueueTaskType, Handler> = {
       Number(steps),
       Number(seed),
       Boolean(lowRam),
+      String(upscale || "none"),
       ctx.log,
     );
     if ("error" in r) throw new Error(r.error);

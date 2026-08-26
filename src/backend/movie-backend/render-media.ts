@@ -39,6 +39,8 @@ const Z_IMAGE_MODEL = "AbstractFramework/z-image-turbo-8bit";
 const FLUX_KLEIN_MODEL = "AbstractFramework/flux.2-klein-4b-8bit"; // AbstractFramework/flux.2-klein-base-4b-8bit // AbstractFramework/flux.2-klein-4b-8bit
 const SEEDVR2_MODEL = "AbstractFramework/seedvr2-7b-8bit";
 const QWEN_IMAGE_EDIT_MODEL = "AbstractFramework/qwen-image-edit-2511-8bit";
+// Resolution values accepted by the advanced image edit's optional upscale step.
+const ALLOWED_UPSCALES = new Set(["1x", "1500", "2000", "2500"]);
 const MLX_VLM_MODEL = "mlx-community/gemma-4-e4b-it-8bit";
 const LTX_MODEL_HIGH_QUALITY = "dgrauet/ltx-2.3-mlx";
 const LTX_MODEL_STANDARD = "dgrauet/ltx-2.3-mlx-q8";
@@ -1498,6 +1500,7 @@ export async function generateAdvancedImageEditImage(
   steps: number,
   seed: number,
   lowRam: boolean,
+  upscaleResolution: string,
   onLog?: (text: string) => void,
 ): Promise<{ filename: string; url: string } | { error: string }> {
   if (!isValidProjectId(projectId)) return { error: "Invalid project ID" };
@@ -1563,6 +1566,23 @@ export async function generateAdvancedImageEditImage(
   }
 
   backupFile(outputPath, projectId);
+
+  // Optionally upscale the generated result (1x / 1500px / 2000px / 2500px).
+  if (upscaleResolution && upscaleResolution !== "none") {
+    // Allowlist before consuming the resolution in a subprocess (defense in depth).
+    if (!ALLOWED_UPSCALES.has(upscaleResolution)) {
+      return { error: "Invalid upscale resolution" };
+    }
+    if (onLog) onLog(`Upscaling result (${upscaleResolution})…\n`);
+    const upscaled = await generateUpscale(
+      projectId,
+      outputFile,
+      upscaleResolution,
+      onLog,
+    );
+    if ("error" in upscaled) return { error: upscaled.error };
+    return upscaled;
+  }
 
   return {
     filename: outputFile,

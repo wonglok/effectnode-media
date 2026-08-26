@@ -6,6 +6,7 @@ import {
   useAdvancedImageEditStore,
   RESOLUTIONS,
   STEPS_OPTIONS,
+  UPSCALE_OPTIONS,
 } from "../../stores/advancedImageEditStore";
 import TaskQueuePanel from "./TaskQueuePanel";
 import TerminalLogPanel from "./TerminalLogPanel";
@@ -304,6 +305,29 @@ export default function AdvancedImageEditTab({ projectId }: Props) {
           />
         </button>
         <span className="text-xs font-medium text-ink-700">Low RAM</span>
+      </div>
+
+      {/* ===== Upscale Result (optional) ===== */}
+      <div>
+        <label className="block text-xs font-semibold text-ink-700 uppercase tracking-wider mb-2">
+          Upscale Result (optional)
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {UPSCALE_OPTIONS.map((o) => (
+            <button
+              key={o.value}
+              onClick={() => adv.setUpscale(o.value)}
+              disabled={adv.generating}
+              className={`px-4 py-1.5 text-xs font-medium rounded-xl border transition-all ${
+                adv.upscale === o.value
+                  ? "bg-ink-100 border-ink-300 text-ink-800"
+                  : "bg-white border-ink-200 text-ink-600 hover:border-ink-300"
+              } disabled:opacity-50`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ===== Generate ===== */}

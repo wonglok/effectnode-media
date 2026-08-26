@@ -11,6 +11,13 @@ export interface AdvancedImage {
 
 export const RESOLUTIONS = [250, 500, 1000, 1500, 2000] as const;
 export const STEPS_OPTIONS = [8, 10, 12, 20, 40] as const;
+export const UPSCALE_OPTIONS = [
+  { value: "none", label: "None" },
+  { value: "1x", label: "1x" },
+  { value: "1500", label: "1500px" },
+  { value: "2000", label: "2000px" },
+  { value: "2500", label: "2500px" },
+] as const;
 
 function getDimensions(
   aspect: AspectRatio,
@@ -38,6 +45,7 @@ interface AdvancedImageEditStore {
   steps: number;
   seed: number;
   lowRam: boolean;
+  upscale: string;
   image: AdvancedImage | null;
   generating: boolean;
   result: string | null;
@@ -50,6 +58,7 @@ interface AdvancedImageEditStore {
   setSteps: (v: number) => void;
   setSeed: (v: number) => void;
   setLowRam: (v: boolean) => void;
+  setUpscale: (v: string) => void;
   setImage: (img: AdvancedImage | null) => void;
   clearResult: () => void;
   generate: (projectId: string) => Promise<void>;
@@ -69,6 +78,7 @@ async function enqueueAdvancedImageEditTask(
   steps: number,
   seed: number,
   lowRam: boolean,
+  upscale: string,
 ): Promise<{ ok: boolean; error?: string; taskId?: string }> {
   try {
     const res = await fetch(`${API_BASE}/api/queue/enqueue`, {
@@ -78,7 +88,7 @@ async function enqueueAdvancedImageEditTask(
         projectId,
         type: "advanced-image-edit",
         label: "Advanced image edit",
-        payload: { prompt, imagePath, width, height, steps, seed, lowRam, projectId },
+        payload: { prompt, imagePath, width, height, steps, seed, lowRam, upscale, projectId },
       }),
     });
     if (!res.ok) {
@@ -98,6 +108,7 @@ const initialState = {
   steps: 8,
   seed: 42,
   lowRam: false,
+  upscale: "none",
   image: null as AdvancedImage | null,
   generating: false,
   result: null as string | null,
@@ -116,11 +127,12 @@ export const useAdvancedImageEditStore = create<AdvancedImageEditStore>(
       set({ steps: Math.max(1, Math.round(Number(steps)) || 1) }),
     setSeed: (seed) => set({ seed: Math.round(Number(seed)) || 0 }),
     setLowRam: (lowRam) => set({ lowRam }),
+    setUpscale: (upscale) => set({ upscale }),
     setImage: (image) => set({ image, error: null }),
     clearResult: () => set({ result: null, error: null, logs: [] }),
 
     generate: async (projectId) => {
-      const { prompt, aspectRatio, resolution, steps, seed, lowRam, image, generating } =
+      const { prompt, aspectRatio, resolution, steps, seed, lowRam, upscale, image, generating } =
         get();
       if (generating || !image) return;
 
@@ -142,6 +154,7 @@ export const useAdvancedImageEditStore = create<AdvancedImageEditStore>(
         steps,
         seed,
         lowRam,
+        upscale,
       );
       advancedImageEditActiveTaskId = r.taskId ?? null;
       if (!r.ok) {
