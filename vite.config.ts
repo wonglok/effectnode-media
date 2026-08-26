@@ -24,8 +24,9 @@ export default defineConfig({
         ws: true,
       },
       "/p8881": {
-        target: "http://localhost:4000",
+        target: "http://localhost:8881",
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/p8881/, ""),
       },
     },
   },

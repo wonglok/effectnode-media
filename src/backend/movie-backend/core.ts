@@ -395,7 +395,7 @@ export async function runSetup({
   //
   agentBackend({ app, getUvPath, backendPort: BACKEND_PORT });
   //
-  generationQueueSetup({ app, getUvPath, backendPort: BACKEND_PORT });
+  generationQueueSetup({ app, getUvPath });
   //
 
   app.listen(BACKEND_PORT);

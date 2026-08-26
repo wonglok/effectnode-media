@@ -158,9 +158,6 @@ let resolveUvPath: () => Promise<string> = async () => {
   throw new Error("uv path not configured");
 };
 
-// Backend HTTP port, injected by core.ts on startup (used to reach /p8881).
-let resolveBackendPort = 4000;
-
 // Projects whose queue is paused. While a project is paused, its running task
 // is killed and remembered as "paused", and no new tasks are started for that
 // project until it is resumed.
@@ -574,7 +571,6 @@ const handlers: Record<QueueTaskType, Handler> = {
       ctx.projectId,
       idea.trim(),
       typeof model === "string" && model.trim() ? model.trim() : undefined,
-      resolveBackendPort,
       (statusText, current, total) => {
         ctx.update({ statusText, progress: { current, total } });
       },
@@ -1037,14 +1033,11 @@ function syncToMovieStudioState(
 export function generationQueueSetup({
   app,
   getUvPath,
-  backendPort,
 }: {
   app: Application;
   getUvPath: () => Promise<string>;
-  backendPort: number;
 }) {
   resolveUvPath = getUvPath;
-  resolveBackendPort = backendPort;
 
   // List the current queue for a project (plus whether that project is paused).
   app.get("/api/queue", (req, res) => {

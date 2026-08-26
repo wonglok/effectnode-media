@@ -282,15 +282,14 @@ function extractJsonObject(text: string): any {
 export async function generateMovieStudioBible(
   projectId: string,
   idea: string,
-  model: string | undefined,
-  backendPort: number,
+  model?: string,
   onProgress?: (statusText: string, current: number, total: number) => void,
 ): Promise<{ characters: any[]; places: any[]; scenes: any[] }> {
   const resolvedModel =
     typeof model === "string" && model.trim() ? model.trim() : DEFAULT_MODEL;
 
   const client = new OpenAI({
-    baseURL: `http://localhost:${backendPort}/p8881/v1`,
+    baseURL: "http://localhost:8881/v1",
     apiKey: "local",
   });
 
@@ -791,7 +790,7 @@ export async function agentBackend({
     ];
 
     const client = new OpenAI({
-      baseURL: `http://localhost:${backendPort}/p8881/v1`,
+      baseURL: `http://localhost:${port}/v1`,
       apiKey: "local",
     });
 
@@ -948,7 +947,6 @@ export async function agentBackend({
         projectId,
         idea.trim(),
         model,
-        backendPort,
       );
       res.json(result);
     } catch (e) {
