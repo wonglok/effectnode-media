@@ -1031,23 +1031,51 @@ function syncToMovieStudioState(
 // ========== Routes ==========
 
 /**
- * CSRF guard for the localhost server. Rejects mutating requests whose Origin
+ * CSRF guard for the local server. Rejects mutating requests whose Origin
  * points at another site (a malicious page in the user's browser). Same-origin
  * and custom-protocol (views://) clients send no Origin or an Origin of
- * "null"/localhost, so they pass through.
+ * "null", so they pass through.
+ *
+ * The server binds 0.0.0.0 and is reachable over the local network, so origins
+ * from loopback, 0.0.0.0, private/LAN IPs, and mDNS (.local) hostnames are also
+ * accepted. Only genuinely remote origins are rejected.
  */
 function assertLocalRequest(req: Request, res: Response): boolean {
   const origin = req.headers.origin;
   if (!origin || origin === "null") return true;
   try {
-    const host = new URL(origin).hostname;
-    if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+    if (isLocalHostname(new URL(origin).hostname)) {
       return true;
     }
   } catch {
     // Fall through to reject malformed origins.
   }
   res.status(403).json({ error: "Forbidden" });
+  return false;
+}
+
+/** True for loopback, 0.0.0.0, private/LAN IPs, and mDNS hostnames. */
+function isLocalHostname(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "::1" ||
+    host === "[::1]" ||
+    host === "0.0.0.0"
+  ) {
+    return true;
+  }
+  // mDNS hostnames (e.g. "my-mac.local").
+  if (host.endsWith(".local")) return true;
+  // ngrok tunnel domains (e.g. "abc123.ngrok-free.app").
+  if (host === "ngrok-free.app" || host.endsWith(".ngrok-free.app")) return true;
+  if (host === "ngrok.app" || host.endsWith(".ngrok.app")) return true;
+  // Private/loopback address ranges: 10/8, 172.16/12, 192.168/16, 169.254/16.
+  if (/^10\./.test(host)) return true;
+  if (/^192\.168\./.test(host)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return true;
+  if (/^169\.254\./.test(host)) return true;
   return false;
 }
 
