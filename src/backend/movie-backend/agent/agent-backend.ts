@@ -196,7 +196,7 @@ const MOVIE_STUDIO_CHARACTERS_PLAN_PROMPT = [
   '- "slug" is a short lowercase hyphenated identifier (e.g. "the-lamb" for a character, "sunny-meadow" for a place).',
   '- "artStyle" is ONE consistent art style for the entire film (e.g. cinematic photorealistic, 3D animation, hand-painted watercolor, anime).',
   '- If the idea does not mention an art style, set "artStyle" to "photo realistic render".',
-  '- Identify every place/location the story uses, each with its own slug and name.',
+  "- Identify every place/location the story uses, each with its own slug and name.",
 ].join("\n");
 
 const CHARACTER_IMAGE_PROMPT = [
