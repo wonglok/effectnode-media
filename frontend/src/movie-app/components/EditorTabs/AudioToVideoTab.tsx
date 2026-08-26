@@ -272,6 +272,17 @@ export default function AudioToVideoTab({ projectId }: Props) {
         </label>
         <div className="flex flex-wrap items-center gap-2">
           <button
+            onClick={() => a2v.setSteps(8)}
+            disabled={a2v.generating}
+            className={`px-4 py-1.5 text-xs font-medium rounded-xl border transition-all ${
+              a2v.steps === 8
+                ? "bg-ink-100 border-ink-300 text-ink-800"
+                : "bg-white border-ink-200 text-ink-600 hover:border-ink-300"
+            } disabled:opacity-50`}
+          >
+            8 (low quality)
+          </button>
+          <button
             onClick={() => a2v.setSteps(15)}
             disabled={a2v.generating}
             className={`px-4 py-1.5 text-xs font-medium rounded-xl border transition-all ${
@@ -280,7 +291,7 @@ export default function AudioToVideoTab({ projectId }: Props) {
                 : "bg-white border-ink-200 text-ink-600 hover:border-ink-300"
             } disabled:opacity-50`}
           >
-            15 (default)
+            15
           </button>
           <button
             onClick={() => a2v.setSteps(30)}
