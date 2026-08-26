@@ -196,6 +196,11 @@ const DOWNLOAD_MODELS: {
     desc: "Video generation (SeedVR2)",
   },
   {
+    id: "qwen-image-edit",
+    name: "AbstractFramework/qwen-image-edit-2511-8bit",
+    desc: "Image editing (Qwen)",
+  },
+  {
     id: "ltx",
     name: "dgrauet/ltx-2.3-mlx-q8",
     desc: "Video generation",
@@ -318,15 +323,17 @@ export default function SetupAiModelTab() {
                   ? store.fluxDownloaded
                   : m.id === "seedvr2"
                     ? store.seedvr2Downloaded
-                    : m.id === "ltx"
-                      ? store.ltxDownloaded
-                      : m.id === "ltx-base"
-                        ? store.ltxBaseDownloaded
-                        : m.id === "gemma"
-                          ? store.gemmaDownloaded
-                          : m.id === "dots-tts"
-                            ? store.dotsTtsDownloaded
-                            : store.ttsDownloaded;
+                    : m.id === "qwen-image-edit"
+                      ? store.qwenImageEditDownloaded
+                      : m.id === "ltx"
+                        ? store.ltxDownloaded
+                        : m.id === "ltx-base"
+                          ? store.ltxBaseDownloaded
+                          : m.id === "gemma"
+                            ? store.gemmaDownloaded
+                            : m.id === "dots-tts"
+                              ? store.dotsTtsDownloaded
+                              : store.ttsDownloaded;
             return (
               <ModelRow key={m.id} name={m.name} desc={m.desc}>
                 <StatusBadge value={downloaded} />

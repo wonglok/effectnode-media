@@ -38,6 +38,7 @@ const CHARACTERS_FILE = join(JSON_DIR, "characters.json");
 const Z_IMAGE_MODEL = "AbstractFramework/z-image-turbo-8bit";
 const FLUX_KLEIN_MODEL = "AbstractFramework/flux.2-klein-4b-8bit";
 const SEEDVR2_MODEL = "AbstractFramework/seedvr2-7b-8bit";
+const QWEN_IMAGE_EDIT_MODEL = "AbstractFramework/qwen-image-edit-2511-8bit";
 const MLX_VLM_MODEL = "mlx-community/gemma-4-e4b-it-8bit";
 const LTX_MODEL_HIGH_QUALITY = "dgrauet/ltx-2.3-mlx";
 const LTX_MODEL_STANDARD = "dgrauet/ltx-2.3-mlx-q8";
@@ -3035,6 +3036,7 @@ export async function renderMediaRoutes({
       zModelDownloaded: isModelDownloaded(Z_IMAGE_MODEL),
       fluxModelDownloaded: isModelDownloaded(FLUX_KLEIN_MODEL),
       seedvr2Downloaded: isModelDownloaded(SEEDVR2_MODEL),
+      qwenImageEditDownloaded: isModelDownloaded(QWEN_IMAGE_EDIT_MODEL),
     });
   });
 
@@ -3236,6 +3238,66 @@ export async function renderMediaRoutes({
         stdout: "pipe",
         stderr: "pipe",
       });
+
+      activeProc = proc;
+
+      const stdoutPromise = streamToSSE(
+        proc.stdout as ReadableStream<Uint8Array>,
+        "Download",
+        send,
+      );
+      const stderrText = await streamToSSE(
+        proc.stderr as ReadableStream<Uint8Array>,
+        "Download",
+        send,
+      );
+      await stdoutPromise;
+
+      const exitCode = await proc.exited;
+      if (exitCode === 0) {
+        send("complete", { success: true });
+      } else {
+        send("error", {
+          error: stderrText || `Process exited with code ${exitCode}`,
+          exitCode,
+        });
+      }
+    } catch (e) {
+      send("error", { error: String(e) });
+    } finally {
+      activeProc = null;
+      res.end();
+    }
+  });
+
+  // ========== MLX-Gen: Download Qwen Image Edit Model ==========
+
+  app.post("/api/mlxgen/download-qwen-image-edit-model", async (_req, res) => {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+
+    const send = (event: string, data: object) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      const mlxgen = await getMlxgenBin();
+      send("progress", {
+        status: "starting",
+        label: `Downloading model ${QWEN_IMAGE_EDIT_MODEL}...`,
+      });
+
+      const proc = spawn(
+        [mlxgen, "download", "--model", QWEN_IMAGE_EDIT_MODEL],
+        {
+          stdout: "pipe",
+          stderr: "pipe",
+        },
+      );
 
       activeProc = proc;
 

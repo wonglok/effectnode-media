@@ -168,7 +168,7 @@ export default function MlxVlmServerPanel() {
     store.checkServerOnline();
     const interval = setInterval(() => {
       store.checkServerOnline();
-    }, 3000);
+    }, 30000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
