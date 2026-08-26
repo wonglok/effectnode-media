@@ -1203,7 +1203,7 @@ export async function generateAudioToVideo(
       "--height",
       String(height),
       "--output",
-      join(outputDir, "./vid.mp4"),
+      join(outputDir, "video.mp4"),
       "--prompt",
       cleanPrompt,
       "--stage1-steps",
