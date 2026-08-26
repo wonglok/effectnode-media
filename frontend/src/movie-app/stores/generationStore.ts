@@ -16,6 +16,7 @@ const API_BASE = "";
 export type GenerationTab =
   | "movieStudio"
   | "fastImageEdit"
+  | "advancedImageEdit"
   | "video"
   | "agent"
   | "storyWriter"

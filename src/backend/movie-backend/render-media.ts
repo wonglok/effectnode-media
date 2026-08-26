@@ -3839,6 +3839,147 @@ export async function renderMediaRoutes({
     }
   });
 
+  // ========== MLX-Gen: Advanced Image Edit (Qwen) ==========
+
+  app.post("/api/mlxgen/advanced-image-edit", async (req, res) => {
+    const {
+      prompt,
+      imagePath,
+      projectId,
+      width,
+      height,
+      steps,
+      seed,
+      lowRam,
+    } = req.body || {};
+
+    if (!prompt) {
+      res.status(400).json({ error: "Prompt is required" });
+      return;
+    }
+    if (!imagePath) {
+      res.status(400).json({ error: "An input image is required" });
+      return;
+    }
+    if (!projectId || !/^[a-zA-Z0-9_-]{1,64}$/.test(String(projectId))) {
+      res.status(400).json({ error: "Invalid project ID" });
+      return;
+    }
+
+    const resolvedImage = resolveSafePath(String(imagePath), String(projectId));
+    if (!resolvedImage || !existsSync(resolvedImage)) {
+      res.status(404).json({ error: "Input image not found" });
+      return;
+    }
+
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+
+    const send = (event: string, data: object) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      const mlxgen = await getMlxgenBin();
+      const projectOutputDir = join(projectDir(String(projectId)), "output");
+      ensureDir(projectOutputDir);
+
+      const outputFile = `qwen-edit-${Date.now()}.png`;
+      const outputPath = join(projectOutputDir, outputFile);
+
+      send("progress", {
+        status: "starting",
+        label: "Generating image...",
+        outputFile,
+      });
+
+      const resolvedSteps = Number(steps) > 0 ? Number(steps) : 8;
+      const resolvedSeed = Number.isFinite(Number(seed)) ? Number(seed) : 42;
+
+      const args: string[] = [
+        mlxgen,
+        "generate",
+        "--model",
+        QWEN_IMAGE_EDIT_MODEL,
+        "--task",
+        "image-to-image",
+        "--i2i-mode",
+        "edit",
+        "--image",
+        resolvedImage,
+        "--output",
+        outputPath,
+        "--prompt",
+        String(prompt),
+        "--steps",
+        String(resolvedSteps),
+        "--seed",
+        String(resolvedSeed),
+        "--mlx-cache-limit-gb",
+        "20",
+      ];
+
+      const outWidth = Number(width);
+      const outHeight = Number(height);
+      if (
+        Number.isInteger(outWidth) &&
+        outWidth > 0 &&
+        Number.isInteger(outHeight) &&
+        outHeight > 0
+      ) {
+        args.push("--width", String(outWidth), "--height", String(outHeight));
+      }
+
+      if (lowRam === true) {
+        args.push("--low-ram");
+      }
+
+      const proc = spawn(args, {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+
+      activeProc = proc;
+
+      const stdoutPromise = streamToSSE(
+        proc.stdout as ReadableStream<Uint8Array>,
+        "MLXGen",
+        send,
+      );
+      const stderrText = await streamToSSE(
+        proc.stderr as ReadableStream<Uint8Array>,
+        "MLXGen",
+        send,
+      );
+      await stdoutPromise;
+
+      const exitCode = await proc.exited;
+      const success = exitCode === 0 && existsSync(outputPath);
+
+      if (success) {
+        send("complete", {
+          success: true,
+          path: outputPath,
+          filename: outputFile,
+        });
+      } else {
+        send("error", {
+          error: stderrText || `Process exited with code ${exitCode}`,
+          exitCode,
+        });
+      }
+    } catch (e) {
+      send("error", { error: String(e) });
+    } finally {
+      activeProc = null;
+      res.end();
+    }
+  });
+
   // ========== MLX-Gen: Generate (Text-to-Image) ==========
 
   app.post("/api/mlxgen/text-to-image", async (req, res) => {

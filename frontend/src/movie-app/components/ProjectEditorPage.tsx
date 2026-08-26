@@ -6,6 +6,7 @@ import {
   type GenerationTab,
 } from "../stores/generationStore";
 import FastImageEditTab from "./EditorTabs/FastImageEditTab";
+import AdvancedImageEditTab from "./EditorTabs/AdvancedImageEditTab";
 import MovieStudioTab from "./EditorTabs/MovieStudioTab";
 import GenerateVideoTab from "./EditorTabs/GenerateVideoTab";
 import AgentTab from "./EditorTabs/AgentTab";
@@ -25,6 +26,7 @@ const TAB_KEYS: GenerationTab[] = [
   "movieStudio",
   "video",
   "fastImageEdit",
+  "advancedImageEdit",
   "agent",
   "storyWriter",
   "textToImage",
@@ -135,6 +137,29 @@ export default function ProjectEditorPage() {
       strokeLinejoin="round"
     >
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </svg>
+  );
+
+  const AdvancedImageEditIcon = (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M15 4V2" />
+      <path d="M15 16v-2" />
+      <path d="M8 9h2" />
+      <path d="M20 9h2" />
+      <path d="M17.8 11.8 19 13" />
+      <path d="M15 9h.01" />
+      <path d="M17.8 6.2 19 5" />
+      <path d="m3 21 9-9" />
+      <path d="M12.2 6.2 11 5" />
     </svg>
   );
 
@@ -476,6 +501,17 @@ export default function ProjectEditorPage() {
               Fast Image Edit
             </button>
             <button
+              onClick={() => goToTab("advancedImageEdit")}
+              className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
+                activeTab === "advancedImageEdit"
+                  ? "bg-tiffany-500/10 text-tiffany-700 shadow-glow-sm"
+                  : "text-ink-600 hover:bg-ink-100 hover:text-ink-800"
+              }`}
+            >
+              {AdvancedImageEditIcon}
+              Advanced Image Edit
+            </button>
+            <button
               onClick={() => goToTab("agent")}
               className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-2xl transition-all ${
                 activeTab === "agent"
@@ -618,6 +654,11 @@ export default function ProjectEditorPage() {
           {/* ========== FAST IMAGE EDIT PANEL ========== */}
           {activeTab === "fastImageEdit" && (
             <FastImageEditTab projectId={id!} />
+          )}
+
+          {/* ========== ADVANCED IMAGE EDIT PANEL ========== */}
+          {activeTab === "advancedImageEdit" && (
+            <AdvancedImageEditTab projectId={id!} />
           )}
 
           {/* ========== VIDEO GENERATION PANEL ========== */}
