@@ -109,50 +109,6 @@ const ExternalLinkIcon = (
   </svg>
 );
 
-export function OnlyStartButton() {
-  const store = useGenerationStore();
-  // const serverUrl = `http://localhost:${store.agent.port}`;
-
-  return (
-    <>
-      <div className="flex flex-wrap items-end gap-3">
-        {/* <div>
-          <label className="block text-xs font-medium text-ink-700 mb-1.5">
-            Port
-          </label>
-          <input
-            type="number"
-            min={1}
-            max={65535}
-            value={store.agent.port}
-            onChange={(e) => store.setAgentPort(Number(e.target.value))}
-            disabled={store.agent.serverRunning || store.agent.starting}
-            className="w-32 px-3 py-2 bg-ink-50 border border-ink-200 rounded-xl text-ink-900 text-sm focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/30 transition-all disabled:opacity-50"
-          />
-        </div> */}
-
-        {store.agent.serverRunning || store.agent.starting ? (
-          <button
-            onClick={() => store.stopAgentServer()}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-xl border transition-all bg-red-50 border-red-200 text-red-600 hover:border-red-300"
-          >
-            {StopIcon}
-            Stop Server
-          </button>
-        ) : (
-          <button
-            onClick={() => store.startAgentServer()}
-            disabled={store.agent.installing || store.agent.installed === false}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-xl border transition-all bg-white border-ink-200 text-ink-600 hover:border-ink-300 disabled:opacity-50"
-          >
-            {PlayIcon}
-            Start Server
-          </button>
-        )}
-      </div>
-    </>
-  );
-}
 
 /**
  * Shared mlx-vlm LLM server management panel (Setup + Server sections).
