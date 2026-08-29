@@ -921,12 +921,20 @@ export async function generateSceneImage(
     "generate",
     "--model",
     QWEN_IMAGE_EDIT_MODEL,
-    "--task",
-    "image-to-image",
-    "--i2i-mode",
-    "edit",
+    //
+    // "--task",
+    // "image-to-image",
+    // "--i2i-mode",
+    // "edit",
+    //
   ];
+
+  //
+
   for (const p of refImages) args.push("--image", p);
+
+  //
+
   args.push(
     "--prompt",
     String(scene?.imagePrompt || ""),
