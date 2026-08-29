@@ -39,6 +39,7 @@ const Z_IMAGE_MODEL = "AbstractFramework/z-image-turbo-8bit";
 const FLUX_KLEIN_MODEL = "AbstractFramework/flux.2-klein-4b-8bit"; // AbstractFramework/flux.2-klein-base-4b-8bit // AbstractFramework/flux.2-klein-4b-8bit
 const SEEDVR2_MODEL = "AbstractFramework/seedvr2-7b-8bit";
 const QWEN_IMAGE_EDIT_MODEL = "AbstractFramework/qwen-image-edit-2511-8bit";
+const QWEN_IMAGE_2512_MODEL = "AbstractFramework/qwen-image-2512-8bit";
 // Resolution values accepted by the advanced image edit's optional upscale step.
 const ALLOWED_UPSCALES = new Set(["1x", "1500", "2000", "2500"]);
 const MLX_VLM_MODEL = "mlx-community/gemma-4-e4b-it-8bit";
@@ -640,13 +641,13 @@ export async function generateAssetImage(
       mlxgen,
       "generate",
       "--model",
-      Z_IMAGE_MODEL,
+      QWEN_IMAGE_2512_MODEL,
       "--prompt",
       prompt,
       "--output",
       outputPath,
       "--steps",
-      "4",
+      "8",
       "--width",
       "1024",
       "--height",
@@ -874,18 +875,24 @@ function slugify(v: unknown): string {
 }
 
 /**
- * Generate a single scene image via fast-image-edit (FLUX.2 Klein), using the
+ * Generate a single scene image via mlxgen Qwen Image Edit, using the
  * already-generated character/place images referenced by the scene's slugs.
+ * `steps` is clamped to the 8–20 range the UI exposes; `width`/`height` default
+ * to 1024×1024.
  */
 export async function generateSceneImage(
   projectId: string,
   scene: any,
   steps?: number,
+  width?: number,
+  height?: number,
   onLog?: (text: string) => void,
 ): Promise<{ filename: string; url: string } | { error: string }> {
   const s = slugify(scene?.slug);
   if (!s) return { error: "Invalid scene slug" };
-  const stepCount = Math.max(1, Number(steps) || 4);
+  const stepCount = Math.min(20, Math.max(8, Math.round(Number(steps) || 8)));
+  const outWidth = Math.max(1, Math.round(Number(width) || 1024));
+  const outHeight = Math.max(1, Math.round(Number(height) || 1024));
 
   const outputDir = join(projectDir(projectId), "output");
   const mlxgen = await getMlxgenBin();
@@ -909,31 +916,39 @@ export async function generateSceneImage(
   const sceneImageFile = `scene-${s}.png`;
   const sceneImagePath = join(outputDir, sceneImageFile);
 
-  const fluxArgs = [mlxgen, "generate", "--model", FLUX_KLEIN_MODEL];
-  for (const p of refImages) fluxArgs.push("--image", p);
-  fluxArgs.push(
+  const args = [
+    mlxgen,
+    "generate",
+    "--model",
+    QWEN_IMAGE_EDIT_MODEL,
+    "--task",
+    "image-to-image",
+    "--i2i-mode",
+    "edit",
+  ];
+  for (const p of refImages) args.push("--image", p);
+  args.push(
     "--prompt",
     String(scene?.imagePrompt || ""),
     "--output",
     sceneImagePath,
-    "--mlx-cache-limit-gb",
-    "20",
     "--steps",
     String(stepCount),
     "--seed",
     "42",
     "--width",
-    "1024",
+    String(outWidth),
     "--height",
-    "1024",
+    String(outHeight),
+    "--mlx-cache-limit-gb",
+    "20",
   );
 
-  const result = await runCommand(fluxArgs, { onLog });
+  const result = await runCommand(args, { onLog });
   if (!result.success || !existsSync(sceneImagePath)) {
     return { error: result.output || `Failed to generate scene image ${s}` };
   }
 
-  await refineImage1x(sceneImagePath, onLog);
   backupFile(sceneImagePath, projectId);
   return {
     filename: sceneImageFile,
@@ -3148,6 +3163,7 @@ export async function renderMediaRoutes({
       fluxModelDownloaded: isModelDownloaded(FLUX_KLEIN_MODEL),
       seedvr2Downloaded: isModelDownloaded(SEEDVR2_MODEL),
       qwenImageEditDownloaded: isModelDownloaded(QWEN_IMAGE_EDIT_MODEL),
+      qwenImageDownloaded: isModelDownloaded(QWEN_IMAGE_2512_MODEL),
     });
   });
 
@@ -3404,6 +3420,66 @@ export async function renderMediaRoutes({
 
       const proc = spawn(
         [mlxgen, "download", "--model", QWEN_IMAGE_EDIT_MODEL],
+        {
+          stdout: "pipe",
+          stderr: "pipe",
+        },
+      );
+
+      activeProc = proc;
+
+      const stdoutPromise = streamToSSE(
+        proc.stdout as ReadableStream<Uint8Array>,
+        "Download",
+        send,
+      );
+      const stderrText = await streamToSSE(
+        proc.stderr as ReadableStream<Uint8Array>,
+        "Download",
+        send,
+      );
+      await stdoutPromise;
+
+      const exitCode = await proc.exited;
+      if (exitCode === 0) {
+        send("complete", { success: true });
+      } else {
+        send("error", {
+          error: stderrText || `Process exited with code ${exitCode}`,
+          exitCode,
+        });
+      }
+    } catch (e) {
+      send("error", { error: String(e) });
+    } finally {
+      activeProc = null;
+      res.end();
+    }
+  });
+
+  // ========== MLX-Gen: Download Qwen Image Model ==========
+
+  app.post("/api/mlxgen/download-qwen-image-model", async (_req, res) => {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+
+    const send = (event: string, data: object) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+      const mlxgen = await getMlxgenBin();
+      send("progress", {
+        status: "starting",
+        label: `Downloading model ${QWEN_IMAGE_2512_MODEL}...`,
+      });
+
+      const proc = spawn(
+        [mlxgen, "download", "--model", QWEN_IMAGE_2512_MODEL],
         {
           stdout: "pipe",
           stderr: "pipe",

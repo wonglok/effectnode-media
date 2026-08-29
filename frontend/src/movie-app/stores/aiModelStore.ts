@@ -8,6 +8,7 @@ export type AiModelId =
   | "flux"
   | "seedvr2"
   | "qwen-image-edit"
+  | "qwen-image"
   | "ltx"
   | "ltx-base"
   | "tts"
@@ -27,6 +28,7 @@ interface AiModelStore {
   fluxDownloaded: boolean | null;
   seedvr2Downloaded: boolean | null;
   qwenImageEditDownloaded: boolean | null;
+  qwenImageDownloaded: boolean | null;
   ltxDownloaded: boolean | null;
   ltxBaseDownloaded: boolean | null;
   ttsDownloaded: boolean | null;
@@ -83,6 +85,7 @@ const DOWNLOAD_ENDPOINTS: Record<AiModelId, string> = {
   flux: "/api/mlxgen/download-flux-model",
   seedvr2: "/api/mlxgen/download-seedvr2-model",
   "qwen-image-edit": "/api/mlxgen/download-qwen-image-edit-model",
+  "qwen-image": "/api/mlxgen/download-qwen-image-model",
   ltx: "/api/hf/download-ltx",
   "ltx-base": "/api/hf/download-ltx-base",
   tts: "/api/hf/download-tts",
@@ -104,6 +107,7 @@ export const useAiModelStore = create<AiModelStore>((set, get) => ({
   fluxDownloaded: null,
   seedvr2Downloaded: null,
   qwenImageEditDownloaded: null,
+  qwenImageDownloaded: null,
   ltxDownloaded: null,
   ltxBaseDownloaded: null,
   ttsDownloaded: null,
@@ -134,6 +138,9 @@ export const useAiModelStore = create<AiModelStore>((set, get) => ({
         seedvr2Downloaded: mlxgen ? Boolean(mlxgen.seedvr2Downloaded) : null,
         qwenImageEditDownloaded: mlxgen
           ? Boolean(mlxgen.qwenImageEditDownloaded)
+          : null,
+        qwenImageDownloaded: mlxgen
+          ? Boolean(mlxgen.qwenImageDownloaded)
           : null,
         mlxVlmInstalled: agent ? Boolean(agent.installed) : null,
         hfInstalled: hf ? Boolean(hf.installed) : null,

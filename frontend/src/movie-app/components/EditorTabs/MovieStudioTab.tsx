@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   useMovieStudioStore,
+  type SceneImageResolution,
   type VideoAspectRatio,
   type VideoResolution,
   type VideoQuality,
@@ -913,7 +914,8 @@ export default function MovieStudioTab({ projectId }: Props) {
                       <input
                         id="scene-image-steps"
                         type="number"
-                        min={1}
+                        min={8}
+                        max={20}
                         step={1}
                         value={store.sceneImageSteps}
                         onChange={(e) =>
@@ -922,6 +924,26 @@ export default function MovieStudioTab({ projectId }: Props) {
                         disabled={store.sceneImagesRendering}
                         className="w-20 px-2 py-1.5 text-xs bg-ink-50 border border-ink-200 rounded-lg text-ink-800 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/25 disabled:opacity-50"
                       />
+                      <label
+                        htmlFor="scene-image-resolution"
+                        className="text-xs font-medium text-ink-600"
+                      >
+                        Resolution
+                      </label>
+                      <select
+                        id="scene-image-resolution"
+                        value={store.sceneImageResolution}
+                        onChange={(e) =>
+                          store.setSceneImageResolution(
+                            e.target.value as SceneImageResolution,
+                          )
+                        }
+                        disabled={store.sceneImagesRendering}
+                        className="px-2 py-1.5 text-xs bg-ink-50 border border-ink-200 rounded-lg text-ink-800 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/25 disabled:opacity-50"
+                      >
+                        <option value="1024">1024 × 1024</option>
+                        <option value="512">512 × 512</option>
+                      </select>
                       {store.sceneImagesRendering ? (
                         <span className="flex items-center gap-1.5 text-xs text-tiffany-600">
                           {SpinnerIcon}

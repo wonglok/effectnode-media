@@ -201,6 +201,11 @@ const DOWNLOAD_MODELS: {
     desc: "Image editing (Qwen)",
   },
   {
+    id: "qwen-image",
+    name: "AbstractFramework/qwen-image-2512-8bit",
+    desc: "Character & place images",
+  },
+  {
     id: "ltx",
     name: "dgrauet/ltx-2.3-mlx-q8",
     desc: "Video generation",
@@ -325,7 +330,9 @@ export default function SetupAiModelTab() {
                     ? store.seedvr2Downloaded
                     : m.id === "qwen-image-edit"
                       ? store.qwenImageEditDownloaded
-                      : m.id === "ltx"
+                      : m.id === "qwen-image"
+                        ? store.qwenImageDownloaded
+                        : m.id === "ltx"
                         ? store.ltxDownloaded
                         : m.id === "ltx-base"
                           ? store.ltxBaseDownloaded
