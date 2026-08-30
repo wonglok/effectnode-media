@@ -19,9 +19,11 @@ import express from "express";
 import cors from "cors";
 import {
   renderMediaRoutes,
-  installMlxVlmTool,
+  installMlxTools,
   startAgentServerProcess,
   isMlxVlmInstalled,
+  isMlxgenInstalled,
+  isHuggingfaceCliInstalled,
   getAgentServerPort,
   MLX_VLM_MODEL,
 } from "./render-media.js";
@@ -78,7 +80,7 @@ interface SetupState {
   imageEditTestRendered: boolean;
   videoTestRendered: boolean;
   qwenImageTestRendered: boolean;
-  mlxVlmInstalled: boolean;
+  mlxToolsInstalled: boolean;
   mlxVlmStarted: boolean;
   allOK: boolean;
   error?: string;
@@ -96,7 +98,7 @@ let setupState: SetupState = {
   backendRunning: false,
   imageTestRendered: false,
   videoTestRendered: false,
-  mlxVlmInstalled: false,
+  mlxToolsInstalled: false,
   mlxVlmStarted: false,
   allOK: false,
   error: "",
@@ -263,7 +265,7 @@ export async function runSetup({
       imageEditTestRendered: false,
       videoTestRendered: false,
       qwenImageTestRendered: false,
-      mlxVlmInstalled: false,
+      mlxToolsInstalled: false,
       mlxVlmStarted: false,
       error: "",
       allOK: false,
@@ -366,35 +368,37 @@ export async function runSetup({
       return;
     }
 
-    // Step 4: Install mlx-vlm (the local LLM server the Agent pages use)
-    setupState.mlxVlmInstalled = isMlxVlmInstalled();
-    if (!setupState.mlxVlmInstalled) {
-      setupState.mlxVlmInstalled = await runStep(
-        "mlx-vlm",
-        "Installing mlx-vlm LLM server...",
+    // Step 4: Install MLX tools (mlx-vlm LLM server, huggingface-cli for model
+    // downloads, and mlx-gen for image generation/editing)
+    setupState.mlxToolsInstalled =
+      isMlxVlmInstalled() && isHuggingfaceCliInstalled() && isMlxgenInstalled();
+    if (!setupState.mlxToolsInstalled) {
+      setupState.mlxToolsInstalled = await runStep(
+        "mlx-tools",
+        "Installing MLX tools (mlx-vlm, huggingface-cli, mlx-gen)...",
         async () => {
           const uvPath = await getUvPath();
-          const result = await installMlxVlmTool({
+          const result = await installMlxTools({
             uvPath,
-            onLog: (text) => console.log("[mlx-vlm]", text),
+            onLog: (text) => console.log("[mlx-tools]", text),
           });
           return result.ok;
         },
       );
-      if (!setupState.mlxVlmInstalled) {
+      if (!setupState.mlxToolsInstalled) {
         // Non-fatal: the Agent panel has a manual Install button.
-        console.warn("Failed to install mlx-vlm, skipping autostart...");
+        console.warn("Failed to install MLX tools, skipping autostart...");
       }
     } else {
       send("progress", {
-        step: "mlx-vlm",
+        step: "mlx-tools",
         status: "completed",
-        label: "mlx-vlm installed",
+        label: "MLX tools installed",
       });
     }
 
     // Step 5: Autostart mlx-vlm server on port 8881
-    if (setupState.mlxVlmInstalled) {
+    if (setupState.mlxToolsInstalled) {
       setupState.mlxVlmStarted = await runStep(
         "mlx-vlm-start",
         `Starting mlx-vlm server on port ${AI_API_PORT}...`,

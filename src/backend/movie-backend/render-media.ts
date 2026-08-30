@@ -319,7 +319,7 @@ async function getFfmpegBin(): Promise<string> {
 }
 
 /** True when the `mlxgen` executable is installed (known paths or PATH). */
-function isMlxgenInstalled(): boolean {
+export function isMlxgenInstalled(): boolean {
   const candidates = [
     join(homedir(), ".local", "bin", "mlxgen"),
     "/opt/homebrew/bin/mlxgen",
@@ -331,6 +331,24 @@ function isMlxgenInstalled(): boolean {
   // Fall back to PATH lookup (Bun native, synchronous).
   try {
     return whichSync("mlxgen") !== null;
+  } catch {
+    return false;
+  }
+}
+
+/** True when the `huggingface-cli` executable is installed (known paths or PATH). */
+export function isHuggingfaceCliInstalled(): boolean {
+  const candidates = [
+    join(homedir(), ".local", "bin", "huggingface-cli"),
+    "/opt/homebrew/bin/huggingface-cli",
+    "/usr/local/bin/huggingface-cli",
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) return true;
+  }
+  // Fall back to PATH lookup (Bun native, synchronous).
+  try {
+    return whichSync("huggingface-cli") !== null;
   } catch {
     return false;
   }
@@ -591,51 +609,85 @@ export async function startAgentServerProcess(opts: {
 }
 
 /**
- * Install the `mlx-vlm` Python tool via uv so the `mlx_vlm.server` executable
- * becomes available. Idempotent — reports success when the binary is already on
- * PATH even if `uv tool install` exits non-zero (e.g. already installed).
+ * Install the MLX toolchain used by the media studio — `mlx-vlm` (LLM server),
+ * `huggingface-hub` (provides `huggingface-cli` for model downloads) and
+ * `mlx-gen` (image generation/editing) — via `uv tool install`. Skips tools
+ * that are already on PATH; reports failure (with the failing tool's stderr) if
+ * any install exits non-zero and the binary is still missing afterwards.
  */
-export async function installMlxVlmTool(opts: {
+export async function installMlxTools(opts: {
   uvPath: string;
   onLog?: (text: string) => void;
 }): Promise<{ ok: boolean; error?: string }> {
   const { uvPath, onLog } = opts;
   const log = onLog ?? (() => {});
-  try {
-    log("Installing mlx-vlm...\n");
-    const proc = spawn([uvPath, "tool", "install", "mlx-vlm"], {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    activeProc = proc;
 
-    const emitLog = (event: string, data: object) => {
-      if (event === "log") log((data as { text?: string }).text ?? "");
-    };
-    const stdoutPromise = streamToSSE(
-      proc.stdout as ReadableStream<Uint8Array>,
-      "Install mlx-vlm",
-      emitLog,
-    );
-    const stderrText = await streamToSSE(
-      proc.stderr as ReadableStream<Uint8Array>,
-      "Install mlx-vlm",
-      emitLog,
-    );
-    await stdoutPromise;
+  const tools: Array<{
+    label: string;
+    args: string[];
+    installed: () => boolean;
+  }> = [
+    {
+      label: "mlx-vlm",
+      args: [uvPath, "tool", "install", "mlx-vlm"],
+      installed: isMlxVlmInstalled,
+    },
+    {
+      label: "huggingface-cli",
+      args: [uvPath, "tool", "install", "huggingface-hub"],
+      installed: isHuggingfaceCliInstalled,
+    },
+    {
+      label: "mlx-gen",
+      args: [uvPath, "tool", "install", "--upgrade", "mlx-gen"],
+      installed: isMlxgenInstalled,
+    },
+  ];
 
-    const exitCode = await proc.exited;
-    // `uv tool install` re-installs cleanly, so a non-zero exit genuinely means
-    // failure — but fall back to the installed check for robustness.
-    if (exitCode === 0 || isMlxVlmInstalled()) {
-      return { ok: true };
+  for (const tool of tools) {
+    if (tool.installed()) {
+      log(`${tool.label} already installed\n`);
+      continue;
     }
-    return { ok: false, error: stderrText || `Process exited with code ${exitCode}` };
-  } catch (e) {
-    return { ok: false, error: String(e) };
-  } finally {
-    activeProc = null;
+
+    log(`Installing ${tool.label}...\n`);
+    try {
+      const proc = spawn(tool.args, { stdout: "pipe", stderr: "pipe" });
+      activeProc = proc;
+
+      const emitLog = (event: string, data: object) => {
+        if (event === "log") log((data as { text?: string }).text ?? "");
+      };
+      const stdoutPromise = streamToSSE(
+        proc.stdout as ReadableStream<Uint8Array>,
+        `Install ${tool.label}`,
+        emitLog,
+      );
+      const stderrText = await streamToSSE(
+        proc.stderr as ReadableStream<Uint8Array>,
+        `Install ${tool.label}`,
+        emitLog,
+      );
+      await stdoutPromise;
+
+      const exitCode = await proc.exited;
+      // A non-zero exit genuinely means failure — but fall back to the
+      // installed check for robustness (e.g. install wrote a known path).
+      if (exitCode === 0 || tool.installed()) {
+        continue;
+      }
+      return {
+        ok: false,
+        error: `${tool.label} install failed: ${stderrText || `exit code ${exitCode}`}`,
+      };
+    } catch (e) {
+      return { ok: false, error: `${tool.label} install failed: ${String(e)}` };
+    } finally {
+      activeProc = null;
+    }
   }
+
+  return { ok: true };
 }
 
 /** Run a command to completion, returning its exit status and combined output. */
@@ -4433,10 +4485,10 @@ export async function renderMediaRoutes({
       const uvPath = await getUvPath();
       send("progress", {
         status: "starting",
-        label: "Installing mlx-vlm...",
+        label: "Installing MLX tools (mlx-vlm, huggingface-cli, mlx-gen)...",
       });
 
-      const result = await installMlxVlmTool({
+      const result = await installMlxTools({
         uvPath,
         onLog: (text) => send("log", { text }),
       });
@@ -4444,7 +4496,7 @@ export async function renderMediaRoutes({
       if (result.ok) {
         send("complete", { success: true });
       } else {
-        send("error", { error: result.error || "Failed to install mlx-vlm" });
+        send("error", { error: result.error || "Failed to install MLX tools" });
       }
     } catch (e) {
       send("error", { error: String(e) });
