@@ -42,7 +42,7 @@ const QWEN_IMAGE_EDIT_MODEL = "AbstractFramework/qwen-image-edit-2511-8bit";
 const QWEN_IMAGE_2512_MODEL = "AbstractFramework/qwen-image-2512-8bit";
 // Resolution values accepted by the advanced image edit's optional upscale step.
 const ALLOWED_UPSCALES = new Set(["1x", "1500", "2000", "2500"]);
-const MLX_VLM_MODEL = "mlx-community/gemma-4-e4b-it-8bit";
+export const MLX_VLM_MODEL = "mlx-community/gemma-4-e4b-it-8bit";
 const LTX_MODEL_HIGH_QUALITY = "dgrauet/ltx-2.3-mlx";
 const LTX_MODEL_STANDARD = "dgrauet/ltx-2.3-mlx-q8";
 
@@ -375,7 +375,7 @@ async function killProcessOnPort(port: number): Promise<string[]> {
 }
 
 /** True when the `mlx_vlm.server` executable is installed (known paths or PATH). */
-function isMlxVlmInstalled(): boolean {
+export function isMlxVlmInstalled(): boolean {
   const candidates = [
     join(homedir(), ".local", "bin", "mlx_vlm.server"),
     "/opt/homebrew/bin/mlx_vlm.server",
@@ -511,6 +511,130 @@ async function readStream(
     if (final) onChunk(final);
   } finally {
     reader.releaseLock();
+  }
+}
+
+/** Handle to a spawned mlx-vlm server process. */
+export interface AgentServerHandle {
+  proc: Subprocess;
+  port: number;
+  /** Resolves to the process exit code when the server exits. */
+  exited: Promise<number>;
+  /** Collected stdout text (resolves when the stream closes). */
+  stdoutText: Promise<string>;
+  /** Collected stderr text (resolves when the stream closes). */
+  stderrText: Promise<string>;
+}
+
+/**
+ * Spawn the mlx-vlm server on the given port (freeing the port first) and
+ * register it as the app's agent server process. Resolves once the process has
+ * been spawned — NOT when it exits — so callers can start it fire-and-forget
+ * and observe it later via `handle.exited`.
+ */
+export async function startAgentServerProcess(opts: {
+  port: number;
+  model?: string;
+  onLog?: (text: string) => void;
+}): Promise<{ ok: true; handle: AgentServerHandle } | { ok: false; error: string }> {
+  const portNum = opts.port;
+  const modelName = (opts.model ?? MLX_VLM_MODEL).trim() || MLX_VLM_MODEL;
+  const onLog = opts.onLog ?? (() => {});
+
+  try {
+    const bin = await getMlxVlmServerBin();
+
+    const killedPids = await killProcessOnPort(portNum);
+    if (killedPids.length > 0) {
+      onLog(`Freed port ${portNum} (killed PID(s): ${killedPids.join(", ")})\n`);
+    }
+
+    onLog(`Starting mlx-vlm server (${modelName}) on port ${portNum}...\n`);
+
+    const proc = spawn(
+      [bin, "--model", modelName, "--port", String(portNum), "--max-tokens", "256000"],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+
+    agentServerProc = proc;
+    agentServerPort = portNum;
+
+    const emitLog = (event: string, data: object) => {
+      if (event === "log") onLog((data as { text?: string }).text ?? "");
+    };
+    const stdoutText = streamToSSE(
+      proc.stdout as ReadableStream<Uint8Array>,
+      "Agent",
+      emitLog,
+    );
+    const stderrText = streamToSSE(
+      proc.stderr as ReadableStream<Uint8Array>,
+      "Agent",
+      emitLog,
+    );
+
+    // Clear the app's agent server state once the process exits.
+    proc.exited.then(() => {
+      if (agentServerProc === proc) {
+        agentServerProc = null;
+        agentServerPort = null;
+      }
+    });
+
+    return {
+      ok: true,
+      handle: { proc, port: portNum, exited: proc.exited, stdoutText, stderrText },
+    };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+/**
+ * Install the `mlx-vlm` Python tool via uv so the `mlx_vlm.server` executable
+ * becomes available. Idempotent — reports success when the binary is already on
+ * PATH even if `uv tool install` exits non-zero (e.g. already installed).
+ */
+export async function installMlxVlmTool(opts: {
+  uvPath: string;
+  onLog?: (text: string) => void;
+}): Promise<{ ok: boolean; error?: string }> {
+  const { uvPath, onLog } = opts;
+  const log = onLog ?? (() => {});
+  try {
+    log("Installing mlx-vlm...\n");
+    const proc = spawn([uvPath, "tool", "install", "mlx-vlm"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    activeProc = proc;
+
+    const emitLog = (event: string, data: object) => {
+      if (event === "log") log((data as { text?: string }).text ?? "");
+    };
+    const stdoutPromise = streamToSSE(
+      proc.stdout as ReadableStream<Uint8Array>,
+      "Install mlx-vlm",
+      emitLog,
+    );
+    const stderrText = await streamToSSE(
+      proc.stderr as ReadableStream<Uint8Array>,
+      "Install mlx-vlm",
+      emitLog,
+    );
+    await stdoutPromise;
+
+    const exitCode = await proc.exited;
+    // `uv tool install` re-installs cleanly, so a non-zero exit genuinely means
+    // failure — but fall back to the installed check for robustness.
+    if (exitCode === 0 || isMlxVlmInstalled()) {
+      return { ok: true };
+    }
+    return { ok: false, error: stderrText || `Process exited with code ${exitCode}` };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  } finally {
+    activeProc = null;
   }
 }
 
@@ -4312,38 +4436,19 @@ export async function renderMediaRoutes({
         label: "Installing mlx-vlm...",
       });
 
-      const proc = spawn([uvPath, "tool", "install", "mlx-vlm"], {
-        stdout: "pipe",
-        stderr: "pipe",
+      const result = await installMlxVlmTool({
+        uvPath,
+        onLog: (text) => send("log", { text }),
       });
 
-      activeProc = proc;
-
-      const stdoutPromise = streamToSSE(
-        proc.stdout as ReadableStream<Uint8Array>,
-        "Install mlx-vlm",
-        send,
-      );
-      const stderrText = await streamToSSE(
-        proc.stderr as ReadableStream<Uint8Array>,
-        "Install mlx-vlm",
-        send,
-      );
-      await stdoutPromise;
-
-      const exitCode = await proc.exited;
-      if (exitCode === 0) {
+      if (result.ok) {
         send("complete", { success: true });
       } else {
-        send("error", {
-          error: stderrText || `Process exited with code ${exitCode}`,
-          exitCode,
-        });
+        send("error", { error: result.error || "Failed to install mlx-vlm" });
       }
     } catch (e) {
       send("error", { error: String(e) });
     } finally {
-      activeProc = null;
       res.end();
     }
   });
@@ -4372,63 +4477,27 @@ export async function renderMediaRoutes({
     };
 
     try {
-      const bin = await getMlxVlmServerBin();
-
-      const killedPids = await killProcessOnPort(portNum);
-      if (killedPids.length > 0) {
-        send("log", {
-          text: `Freed port ${portNum} (killed PID(s): ${killedPids.join(", ")})\n`,
-        });
-      }
-
       send("progress", {
         status: "starting",
         label: `Starting mlx-vlm server (${modelName}) on port ${portNum}...`,
       });
 
-      const args: string[] = [
-        bin,
-        "--model",
-        modelName,
-        "--port",
-        String(portNum),
-        "--max-tokens",
-        "256000",
-      ];
-
-      // const draftModel = DRAFT_MODELS[modelName];
-      // if (draftModel) {
-      //   args.push(
-      //     "--draft-model",
-      //     draftModel,
-      //     "--draft-kind",
-      //     "mtp",
-      //     "--draft-block-size",
-      //     "4",
-      //   );
-      // }
-
-      const proc = spawn(args, {
-        stdout: "pipe",
-        stderr: "pipe",
+      const result = await startAgentServerProcess({
+        port: portNum,
+        model: modelName,
+        onLog: (text) => send("log", { text }),
       });
 
-      agentServerProc = proc;
-      agentServerPort = portNum;
+      if (!result.ok) {
+        send("error", { error: result.error });
+        return;
+      }
 
-      const stdoutPromise = streamToSSE(
-        proc.stdout as ReadableStream<Uint8Array>,
-        "Agent",
-        send,
-      );
-      const stderrText = await streamToSSE(
-        proc.stderr as ReadableStream<Uint8Array>,
-        "Agent",
-        send,
-      );
-      await stdoutPromise;
+      const { handle } = result;
+      await handle.stdoutText;
+      const stderrText = await handle.stderrText;
+      const exitCode = await handle.exited;
 
-      const exitCode = await proc.exited;
       if (agentStopRequested) {
         send("complete", { success: true, stopped: true });
         agentStopRequested = false;
@@ -4443,8 +4512,6 @@ export async function renderMediaRoutes({
     } catch (e) {
       send("error", { error: String(e) });
     } finally {
-      agentServerProc = null;
-      agentServerPort = null;
       res.end();
     }
   });

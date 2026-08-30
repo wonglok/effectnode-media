@@ -17,7 +17,14 @@ const __filename = fileURLToPath(import.meta.url);
 import { homedir } from "node:os";
 import express from "express";
 import cors from "cors";
-import { renderMediaRoutes } from "./render-media.js";
+import {
+  renderMediaRoutes,
+  installMlxVlmTool,
+  startAgentServerProcess,
+  isMlxVlmInstalled,
+  getAgentServerPort,
+  MLX_VLM_MODEL,
+} from "./render-media.js";
 import { agentBackend } from "./agent/agent-backend.js";
 import { generationQueueSetup } from "./generation-queue.js";
 import { createServer } from "node:http";
@@ -71,6 +78,8 @@ interface SetupState {
   imageEditTestRendered: boolean;
   videoTestRendered: boolean;
   qwenImageTestRendered: boolean;
+  mlxVlmInstalled: boolean;
+  mlxVlmStarted: boolean;
   allOK: boolean;
   error?: string;
 }
@@ -87,6 +96,8 @@ let setupState: SetupState = {
   backendRunning: false,
   imageTestRendered: false,
   videoTestRendered: false,
+  mlxVlmInstalled: false,
+  mlxVlmStarted: false,
   allOK: false,
   error: "",
 };
@@ -252,6 +263,8 @@ export async function runSetup({
       imageEditTestRendered: false,
       videoTestRendered: false,
       qwenImageTestRendered: false,
+      mlxVlmInstalled: false,
+      mlxVlmStarted: false,
       error: "",
       allOK: false,
     };
@@ -351,6 +364,48 @@ export async function runSetup({
       send("error", { error: setupState.error });
       res.end();
       return;
+    }
+
+    // Step 4: Install mlx-vlm (the local LLM server the Agent pages use)
+    setupState.mlxVlmInstalled = isMlxVlmInstalled();
+    if (!setupState.mlxVlmInstalled) {
+      setupState.mlxVlmInstalled = await runStep(
+        "mlx-vlm",
+        "Installing mlx-vlm LLM server...",
+        async () => {
+          const uvPath = await getUvPath();
+          const result = await installMlxVlmTool({
+            uvPath,
+            onLog: (text) => console.log("[mlx-vlm]", text),
+          });
+          return result.ok;
+        },
+      );
+      if (!setupState.mlxVlmInstalled) {
+        // Non-fatal: the Agent panel has a manual Install button.
+        console.warn("Failed to install mlx-vlm, skipping autostart...");
+      }
+    } else {
+      send("progress", {
+        step: "mlx-vlm",
+        status: "completed",
+        label: "mlx-vlm installed",
+      });
+    }
+
+    // Step 5: Autostart mlx-vlm server on port 8881
+    if (setupState.mlxVlmInstalled) {
+      setupState.mlxVlmStarted = await runStep(
+        "mlx-vlm-start",
+        `Starting mlx-vlm server on port ${AI_API_PORT}...`,
+        () => autostartMlxVlmServer(AI_API_PORT),
+      );
+      if (!setupState.mlxVlmStarted) {
+        // Non-fatal: the Agent panel can start the server manually.
+        console.warn("Failed to autostart mlx-vlm server");
+      }
+    } else {
+      setupState.mlxVlmStarted = false;
     }
 
     // Step 4: Test render video
@@ -699,6 +754,32 @@ export async function getUvPath(): Promise<string> {
   }
 
   throw new Error("uv not found");
+}
+
+/**
+ * Fire-and-forget start of the mlx-vlm LLM server on the given port. Returns
+ * true once the process has spawned (or when the app already started it).
+ * A process that dies almost immediately (e.g. missing binary) is treated as a
+ * failure so setup can report it as an error step.
+ */
+async function autostartMlxVlmServer(port: number): Promise<boolean> {
+  if (getAgentServerPort() !== null) return true;
+
+  const result = await startAgentServerProcess({
+    port,
+    model: MLX_VLM_MODEL,
+    onLog: (text) => console.log("[mlx-vlm]", text),
+  });
+  if (!result.ok) return false;
+
+  // If the process fails to spawn it exits almost immediately with code -1.
+  const settled = await Promise.race([
+    result.handle.exited.then((code) => code),
+    new Promise<number | "still-running">((resolve) =>
+      setTimeout(() => resolve("still-running"), 2000),
+    ),
+  ]);
+  return settled === "still-running" || settled === 0;
 }
 
 async function setupPythonEnvironment(): Promise<boolean> {
