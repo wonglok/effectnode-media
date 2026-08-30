@@ -805,97 +805,7 @@ export default function MovieStudioTab({ projectId }: Props) {
                 )}
               </div>
 
-              {/* Video Settings */}
-              <div className="flex flex-col gap-2 rounded-xl border border-ink-200 p-3 bg-ink-50/50">
-                <h3 className="text-sm font-semibold text-ink-900">
-                  Video Settings
-                </h3>
-                <div className="flex flex-wrap items-end gap-3">
-                  <label className="flex flex-col gap-1 text-xs font-medium text-ink-600">
-                    Aspect Ratio
-                    <select
-                      value={store.videoAspectRatio}
-                      onChange={(e) =>
-                        store.setVideoAspectRatio(
-                          e.target.value as VideoAspectRatio,
-                        )
-                      }
-                      disabled={store.videosRendering || store.rendering}
-                      className="px-2 py-1.5 text-xs bg-ink-50 border border-ink-200 rounded-lg text-ink-800 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/25 disabled:opacity-50"
-                    >
-                      <option value="1:1">1:1</option>
-                      <option value="16:9">16:9</option>
-                      <option value="9:16">9:16</option>
-                      <option value="4:3">4:3</option>
-                      <option value="3:4">3:4</option>
-                    </select>
-                  </label>
-                  <label className="flex flex-col gap-1 text-xs font-medium text-ink-600">
-                    Resolution
-                    <select
-                      value={store.videoResolution}
-                      onChange={(e) =>
-                        store.setVideoResolution(
-                          e.target.value as VideoResolution,
-                        )
-                      }
-                      disabled={store.videosRendering || store.rendering}
-                      className="px-2 py-1.5 text-xs bg-ink-50 border border-ink-200 rounded-lg text-ink-800 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/25 disabled:opacity-50"
-                    >
-                      <option value="320p">320p</option>
-                      <option value="480p">480p</option>
-                      <option value="512p">512p</option>
-                      <option value="576p">576p</option>
-                      <option value="640p">640p</option>
-                      <option value="720p">720p</option>
-                      <option value="1080p">1080p</option>
-                    </select>
-                  </label>
-                  <label className="flex flex-col gap-1 text-xs font-medium text-ink-600">
-                    Quality Pipeline
-                    <select
-                      value={store.videoQuality}
-                      onChange={(e) =>
-                        store.setVideoQuality(e.target.value as VideoQuality)
-                      }
-                      disabled={store.videosRendering || store.rendering}
-                      className="px-2 py-1.5 text-xs bg-ink-50 border border-ink-200 rounded-lg text-ink-800 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/25 disabled:opacity-50"
-                    >
-                      <option value="distilled">Distilled (fast)</option>
-                      <option value="one-stage">One-stage (balanced)</option>
-                      <option value="two-stage">Two-stage (highest)</option>
-                    </select>
-                  </label>
-                  <label className="flex flex-col gap-1 text-xs font-medium text-ink-600">
-                    Phase 1 Steps
-                    <input
-                      type="number"
-                      min={1}
-                      step={1}
-                      value={store.videoStage1Steps}
-                      onChange={(e) =>
-                        store.setVideoStage1Steps(Number(e.target.value))
-                      }
-                      disabled={store.videosRendering || store.rendering}
-                      className="w-20 px-2 py-1.5 text-xs bg-ink-50 border border-ink-200 rounded-lg text-ink-800 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/25 disabled:opacity-50"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1 text-xs font-medium text-ink-600">
-                    Phase 2 Steps
-                    <input
-                      type="number"
-                      min={1}
-                      step={1}
-                      value={store.videoStage2Steps}
-                      onChange={(e) =>
-                        store.setVideoStage2Steps(Number(e.target.value))
-                      }
-                      disabled={store.videosRendering || store.rendering}
-                      className="w-20 px-2 py-1.5 text-xs bg-ink-50 border border-ink-200 rounded-lg text-ink-800 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/25 disabled:opacity-50"
-                    />
-                  </label>
-                </div>
-              </div>
+              
 
               {/* ===== Scene Images ===== */}
               {store.result && (
@@ -1032,7 +942,6 @@ export default function MovieStudioTab({ projectId }: Props) {
                 </div>
               )}
 
-              {/* Scenes */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-semibold text-ink-900">Scenes</h3>
@@ -1050,6 +959,106 @@ export default function MovieStudioTab({ projectId }: Props) {
                       Generate All Videos
                     </button>
                   )}
+                </div>
+              </div>
+
+              {/* Video Settings */}
+              <div className="flex flex-col gap-2 rounded-xl border border-ink-200 p-3 bg-ink-50/50">
+                <h3 className="text-sm font-semibold text-ink-900">
+                  Video Settings
+                </h3>
+                <div className="flex flex-wrap items-end gap-3">
+                  <label className="flex flex-col gap-1 text-xs font-medium text-ink-600">
+                    Aspect Ratio
+                    <select
+                      value={store.videoAspectRatio}
+                      onChange={(e) =>
+                        store.setVideoAspectRatio(
+                          e.target.value as VideoAspectRatio,
+                        )
+                      }
+                      disabled={store.videosRendering || store.rendering}
+                      className="px-2 py-1.5 text-xs bg-ink-50 border border-ink-200 rounded-lg text-ink-800 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/25 disabled:opacity-50"
+                    >
+                      <option value="1:1">1:1</option>
+                      <option value="16:9">16:9</option>
+                      <option value="9:16">9:16</option>
+                      <option value="4:3">4:3</option>
+                      <option value="3:4">3:4</option>
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs font-medium text-ink-600">
+                    Resolution
+                    <select
+                      value={store.videoResolution}
+                      onChange={(e) =>
+                        store.setVideoResolution(
+                          e.target.value as VideoResolution,
+                        )
+                      }
+                      disabled={store.videosRendering || store.rendering}
+                      className="px-2 py-1.5 text-xs bg-ink-50 border border-ink-200 rounded-lg text-ink-800 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/25 disabled:opacity-50"
+                    >
+                      <option value="320p">320p</option>
+                      <option value="480p">480p</option>
+                      <option value="512p">512p</option>
+                      <option value="576p">576p</option>
+                      <option value="640p">640p</option>
+                      <option value="720p">720p</option>
+                      <option value="1080p">1080p</option>
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs font-medium text-ink-600">
+                    Quality Pipeline
+                    <select
+                      value={store.videoQuality}
+                      onChange={(e) =>
+                        store.setVideoQuality(e.target.value as VideoQuality)
+                      }
+                      disabled={store.videosRendering || store.rendering}
+                      className="px-2 py-1.5 text-xs bg-ink-50 border border-ink-200 rounded-lg text-ink-800 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/25 disabled:opacity-50"
+                    >
+                      <option value="distilled">Distilled (fast)</option>
+                      <option value="one-stage">One-stage (balanced)</option>
+                      <option value="two-stage">Two-stage (highest)</option>
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs font-medium text-ink-600">
+                    Phase 1 Steps
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={store.videoStage1Steps}
+                      onChange={(e) =>
+                        store.setVideoStage1Steps(Number(e.target.value))
+                      }
+                      disabled={store.videosRendering || store.rendering}
+                      className="w-20 px-2 py-1.5 text-xs bg-ink-50 border border-ink-200 rounded-lg text-ink-800 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/25 disabled:opacity-50"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs font-medium text-ink-600">
+                    Phase 2 Steps
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={store.videoStage2Steps}
+                      onChange={(e) =>
+                        store.setVideoStage2Steps(Number(e.target.value))
+                      }
+                      disabled={store.videosRendering || store.rendering}
+                      className="w-20 px-2 py-1.5 text-xs bg-ink-50 border border-ink-200 rounded-lg text-ink-800 focus:outline-none focus:border-tiffany-500 focus:ring-2 focus:ring-tiffany-500/25 disabled:opacity-50"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Scenes */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-ink-900">Scene Table</h3>
+                  
                 </div>
 
                 {store.videosRendering &&
