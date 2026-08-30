@@ -1344,13 +1344,31 @@ export default function MovieStudioTab({ projectId }: Props) {
                   )}
                 </div>
               ) : (
-                <button
-                  onClick={() => store.render(projectId)}
-                  className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-tiffany-500 hover:bg-tiffany-600 active:bg-tiffany-700 text-ink-950 text-sm font-semibold rounded-2xl transition-all duration-150 shadow-sm hover:shadow-md"
-                >
-                  {SparkleIcon}
-                  All in one button.
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => store.render(projectId)}
+                    className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-tiffany-500 hover:bg-tiffany-600 active:bg-tiffany-700 text-ink-950 text-sm font-semibold rounded-2xl transition-all duration-150 shadow-sm hover:shadow-md"
+                  >
+                    {SparkleIcon}
+                    All in one button.
+                  </button>
+                  {store.videosRendering ? (
+                    <div className="flex items-center gap-2 w-full px-4 py-3 bg-ink-50 border border-ink-200 rounded-2xl">
+                      {SpinnerIcon}
+                      <span className="text-sm font-medium text-ink-700">
+                        {store.videoStatus ?? "Rendering all videos..."}
+                      </span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => store.renderVideos(projectId)}
+                      className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-ink-100 hover:bg-ink-200 active:bg-ink-300 text-ink-900 text-sm font-semibold rounded-2xl transition-all duration-150 shadow-sm hover:shadow-md"
+                    >
+                      {SparkleIcon}
+                      Render All Videos Only
+                    </button>
+                  )}
+                </div>
               )}
 
               <div className="text-sm text-center">
