@@ -748,56 +748,6 @@ export function cancelActiveRender(): void {
   }
 }
 
-/**
- * Refine an already-generated image in-place at native resolution via SeedVR2
- * ("1x"). Best-effort: if refinement fails, the original image is kept.
- */
-async function refineImage1x(
-  outputPath: string,
-  onLog?: (text: string) => void,
-): Promise<void> {
-  const mlxgen = await getMlxgenBin();
-  const tmpPath = join(dirname(outputPath), `refine-1x-${Date.now()}.png`);
-  if (onLog) onLog("Refining with SeedVR2 (1x)…\n");
-  const result = await runCommand(
-    [
-      mlxgen,
-      "upscale",
-      "--model",
-      SEEDVR2_MODEL,
-      "--image-path",
-      outputPath,
-      "--resolution",
-      "1x",
-      "--seed",
-      "42",
-      "--mlx-cache-limit-gb",
-      "100",
-      "--output",
-      tmpPath,
-    ],
-    { onLog },
-  );
-  if (!result.success || !existsSync(tmpPath)) {
-    if (onLog) {
-      onLog("SeedVR2 1x refinement failed; keeping the original image.\n");
-    }
-    return;
-  }
-  // Replace the original with the refined result.
-  try {
-    copyFileSync(tmpPath, outputPath);
-  } catch {
-    // Ignore — keep the original image on failure.
-  } finally {
-    try {
-      unlinkSync(tmpPath);
-    } catch {
-      // already removed
-    }
-  }
-}
-
 /** Generate a single character/place image (text-to-image) and back it up. */
 export async function generateAssetImage(
   projectId: string,
@@ -836,7 +786,6 @@ export async function generateAssetImage(
     return { error: result.output || `Failed to generate ${kind} ${slug}` };
   }
 
-  await refineImage1x(outputPath, onLog);
   backupFile(outputPath, projectId);
   return {
     filename: outputFile,
